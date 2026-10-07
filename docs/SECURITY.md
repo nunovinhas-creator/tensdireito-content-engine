@@ -11,7 +11,7 @@
 
 ## 2. Recolha responsável
 
-- Respeitar `robots.txt` e termos de utilização de cada fonte; validação documentada em `sources.yaml` (`validated_at`, `notes`).
+- Respeitar `robots.txt` e termos de utilização de cada fonte; validação documentada em `sources.yaml` (`validated_at`, `notes`). Só endpoints validados e `ACTIVE` são recolhidos; URLs nunca são assumidos.
 - `User-Agent` identificável do projecto, com contacto.
 - Rate limiting por fonte (`rate_limit_seconds`); sem pedidos paralelos à mesma fonte.
 - Preferir feeds RSS/Atom e páginas públicas; não contornar paywalls, autenticação ou medidas anti-bot.
@@ -31,15 +31,16 @@
 - Não recolher nem guardar dados pessoais de autores de publicações em redes sociais para além do URL da publicação.
 - Não guardar dados de leitores/utilizadores do TensDireito.com neste sistema.
 - Se documentos recolhidos contiverem dados pessoais incidentais (ex.: nomes em notícias), não são extraídos para campos estruturados nem usados em prompts além do necessário.
-- Política de retenção: `raw_item` e `document` não associados a nenhum evento são apagados após `retention_days` (inicial 90); documentos usados como evidência são mantidos para rastreabilidade.
+- Política de retenção: `raw_item` e `source_document` não associados a nenhum evento são apagados após `retention_days` (inicial 90); documentos usados como evidência são mantidos para rastreabilidade.
 - Envio de texto a fornecedores de IA: avaliar os termos de tratamento de dados do fornecedor escolhido antes de activar (decisão pendente).
 
 ## 5. Integridade editorial e responsabilidade
 
-- Nenhuma publicação sem aprovação humana (v1).
-- Todas as decisões humanas e overrides ficam em `editorial_decision` (quem, quando, porquê).
+- Nenhuma publicação automática e nenhuma aprovação sem decisão humana (V1). A IA nunca é registada como revisor.
+- Todas as decisões humanas e overrides ficam em `editorial_decision` (quem, quando, decisão, nota).
+- O override de verificação nunca produz `VERIFIED_OFFICIAL` (ver [DECISION_LOG.md](DECISION_LOG.md), DEC-004).
 - Conteúdo publicado mantém ligação às claims e fontes, permitindo responder a pedidos de correcção.
-- Correcções a conteúdo já exportado geram nova versão; a anterior fica `superseded` (nunca apagada).
+- Correcções a conteúdo já exportado geram nova versão; a anterior fica substituída (`superseded_by`), nunca apagada.
 
 ## 6. Cadeia de fornecimento (dependências)
 
@@ -52,9 +53,11 @@
 - Permissões mínimas no `GITHUB_TOKEN` (`contents: read` por defeito).
 - Actions de terceiros fixadas por SHA.
 - Workflows agendados não fazem push para branches protegidos nem publicam conteúdo.
-- A base de dados de produção não é guardada no repositório git (decisão de armazenamento pendente — ver [ROADMAP.md](ROADMAP.md)).
+- A base de dados de produção não é guardada no repositório git.
+- Nenhum workflow agendado é activado antes da decisão sobre persistência durável e estado partilhado (D8 em [ROADMAP.md](ROADMAP.md#decisões-pendentes)); um SQLite local num runner efémero não é solução de produção.
 
 ## 8. Acesso
 
-- Na v1, o sistema é operado por uma ou poucas pessoas localmente; sem interface exposta à internet.
+- Na V1, o sistema é operado por uma ou poucas pessoas localmente; sem interface exposta à internet.
+- Sem autenticação na V1: a identificação do revisor (`actor`) é declarativa. É suficiente para rastreabilidade interna, não para prova de identidade; qualquer uso multi-utilizador ou remoto exige autenticação.
 - Qualquer futura interface web ou API exigirá autenticação e revisão de segurança própria antes de ser exposta.

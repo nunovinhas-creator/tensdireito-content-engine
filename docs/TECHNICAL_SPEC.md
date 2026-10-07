@@ -1,42 +1,47 @@
 # Especificação Técnica
 
-> Estado: **especificação para a fase de implementação**. Nada aqui está ainda implementado. Nomes de pacotes, módulos e comandos são propostas a confirmar no início da Fase 1 (ver [ROADMAP.md](ROADMAP.md)).
+> Estado: **especificação para a fase de implementação (M1)**. Nada aqui está ainda implementado. A linguagem, o gestor de projecto, o nome do pacote e o nome da CLI estão **decididos** (DEC-015 no [DECISION_LOG.md](DECISION_LOG.md)); nomes de módulos internos e de subcomandos podem ser ajustados na implementação, mantendo os conceitos.
 
 ## 1. Stack
 
 | Área | Escolha v1 | Notas |
 |------|-----------|-------|
-| Linguagem | Python 3.12+ | |
-| Base de dados | SQLite (ficheiro local) | Migração prevista para PostgreSQL (ver ADR-002). |
+| Linguagem | Python 3.12+ | Decidido (DEC-015). |
+| Base de dados | SQLite (ficheiro local) | Migração prevista para PostgreSQL (ADR-002, DEC-013). Não é solução suficiente para execução agendada em runners efémeros. |
 | Acesso a dados | `sqlite3` da biblioteca padrão, atrás de uma camada de repositório | Evitar ORM na v1 para reduzir dependências; reavaliar na migração para PostgreSQL. |
 | Configuração | Ficheiros YAML versionados + variáveis de ambiente para segredos | |
 | CLI | `argparse` (biblioteca padrão) | |
 | Testes | `pytest` | |
 | Qualidade | `ruff` (lint + format) | |
-| Gestão de dependências | `pyproject.toml` | Ferramenta de gestão (pip/uv) a decidir. |
-| Automação | GitHub Actions (fase posterior) | Apenas invoca comandos CLI. |
+| Gestão de projecto e dependências | `uv` + `pyproject.toml` + `uv.lock` | Decidido (DEC-015). |
+| Pacote | `tensdireito_content_engine` | Decidido (DEC-015). |
+| CLI | `tde` | Decidido (DEC-015). |
+| Automação | GitHub Actions (fase posterior) | Apenas invoca comandos CLI; só depois da decisão de persistência durável (D8). |
+| Arquitectura | Monólito modular | Sem microserviços (DEC-016). |
 
 ### Política de dependências
 
 - Preferir a biblioteca padrão.
 - Cada dependência externa tem de ser justificada no PR que a introduz e listada na secção 7.
 - Dependências esperadas na Fase 1 (a confirmar): cliente HTTP, parser de RSS/Atom, extractor de HTML, parser YAML.
-- SDKs de fornecedores de IA só são instalados como *extras* opcionais (ex.: `pip install .[anthropic]`), nunca como dependência base.
+- SDKs de fornecedores de IA só são instalados como *extras* opcionais (ex.: `uv sync --extra <fornecedor>`), nunca como dependência base.
+- Nenhuma dependência é adicionada nas fases de documentação.
 
 ## 2. Estrutura de código proposta
 
 ```
 tensdireito-content-engine/
 ├── pyproject.toml
+├── uv.lock
 ├── README.md
 ├── docs/
 ├── config/
-│   ├── sources.yaml          # registo de fontes (SOURCES.md)
-│   ├── taxonomy.yaml         # temas e tipos de alteração
+│   ├── sources.yaml          # source_registry + source_endpoint (SOURCES.md)
+│   ├── taxonomy.yaml         # categorias, subcategorias, audiências, impact_type, legal_stage (EDITORIAL_POLICY.md)
 │   ├── scoring.yaml          # pesos e limiares (SCORING.md)
 │   └── llm.yaml              # fornecedor/modelo por tarefa (AI_RULES.md)
 ├── prompts/                  # prompts versionados, um ficheiro por tarefa e versão
-├── src/tensdireito_engine/
+├── src/tensdireito_content_engine/
 │   ├── cli.py
 │   ├── config.py
 │   ├── models.py             # dataclasses das entidades (DATA_MODEL.md)
@@ -49,7 +54,9 @@ tensdireito-content-engine/
 │   ├── verify/
 │   ├── scoring/
 │   ├── generate/             # um gerador por formato
-│   ├── review/
+│   ├── checks/               # validações automáticas pós-geração
+│   ├── review/               # revisão humana e decisões editoriais
+│   ├── export/
 │   ├── report/
 │   └── llm/                  # base.py (interface LLMProvider), null.py, <fornecedor>.py
 ├── tests/
@@ -59,24 +66,30 @@ tensdireito-content-engine/
 
 ## 3. Interface de linha de comandos
 
-Um único executável (nome provisório `tde`). Cada etapa é um subcomando independente e idempotente.
+Um único executável, `tde`. Cada etapa é um subcomando independente e idempotente. Execução local: `uv run tde <comando>`.
 
 | Comando | Descrição | Escreve |
 |---------|-----------|---------|
 | `tde init` | Cria a base de dados e aplica migrações. | esquema |
 | `tde sources validate` | Valida `config/sources.yaml`. | — |
-| `tde collect [--source ID] [--since DATA]` | Recolhe itens das fontes activas. | `raw_item`, `run` |
-| `tde add-manual --url URL [--note TEXTO]` | Regista manualmente uma pista (ex.: vista numa rede social). | `raw_item` |
-| `tde normalize` | Normaliza `RawItem` pendentes. | `document` |
-| `tde classify` | Classifica documentos pendentes. | `document.topics`, `document.change_type` |
-| `tde cluster` | Agrupa documentos em acontecimentos. | `event`, `event_document` |
-| `tde verify [--event ID]` | Extrai claims e associa evidência. | `claim`, `evidence`, `event.verification_status` |
-| `tde score` | Calcula pontuações e decide selecção. | `score`, `event.status` |
-| `tde generate --event ID --format FORMAT` | Gera conteúdo num formato. | `content_piece` |
-| `tde review list` / `approve ID` / `reject ID --reason` | Revisão humana. | `content_piece.status`, `editorial_decision` |
-| `tde export --status ready_to_publish --out DIR` | Exporta conteúdo aprovado (Markdown/JSON). | ficheiros |
+| `tde collect [--source ID] [--since DATA]` | Recolhe itens dos endpoints `ACTIVE`. | `raw_item`, `run` |
+| `tde add-manual --url URL [--note TEXTO]` | Regista manualmente uma pista; tier pelo domínio validado, senão T4. | `raw_item` |
+| `tde normalize` | Normaliza `raw_item` pendentes. | `source_document` |
+| `tde classify` | Classifica documentos pendentes (propostas). | `source_document.proposed_*` |
+| `tde cluster` | Cria ou actualiza eventos. | `event`, `event_document` |
+| `tde verify [--event ID]` | Extrai claims, associa evidência, calcula verificação. | `claim`, `source_evidence`, `event.verification_status` |
+| `tde score` | Calcula `editorial_score` e propõe estado editorial. | `score`, `event.editorial_status` |
+| `tde generate --event ID --format FORMAT` | Gera conteúdo para um evento em `EDITORIAL_REVIEW`. | `content_piece` |
+| `tde check [--content ID]` | Corre as validações automáticas. | `content_piece.checks`, `review_status` |
+| `tde review list` | Lista conteúdos em `HUMAN_REVIEW_REQUIRED`. | — |
+| `tde review approve\|reject\|needs-revision ID --reviewer NOME [--note TEXTO]` | Revisão humana. | `content_piece.review_status`, `editorial_decision` |
+| `tde event promote\|watch\|reject\|archive\|reopen\|merge ID --reviewer NOME [--note TEXTO]` | Decisões editoriais sobre eventos (nota obrigatória onde [DATA_MODEL.md](DATA_MODEL.md#37-editorial_decisiondecision) o exige). | `event.editorial_status`, `editorial_decision` |
+| `tde claim override\|add-evidence ...` | Override de verificação (nunca para `VERIFIED_OFFICIAL`) e evidência manual. | `claim`, `source_evidence`, `editorial_decision` |
+| `tde export --out DIR` | Exporta conteúdos `APPROVED` ainda não exportados (Markdown/JSON). Não publica. | ficheiros, `exported_at` |
 | `tde report [--run ID]` | Mostra o relatório de uma execução. | — |
-| `tde run` | Executa `collect → normalize → classify → cluster → verify → score` e produz relatório. | tudo acima |
+| `tde run` | Executa `collect → normalize → classify → cluster → verify → score` e produz relatório. | tudo acima até `score` |
+
+Não existe comando de publicação na V1.
 
 Opções globais: `--db PATH`, `--config DIR`, `--dry-run` (não escreve), `--no-llm` (desactiva IA, usa só regras), `--verbose`.
 
@@ -88,8 +101,8 @@ Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` suc
 
 ```python
 class Collector(Protocol):
-    source_type: str                     # "rss" | "html_page" | "manual"
-    def fetch(self, source: Source, since: datetime | None) -> Iterable[RawItemIn]: ...
+    endpoint_type: str                   # "rss" | "html_page" | "manual"
+    def fetch(self, endpoint: SourceEndpoint, since: datetime | None) -> Iterable[RawItemIn]: ...
 ```
 
 - Não normaliza nem interpreta conteúdo — apenas obtém e guarda o bruto.
@@ -135,7 +148,9 @@ class Generator(Protocol):
     def generate(self, event: VerifiedEventBundle) -> ContentDraft: ...
 ```
 
-`VerifiedEventBundle` contém o evento, as claims com evidência e as fontes. O gerador **só** pode usar informação presente no bundle.
+`VerifiedEventBundle` contém o evento, as claims (com `verification_status` e `legal_stage`), as evidências e as fontes. O gerador **só** pode usar informação presente no bundle e só claims `VERIFIED_OFFICIAL` ou `VERIFIED_EDITORIAL` (ver [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-7--generate)).
+
+Os blocos de código desta secção são esboços de interface para orientar a implementação, não código da aplicação.
 
 ## 5. Configuração
 
@@ -150,12 +165,12 @@ class Generator(Protocol):
 |-----------|---------------|
 | Idempotência | Repetir uma etapa sem dados novos não cria registos duplicados (chaves únicas por hash/URL). |
 | Re-execução | Qualquer etapa pode ser corrida isoladamente sobre os dados existentes. |
-| Rastreabilidade | Todo o registo guarda `run_id` de criação; toda a claim publicada tem ≥1 evidência. |
+| Rastreabilidade | Todo o registo guarda `run_id` de criação; toda a claim usada em conteúdo aprovado tem ≥1 evidência validada. |
 | Determinismo | Com `--no-llm`, o resultado de uma etapa é determinista para os mesmos dados. |
 | Tolerância a falhas | Falha de uma fonte ou chamada de IA não aborta a execução; fica registada. |
 | Testabilidade | Testes correm offline com fixtures; nenhum teste chama a rede ou um fornecedor de IA. |
 | Observabilidade | Logs estruturados (JSON lines) por execução; relatório legível por humanos. |
-| Língua | Conteúdo produzido em português europeu. |
+| Língua | Conteúdo publicado em português europeu, segundo o AO1990 (DEC-017). A documentação técnica interna não está sujeita a esta norma. |
 | Custo | Chamadas de IA contabilizadas por execução (tokens); limite configurável por execução. |
 
 ## 7. Registo de dependências
@@ -168,5 +183,6 @@ Nenhuma dependência adicionada nesta fase (apenas documentação). Esta tabela 
 
 ## 8. Execução
 
-- **Manual (Fases 1–3):** `tde run` seguido de `tde review` e `tde generate`, executados localmente.
-- **Agendada (Fase 4+):** workflow GitHub Actions que corre `tde run` em horário definido, guarda a base de dados/relatório como artefacto ou em armazenamento persistente (decisão pendente — ver ambiguidades em [ROADMAP.md](ROADMAP.md)) e notifica com o relatório.
+- **Manual (Fases 1–4):** `tde run`, seguido de `tde generate`, `tde check`, `tde review` e `tde export`, executados localmente.
+- **Agendada (Fase 5+):** workflow GitHub Actions que corre `tde run` em horário definido e notifica com o relatório. **Só pode ser activada depois de decidida a persistência durável e o estado partilhado** (D8 em [ROADMAP.md](ROADMAP.md#decisões-pendentes)): um SQLite local num runner efémero não persiste entre execuções e não é solução suficiente para produção.
+- Em nenhum modo o sistema publica conteúdo; a V1 termina em `APPROVED → EXPORT`.
