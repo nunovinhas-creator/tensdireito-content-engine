@@ -72,6 +72,7 @@ Um único executável, `tde`. Cada etapa é um subcomando independente e idempot
 |---------|-----------|---------|
 | `tde init` | Cria a base de dados e aplica migrações. | esquema |
 | `tde sources validate` | Valida `config/sources.yaml`. | — |
+| `tde sources sync` | Sincroniza `config/sources.yaml` → SQLite (unidireccional; só os campos projectados; exige base criada por `tde init`). Contrato no [ROADMAP.md](ROADMAP.md#m27--sincronização-explícita-de-sourcesyaml-para-sqlite) M2.7 (DEC-028, DEC-029). | `source_registry`, `source_endpoint` |
 | `tde collect [--source ID] [--since DATA]` | Recolhe itens dos endpoints `ACTIVE`. | `raw_item`, `run` |
 | `tde add-manual --url URL [--note TEXTO]` | Regista manualmente uma pista; tier pelo domínio validado, senão T4. | `raw_item` |
 | `tde normalize` | Normaliza `raw_item` pendentes. | `source_document` |
@@ -93,7 +94,7 @@ Não existe comando de publicação na V1.
 
 Opções globais: `--db PATH`, `--config DIR`, `--dry-run` (não escreve), `--no-llm` (desactiva IA, usa só regras), `--verbose`.
 
-Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5) e `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)).
+Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5) e `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)). Definido, por implementar: `tde [--config DIR] [--db PATH] sources sync` (M2.7) — não cria a base de dados nem aplica migrações (`tde init` continua a não sincronizar fontes), corre numa transacção única, não acede à rede e não tem `--dry-run`.
 
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 
@@ -170,7 +171,7 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 |-----------|---------------|
 | Idempotência | Repetir uma etapa sem dados novos não cria registos duplicados (chaves únicas por hash/URL). |
 | Re-execução | Qualquer etapa pode ser corrida isoladamente sobre os dados existentes. |
-| Rastreabilidade | Todo o registo guarda `run_id` de criação; toda a claim usada em conteúdo aprovado tem ≥1 evidência validada. |
+| Rastreabilidade | As entidades com relação a `run` definida no modelo ([DATA_MODEL.md](DATA_MODEL.md)) guardam o `run` de criação (`created_in_run`); as restantes — por exemplo, `source_registry` e `source_endpoint`, espelho operacional do registo versionado — não têm essa relação (DEC-028). Toda a claim usada em conteúdo aprovado tem ≥1 evidência validada. |
 | Determinismo | Com `--no-llm`, o resultado de uma etapa é determinista para os mesmos dados. |
 | Tolerância a falhas | Falha de uma fonte ou chamada de IA não aborta a execução; fica registada. |
 | Testabilidade | Testes correm offline com fixtures; nenhum teste chama a rede ou um fornecedor de IA. |

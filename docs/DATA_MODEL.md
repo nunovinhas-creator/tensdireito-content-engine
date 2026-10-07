@@ -15,7 +15,7 @@ source_registry ──< source_endpoint ──< raw_item ──1:1── source_
                                                                                                                          │
                                        editorial_decision (todas as decisões humanas, incluindo revisão humana) ─────────┘
 
-run ──< (todos os registos guardam created_in_run)        llm_call (auditoria de IA)
+run ──< (registos com relação a run guardam created_in_run)        llm_call (auditoria de IA)
 ```
 
 Três dimensões independentes de um `event` — nunca se substituem umas às outras (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md)):
@@ -53,7 +53,7 @@ A publicação nos canais **não** é um nível gerido pelo sistema na V1 (ver s
 Detalhe e regras em [SOURCES.md](SOURCES.md).
 
 #### `source_registry`
-Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdade). A sincronização é unidireccional YAML → SQLite; os campos operacionais de `source_endpoint` (`last_success_at`, `last_error`) só existem na base de dados (DEC-027).
+Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdade). A sincronização é unidireccional YAML → SQLite; os campos operacionais de `source_endpoint` (`last_success_at`, `last_error`) só existem na base de dados (DEC-027). Mais precisamente, `source_registry` e `source_endpoint` são o espelho operacional dos **campos do registo projectados pelo domínio/storage**, por `tde sources sync` (M2.7, definido; DEC-028): `fetch` fica fora da projecção no M2.7 e a coluna fica nula. Identidade pelo `id` do YAML; uma entrada retirada do YAML só é removida se nenhum `raw_item` a referenciar, e um endpoint referenciado não muda de `source_id` nem de `endpoint_type` (DEC-029). Estas tabelas não têm `created_in_run` (DEC-028). Nesta fase, `validated_at`/`validated_by` constituem o estado de validação operacional; `VALIDATE_SOURCE` em `editorial_decision` fica para unidade futura (DEC-030).
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
@@ -367,7 +367,7 @@ DRAFT ──(validações automáticas passam)──▶ HUMAN_REVIEW_REQUIRED �
 ## 4. Notas de implementação
 
 - Colunas `json` em SQLite como `TEXT` com JSON válido; em PostgreSQL como `JSONB`.
-- Todas as tabelas com `created_at`, `updated_at`, `created_in_run` (quando aplicável).
+- Todas as tabelas com `created_at`, `updated_at`, `created_in_run` (quando aplicável: só onde a relação com `run` está definida neste modelo; `source_registry` e `source_endpoint` não a têm — DEC-028).
 - Migrações numeradas (`storage/migrations/0001_init.sql`, ...), aplicadas por `tde init`; só para a frente, nunca editadas depois de aplicadas, registadas em `schema_migration` (DEC-026; contrato em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)).
 - Todo o SQL vive na camada `storage`; sem funcionalidades exclusivas de SQLite (ver [DECISION_LOG.md](DECISION_LOG.md), DEC-013).
 - Nunca apagar `raw_item`/`source_document` usados como evidência; a política de retenção aplica-se apenas a itens nunca associados a eventos (ver [SECURITY.md](SECURITY.md)).
