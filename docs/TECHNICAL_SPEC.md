@@ -94,7 +94,7 @@ Não existe comando de publicação na V1.
 
 Opções globais: `--db PATH`, `--config DIR`, `--dry-run` (não escreve), `--no-llm` (desactiva IA, usa só regras), `--verbose`.
 
-Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5) e `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)). Definido, por implementar: `tde [--config DIR] [--db PATH] sources sync` (M2.7) — não cria a base de dados nem aplica migrações (`tde init` continua a não sincronizar fontes), corre numa transacção única, não acede à rede e não tem `--dry-run`.
+Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5), `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)) e `tde [--config DIR] [--db PATH] sources sync` (M2.7, a integrar; contrato e saída em [ROADMAP.md](ROADMAP.md#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)) — não cria a base de dados nem aplica migrações (`tde init` continua a não sincronizar fontes), corre numa transacção única, não acede à rede e não tem `--dry-run`.
 
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 
