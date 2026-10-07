@@ -77,6 +77,7 @@ O registo vive num ficheiro versionado (a criar na implementação), revisto por
   domains: []                       # preenchido só após validação
   registry_status: CANDIDATE        # CANDIDATE | VALIDATED | INACTIVE
   validated_at: null
+  validated_by: null                # pessoa que validou; obrigatório em VALIDATED
   notes: "Por validar: endpoints, termos de utilização, robots.txt."
   endpoints:
     - id: exemplo_fonte_oficial_noticias
@@ -89,7 +90,14 @@ O registo vive num ficheiro versionado (a criar na implementação), revisto por
         max_items: 50
         selectors: {}               # apenas html_page
       validated_at: null
+      validated_by: null            # obrigatório em VALIDATED/ACTIVE
 ```
+
+Formato do ficheiro:
+- **Codificação e sintaxe:** UTF-8; outra codificação não é suportada. Uma chave repetida no mesmo mapeamento é erro (DEC-025).
+- **Schema fechado:** cada fonte e cada endpoint só aceita os campos do exemplo acima; qualquer outro campo é erro. O conteúdo de `fetch` não é validado para além de ser um mapeamento (DEC-023).
+- **Estados:** `registry_status` e `endpoint_status` escrevem-se na forma documental em maiúsculas (`CANDIDATE`, `VALIDATED`, `ACTIVE`, `INACTIVE`); minúsculas são erro. Na implementação são convertidos para o valor interno em minúsculas. `entity_type`, `endpoint_type` e `tier` escrevem-se como no exemplo, que é também o valor interno (DEC-024).
+- **Datas:** `validated_at` em ISO 8601 com fuso explícito; nenhum fuso é assumido.
 
 Regras:
 - Um endpoint só é recolhido em `ACTIVE`, e só passa a `VALIDATED`/`ACTIVE` após validação manual registada (URL confirmado, mecanismo, termos de utilização, `robots.txt`), com `validated_at` e decisão `VALIDATE_SOURCE` em `editorial_decision`.

@@ -3,15 +3,15 @@
 O YAML é a fonte de verdade (DATA_MODEL.md §2.1); o formato é o de SOURCES.md §4.
 Regras aplicadas — só as documentadas:
 
-- esquema: raiz em lista; cada fonte e cada endpoint é um mapeamento com as chaves do
-  formato, campos obrigatórios presentes e tipos YAML correctos;
+- esquema fechado (DEC-023): raiz em lista; cada fonte e cada endpoint é um mapeamento
+  só com as chaves do formato, campos obrigatórios presentes e tipos YAML correctos;
 - IDs únicos (fontes entre si; endpoints entre si, em todo o registo);
 - tiers e restantes enumerações válidos;
 - invariantes de domínio do M2.2 (ex.: fonte `CANDIDATE` sem `domains`; `VALIDATED` e
   `ACTIVE` com `validated_at` e `validated_by`);
 - endpoints `ACTIVE` exigem `url` e `validated_at` (SOURCES.md §4).
 
-Representação das enumerações: a do formato documentado. Estados em maiúsculas
+Representação das enumerações (DEC-024): a do formato documentado. Estados em maiúsculas
 (`CANDIDATE`), convertidos para o valor interno em minúsculas (DATA_MODEL.md, convenção
 de nomes); `entity_type`, `endpoint_type` e `tier` tal como o valor interno.
 

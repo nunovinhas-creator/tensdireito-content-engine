@@ -159,7 +159,7 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 - `TDE_DB_PATH` — caminho da base de dados (por defeito `data/tde.sqlite3`).
 - Fuso horário de referência: `Europe/Lisbon` para apresentação; armazenamento em UTC (ISO 8601).
 - Implementado (M2.2): `config.py` contém apenas nome, versão (a do pacote) e ambiente (`development` por defeito, `test`). Não lê variáveis de ambiente; os segredos acima entram quando tiverem consumidor.
-- Implementado (M2.5): `config/sources.yaml` é localizado no directório de configuração — por defeito `config/`, relativo ao directório de trabalho, ou o indicado pela opção global `--config DIR` (secção 3). É lido por `sources/` e validado por `tde sources validate` (local, sem rede, sem escrita).
+- Implementado (M2.5): `config/sources.yaml` é localizado no directório de configuração — por defeito `config/`, relativo ao directório de trabalho, ou o indicado pela opção global `--config DIR` (secção 3). É lido como UTF-8 por `sources/` e validado por `tde sources validate` (local, sem rede, sem escrita); regras do formato em SOURCES.md §4 (DEC-023 a DEC-025).
 
 ## 6. Requisitos não funcionais
 

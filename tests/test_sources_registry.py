@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+import yaml
 
 from tensdireito_content_engine.domain import (
     EndpointStatus,
@@ -366,3 +367,116 @@ def test_validated_at_must_be_iso_8601(value):
 def test_endpoint_belongs_to_parent_source():
     loaded = parse_sources([source(id="fonte_x", endpoints=[endpoint()])])
     assert loaded.endpoints[0].source_id == "fonte_x"
+
+
+# Decisões de formato (DEC-023, DEC-024, DEC-025)
+
+
+DOCS = Path(__file__).parent.parent / "docs"
+
+
+def test_documented_example_is_valid():
+    # O exemplo de SOURCES.md §4 cumpre o schema fechado e a representação dos estados.
+    text = (DOCS / "SOURCES.md").read_text(encoding="utf-8")
+    block = text.split("## 4. Registo")[1].split("```yaml\n")[1].split("```")[0]
+    loaded = parse_sources(yaml.safe_load(block))
+    assert [s.id for s in loaded.sources] == ["exemplo_fonte_oficial"]
+    assert [e.id for e in loaded.endpoints] == ["exemplo_fonte_oficial_noticias"]
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"id_fonte": "x"},
+        {"endpoints": [{"id": "e", "endpoint_type": "rss", "frequency": "daily"}]},
+    ],
+)
+def test_dec_023_unknown_field_at_any_supported_level_is_an_error(fields):
+    assert "campo desconhecido" in single_error([source(**fields)])
+
+
+def test_dec_023_fetch_content_is_not_a_validated_level():
+    fetch = {"frequency": "daily", "qualquer": [1, {"a": None}], "selectors": {}}
+    loaded = parse_sources([source(endpoints=[endpoint(fetch=fetch)])])
+    (parsed,) = loaded.endpoints
+    assert not hasattr(parsed, "fetch")  # não convertido: SourceEndpoint (M2.2) não o tem
+
+
+@pytest.mark.parametrize("value", ["", None, {}])
+def test_dec_023_fetch_absent_null_or_empty_mapping_is_accepted(value):
+    data = endpoint() if value == "" else endpoint(fetch=value)
+    assert len(parse_sources([source(endpoints=[data])]).endpoints) == 1
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("CANDIDATE", RegistryStatus.CANDIDATE),
+        ("VALIDATED", RegistryStatus.VALIDATED),
+        ("INACTIVE", RegistryStatus.INACTIVE),
+    ],
+)
+def test_dec_024_registry_status_uppercase_is_accepted(value, expected):
+    fields = VALIDATION if value == "VALIDATED" else {}
+    (parsed,) = parse_sources([source(registry_status=value, **fields)]).sources
+    assert parsed.registry_status is expected
+    assert parsed.registry_status.value == value.lower()
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("CANDIDATE", EndpointStatus.CANDIDATE),
+        ("VALIDATED", EndpointStatus.VALIDATED),
+        ("ACTIVE", EndpointStatus.ACTIVE),
+        ("INACTIVE", EndpointStatus.INACTIVE),
+    ],
+)
+def test_dec_024_endpoint_status_uppercase_is_accepted(value, expected):
+    fields = {**VALIDATION, "url": "https://exemplo.invalid/"}
+    data = endpoint(endpoint_status=value, **fields)
+    (parsed,) = parse_sources([source(endpoints=[data])]).endpoints
+    assert parsed.endpoint_status is expected
+
+
+@pytest.mark.parametrize("value", ["candidate", "validated", "inactive", "Candidate"])
+def test_dec_024_registry_status_lowercase_is_an_error(value):
+    error = single_error([source(registry_status=value)])
+    assert error.endswith(
+        f"registry_status inválido: {value!r} (aceites: CANDIDATE | VALIDATED | INACTIVE)"
+    )
+
+
+@pytest.mark.parametrize("value", ["candidate", "validated", "active", "inactive"])
+def test_dec_024_endpoint_status_lowercase_is_an_error(value):
+    error = single_error([source(endpoints=[endpoint(endpoint_status=value)])])
+    assert error.endswith(
+        f"endpoint_status inválido: {value!r} (aceites: CANDIDATE | VALIDATED | ACTIVE | INACTIVE)"
+    )
+
+
+def test_dec_025_repeated_key_in_endpoint_is_an_error(tmp_path):
+    text = MINIMAL_SOURCE + (
+        "  endpoints:\n"
+        "    - id: fonte_a_pagina\n"
+        "      endpoint_type: html_page\n"
+        "      endpoint_status: CANDIDATE\n"
+        "      endpoint_status: ACTIVE\n"
+    )
+    (error,) = errors_for(tmp_path, text)
+    assert "chave repetida: 'endpoint_status'" in error
+
+
+def test_dec_025_utf8_file_is_accepted(tmp_path):
+    path = tmp_path / "sources.yaml"
+    path.write_bytes(MINIMAL_SOURCE.replace("Fonte A", "Segurança Social — Ação").encode("utf-8"))
+    assert load_sources(path).sources[0].name == "Segurança Social — Ação"
+
+
+@pytest.mark.parametrize("encoding", ["utf-16", "latin-1"])
+def test_dec_025_other_encodings_are_an_error(tmp_path, encoding):
+    path = tmp_path / "sources.yaml"
+    path.write_bytes(MINIMAL_SOURCE.replace("Fonte A", "Segurança").encode(encoding))
+    with pytest.raises(SourceRegistryError) as exc:
+        load_sources(path)
+    assert exc.value.errors == (f"ficheiro não está em UTF-8: {path}",)

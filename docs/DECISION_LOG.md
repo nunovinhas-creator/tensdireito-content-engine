@@ -207,6 +207,36 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Aceite
 - **Data:** 2026-10-07
 
+### DEC-023 — `config/sources.yaml` tem schema fechado
+- **Problema:** SOURCES.md §4 diz que `tde sources validate` "verifica o esquema", mas apresenta o formato como conceptual e não diz se um campo fora do formato é erro ou é ignorado.
+- **Decisão:** O registo de fontes usa um **schema fechado**. Em cada nível suportado — cada fonte e cada endpoint — só são aceites os campos do formato de SOURCES.md §4: fonte `id`, `name`, `entity_type`, `tier`, `categories`, `domains`, `registry_status`, `validated_at`, `validated_by`, `notes`, `endpoints`; endpoint `id`, `endpoint_type`, `url`, `endpoint_status`, `fetch`, `validated_at`, `validated_by`. Qualquer outro campo é erro de validação. O conteúdo de `fetch` não é um nível validado: só se exige que seja um mapeamento. A semântica dos campos aceites não muda.
+- **Razão:** O YAML é a fonte de verdade (DATA_MODEL.md §2.1). Um campo ignorado em silêncio esconde gralhas com efeito real (ex.: `validated_by` mal escrito deixaria uma validação manual sem autor, ou um estado mal escrito ficaria no valor por defeito) e dados que nenhuma etapa lê. `validated_by` faz parte do formato porque o domínio o exige para `VALIDATED`/`ACTIVE` (DATA_MODEL.md §2.1, M2.2).
+- **Alternativas consideradas:** Ignorar campos desconhecidos (esconde erros); avisar sem falhar (o comando deixa de ter um resultado binário para uso automatizado).
+- **Impacto:** Acrescentar um campo ao registo exige actualizar SOURCES.md §4 e a validação no mesmo pull request. Campos de estado de execução (`last_success_at`, `last_error`) não pertencem ao ficheiro versionado.
+- **Documentos subordinados:** [SOURCES.md](SOURCES.md) §4, [ROADMAP.md](ROADMAP.md) M2.5. Implementado em `sources/registry.py`.
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
+### DEC-024 — Representação dos estados no YAML do registo de fontes
+- **Problema:** DATA_MODEL.md define que os estados se escrevem em maiúsculas nos documentos e são armazenados em minúsculas na implementação, mas não diz qual das formas se usa num ficheiro de configuração versionado como `config/sources.yaml`.
+- **Decisão:** Em `config/sources.yaml`, `registry_status` e `endpoint_status` usam a **forma documental em maiúsculas** (`CANDIDATE`, `VALIDATED`, `ACTIVE`, `INACTIVE`); a implementação converte-os para o valor interno dos enums Python (`candidate`, …). A forma em minúsculas é erro de validação nestes campos. `entity_type`, `endpoint_type` e `tier` mantêm a representação já documentada, igual ao valor interno (`public_body`, `html_page`, `T1`).
+- **Razão:** O registo é revisto por pessoas, por pull request, ao lado da documentação; usar os mesmos nomes evita duas grafias para o mesmo estado ("não existem outros nomes para estes estados", DATA_MODEL.md). Aceitar as duas formas tornaria o ficheiro inconsistente sem ganho.
+- **Alternativas consideradas:** Minúsculas, como o valor interno (diverge da documentação e do exemplo de SOURCES.md §4); aceitar ambas (duas grafias para o mesmo estado; o ficheiro deixa de ter uma forma canónica).
+- **Impacto:** Os enums Python não mudam nem são duplicados; a conversão faz-se só na leitura do registo. A regra aplica-se apenas a `registry_status` e `endpoint_status`.
+- **Documentos subordinados:** [SOURCES.md](SOURCES.md) §4, [DATA_MODEL.md](DATA_MODEL.md) (convenção de nomes), [ROADMAP.md](ROADMAP.md) M2.5. Implementado em `sources/registry.py`.
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
+### DEC-025 — Leitura de `config/sources.yaml`: UTF-8 e chaves YAML únicas
+- **Problema:** O parser YAML aceita, por defeito, a mesma chave repetida num mapeamento e conserva em silêncio só a última ocorrência; a documentação também não fixa a codificação do ficheiro.
+- **Decisão:** (1) Uma chave repetida no mesmo mapeamento YAML, em qualquer nível, é erro de validação. (2) `config/sources.yaml` é lido como **UTF-8**; ficheiros noutra codificação (incluindo UTF-16/UTF-32) não fazem parte do formato suportado e são erro de validação.
+- **Razão:** Uma chave repetida é, em regra, um erro de edição; conservar só a última altera o registo sem aviso (ex.: um `endpoint_status` repetido). A especificação YAML exige chaves únicas. UTF-8 é a codificação dos ficheiros versionados do projecto e cobre os nomes portugueses das entidades; uma única codificação mantém a leitura determinista.
+- **Alternativas consideradas:** Comportamento por defeito do parser (perde dados em silêncio); detecção automática de codificação (aceita formatos que ninguém revê nem precisa).
+- **Impacto:** Restrições de leitura do ficheiro, sem nova funcionalidade: não alteram os campos nem as regras de validação do conteúdo.
+- **Documentos subordinados:** [SOURCES.md](SOURCES.md) §4, [ROADMAP.md](ROADMAP.md) M2.5. Implementado em `sources/yaml_loader.py`.
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:

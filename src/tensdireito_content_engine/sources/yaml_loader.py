@@ -1,6 +1,7 @@
 """Leitura segura e local de YAML para a configuração versionada.
 
-Usa `yaml.SafeLoader` (sem construção de objectos Python) com duas restrições:
+Lê o ficheiro em UTF-8 e usa `yaml.SafeLoader` (sem construção de objectos Python) com
+duas restrições (DEC-025):
 
 - as datas não são convertidas implicitamente: ficam texto e são interpretadas por quem
   as consome, para que o fuso nunca seja assumido pelo parser;
