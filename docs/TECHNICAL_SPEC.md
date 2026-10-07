@@ -1,6 +1,6 @@
 # Especificação Técnica
 
-> Estado: **especificação para a fase de implementação (M1)**. Nada aqui está ainda implementado. A linguagem, o gestor de projecto, o nome do pacote e o nome da CLI estão **decididos** (DEC-015 no [DECISION_LOG.md](DECISION_LOG.md)); nomes de módulos internos e de subcomandos podem ser ajustados na implementação, mantendo os conceitos.
+> Estado: **especificação para a fase de implementação (M1)**. O que já está implementado ou definido por milestone é indicado em cada secção (marcas *Implementado* e *Definido*); o resto continua por implementar. A linguagem, o gestor de projecto, o nome do pacote e o nome da CLI estão **decididos** (DEC-015 no [DECISION_LOG.md](DECISION_LOG.md)); nomes de módulos internos e de subcomandos podem ser ajustados na implementação, mantendo os conceitos.
 
 ## 1. Stack
 
@@ -94,7 +94,9 @@ Não existe comando de publicação na V1.
 
 Opções globais: `--db PATH`, `--config DIR`, `--dry-run` (não escreve), `--no-llm` (desactiva IA, usa só regras), `--verbose`.
 
-Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5), `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)) e `tde [--config DIR] [--db PATH] sources sync` (M2.7, a integrar; contrato e saída em [ROADMAP.md](ROADMAP.md#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)) — não cria a base de dados nem aplica migrações (`tde init` continua a não sincronizar fontes), corre numa transacção única, não acede à rede e não tem `--dry-run`.
+Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5), `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)) e `tde [--config DIR] [--db PATH] sources sync` (M2.7; contrato e saída em [ROADMAP.md](ROADMAP.md#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)) — não cria a base de dados nem aplica migrações (`tde init` continua a não sincronizar fontes), corre numa transacção única, não acede à rede e não tem `--dry-run`.
+
+Definido (M2.8, por implementar; DEC-031): `tde [--db PATH] collect [--source ID]` — contrato e saída em [ROADMAP.md](ROADMAP.md#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector). Lê os endpoints `ACTIVE` do espelho SQLite, sem sincronização implícita; cria e fecha um `run`; grava `raw_item` com `created_in_run`, com atomicidade por endpoint; actualiza `last_success_at`/`last_error`; códigos `0` (nenhum endpoint falhou, incluindo zero endpoints `ACTIVE`), `2` (falhas parciais) e `1` (falha de pré-condição ou todos os endpoints seleccionados falharam). Sem collectors concretos nem rede. `--since`, que consta da linha de `tde collect` na tabela como interface-alvo, não faz parte do M2.8 e não é aceite pela CLI.
 
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 
@@ -111,6 +113,8 @@ class Collector(Protocol):
 - Não normaliza nem interpreta conteúdo — apenas obtém e guarda o bruto.
 - Respeita `rate_limit` e `user_agent` definidos na configuração.
 - Falhas numa fonte não interrompem as restantes; ficam registadas no `run`.
+
+Definido (M2.8, por implementar; DEC-031): `RawItemIn` é o modelo de domínio `RawItem` (M2.3), sem entidade nova; `endpoint` é o `SourceEndpoint` de domínio lido do espelho SQLite; `collectors/` depende só de `domain` (não importa `storage`); os collectors são registados por `endpoint_type`, num registo vazio em produção no M2.8 (os testes usam collectors falsos); no M2.8, `since` é sempre `None`. Um endpoint `ACTIVE` sem collector registado conta como falha desse endpoint. `rate_limit`, `user_agent` e `robots.txt` aplicam-se aos collectors concretos, fora do M2.8.
 
 ### 4.2 LLMProvider
 
@@ -163,7 +167,7 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 - Fuso horário de referência: `Europe/Lisbon` para apresentação; armazenamento em UTC (ISO 8601).
 - Implementado (M2.2): `config.py` contém apenas nome, versão (a do pacote) e ambiente (`development` por defeito, `test`). Não lê variáveis de ambiente; os segredos acima entram quando tiverem consumidor.
 - Implementado (M2.5): `config/sources.yaml` é localizado no directório de configuração — por defeito `config/`, relativo ao directório de trabalho, ou o indicado pela opção global `--config DIR` (secção 3). É lido como UTF-8 por `sources/` e validado por `tde sources validate` (local, sem rede, sem escrita); regras do formato em SOURCES.md §4 (DEC-023 a DEC-025).
-- Implementado (M2.6): o caminho da base de dados é `--db PATH`, senão `TDE_DB_PATH`, senão `data/tde.sqlite3`, relativo ao directório de trabalho (DEC-026); o directório pai é criado por `tde init` se faltar. `TDE_DB_PATH` é lido só pela CLI, para `tde init`; `config.py` e `tde doctor` continuam sem ler variáveis de ambiente. `data/` está no `.gitignore`.
+- Implementado (M2.6): o caminho da base de dados é `--db PATH`, senão `TDE_DB_PATH`, senão `data/tde.sqlite3`, relativo ao directório de trabalho (DEC-026); o directório pai é criado por `tde init` se faltar. `TDE_DB_PATH` é lido só pela CLI, para os comandos com base de dados (`tde init`, `tde sources sync` desde o M2.7 e `tde collect` no M2.8), com a mesma precedência; só `tde init` cria a base de dados; `config.py` e `tde doctor` continuam sem ler variáveis de ambiente. `data/` está no `.gitignore`.
 
 ## 6. Requisitos não funcionais
 

@@ -1,6 +1,6 @@
 # Pipeline de Conteúdo
 
-> Estado: **especificação (M1)**. Descreve as etapas, entradas, saídas e regras de passagem. Cada etapa é um comando CLI independente (ver [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos)). Nada aqui está implementado.
+> Estado: **especificação (M1)**. Descreve as etapas, entradas, saídas e regras de passagem. Cada etapa é um comando CLI independente (ver [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos)). O que já está implementado ou definido por milestone é indicado em cada etapa; o resto continua por implementar.
 
 Regra central (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#2-regra-central)): **descobrir não é verificar; verificar não é aprovar; aprovar não é publicar.**
 
@@ -27,6 +27,8 @@ Regra central (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#2-regra-central)): 
 ## Etapa 1 — COLLECT
 
 **Objectivo:** obter informação bruta. Não interpreta nem verifica.
+
+> Definido (M2.8, por implementar; DEC-031): infra-estrutura e orquestração de COLLECT — `tde collect [--source ID]` lê os endpoints `ACTIVE` do espelho SQLite (sem sincronização implícita de `config/sources.yaml`), cria e fecha um `run`, chama o `Collector` registado para cada `endpoint_type`, grava `raw_item` com `created_in_run` (atomicidade por endpoint; itens já existentes não são duplicados) e actualiza `last_success_at`/`last_error`. Contrato em [ROADMAP.md](ROADMAP.md#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector). **Continuam fora:** collectors concretos (`rss`, `html_page`, `manual`), HTTP, `robots.txt`, `User-Agent`, rate limiting, transporte de `fetch`, `--since`, pistas manuais (`tde add-manual`) e a recolha de documentos oficiais associados.
 
 - Lê o registo de fontes; recolhe apenas endpoints `ACTIVE` (validados — ver [SOURCES.md](SOURCES.md)).
 - Usa o `Collector` correspondente a `endpoint_type`.
