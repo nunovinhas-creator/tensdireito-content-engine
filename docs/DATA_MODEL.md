@@ -96,7 +96,7 @@ Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdad
 
 Unicidade: `(source_endpoint_id, url, content_hash)`.
 
-Definido no M2.9 (DEC-032): para endpoints `rss`, `url` ← `<link>`, `title` ← `<title>`, `raw_content` ← elemento `<item>` completo serializado (XML, não texto extraído), `external_id` ← `<guid>`, `published_at_raw` ← `<pubDate>` sem interpretação; os campos existentes chegam, sem colunas novas.
+Implementado no M2.9 (DEC-032): para endpoints `rss`, `url` ← `<link>`, `title` ← `<title>`, `raw_content` ← elemento `<item>` completo serializado (XML, não texto extraído), `external_id` ← `<guid>`, `published_at_raw` ← `<pubDate>` sem interpretação; os campos existentes chegam, sem colunas novas.
 
 #### `source_document` — Nível 2 (versão normalizada)
 | Campo | Tipo | Notas |
