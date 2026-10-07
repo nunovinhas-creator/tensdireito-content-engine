@@ -103,7 +103,7 @@ Regras:
 - Um endpoint só é recolhido em `ACTIVE`, e só passa a `VALIDATED`/`ACTIVE` após validação manual (URL confirmado, mecanismo, termos de utilização, `robots.txt`), registada no próprio registo com `validated_at` e `validated_by` e revista por pull request.
 - **Estado de validação operacional vs. decisão editorial (DEC-030):** nesta fase, `validated_at` e `validated_by` do registo constituem o estado de validação operacional de uma fonte ou endpoint `VALIDATED`/`ACTIVE`. A decisão editorial `VALIDATE_SOURCE` em `editorial_decision` ([DATA_MODEL.md](DATA_MODEL.md#37-editorial_decisiondecision) §3.7) não é requisito actual, porque essa entidade ainda não existe; fica para a unidade futura que a introduzir, que pode rever esta regra.
 - Uma fonte pode estar `VALIDATED` sem nenhum endpoint activo (útil para reconhecer o tier de pistas manuais pelo domínio).
-- `tde sources validate` verifica o esquema, IDs únicos, tiers válidos e campos obrigatórios; recusa endpoints `ACTIVE` sem `url` e sem `validated_at`.
+- `tde sources validate` verifica o esquema, IDs únicos, tiers válidos e campos obrigatórios; recusa endpoints `ACTIVE` sem `url` e sem `validated_at`, e endpoints `ACTIVE` cuja fonte não esteja `VALIDATED` (DEC-035; implementado no M2.10). Não verifica `domains`, a evidência de validação, as verificações V1–V5 nem a identidade de quem valida, que ficam para a revisão do pull request (secção 8).
 - **`fetch` no M2.9:** `fetch` continua fora da projecção para o domínio e o SQLite (DEC-028). Os valores de `frequency`, `rate_limit_seconds`, `max_items` e `selectors` **não têm efeito** na recolha; o collector `rss` usa os limites fixos de DEC-033. A execução é sempre manual (`tde collect`); `frequency` não agenda nada (D8, D9).
 - O procedimento de validação manual, a correspondência entre verificações e estados e o formato do registo de evidência estão na secção 8 (DEC-034).
 
@@ -186,7 +186,7 @@ Uma fonte não passa a ser válida por existir tecnicamente. Cada verificação 
 | Fonte `VALIDATED` | V1 e V4 (da fonte) | `domains` confirmados; `validated_at`/`validated_by` (DEC-030). |
 | Endpoint `CANDIDATE` | — | `url` nulo, mesmo que V2 já esteja registada. |
 | Endpoint `VALIDATED` | V2, V3, V5 | `url` = URL confirmado (o final, sem redirects); `validated_at`/`validated_by`. |
-| Endpoint `ACTIVE` | Endpoint `VALIDATED`, fonte `VALIDATED`, V4 do endpoint, collector registado no código para o `endpoint_type`, decisão explícita de activar | A exigência de fonte `VALIDATED` passa a ser verificada por `tde sources validate` com a implementação do M2.10 (DEC-035); até lá é procedimental. A decisão de activar é um pull request próprio, posterior ao que torna o endpoint `VALIDATED` (DEC-036). |
+| Endpoint `ACTIVE` | Endpoint `VALIDATED`, fonte `VALIDATED`, V4 do endpoint, collector registado no código para o `endpoint_type`, decisão explícita de activar | A exigência de fonte `VALIDATED` é verificada por `tde sources validate` desde a implementação do M2.10 (DEC-035): um endpoint `ACTIVE` numa fonte `CANDIDATE` ou `INACTIVE` é erro, e `tde sources sync` recusa esse registo. As restantes exigências continuam a ser verificadas na revisão. A decisão de activar é um pull request próprio, posterior ao que torna o endpoint `VALIDATED` (DEC-036). |
 | `INACTIVE` | Decisão registada por pull request | Ver secção 7. |
 
 Cada passagem de estado é um pull request no registo, revisto por uma pessoa. Uma entrada não avança dois estados no mesmo pull request (DEC-036).

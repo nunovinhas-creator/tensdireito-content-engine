@@ -9,7 +9,9 @@ Regras aplicadas — só as documentadas:
 - tiers e restantes enumerações válidos;
 - invariantes de domínio do M2.2 (ex.: fonte `CANDIDATE` sem `domains`; `VALIDATED` e
   `ACTIVE` com `validated_at` e `validated_by`);
-- endpoints `ACTIVE` exigem `url` e `validated_at` (SOURCES.md §4).
+- endpoints `ACTIVE` exigem `url` e `validated_at` (SOURCES.md §4);
+- endpoints `ACTIVE` exigem fonte `VALIDATED` (DEC-035), avaliado só quando o
+  `registry_status` da fonte foi lido sem erro.
 
 Representação das enumerações (DEC-024): a do formato documentado. Estados em maiúsculas
 (`CANDIDATE`), convertidos para o valor interno em minúsculas (DATA_MODEL.md, convenção
@@ -101,6 +103,7 @@ def parse_sources(data: object) -> LoadedSources:
         source = _parse_source(item, where, errors)
         if source is not None:
             sources.append(source)
+        source_status = _source_status(item)
 
         raw_endpoints = item.get("endpoints", [])
         if not isinstance(raw_endpoints, list):
@@ -116,7 +119,7 @@ def parse_sources(data: object) -> LoadedSources:
                 )
                 continue
             _check_unique(ep_item, ep_where, endpoint_ids, "endpoint", errors)
-            endpoint = _parse_endpoint(ep_item, item.get("id"), ep_where, errors)
+            endpoint = _parse_endpoint(ep_item, item.get("id"), source_status, ep_where, errors)
             if endpoint is not None:
                 endpoints.append(endpoint)
 
@@ -149,8 +152,20 @@ def _parse_source(item: dict, where: str, errors: list[str]) -> SourceRegistry |
         return None
 
 
+def _source_status(item: dict) -> RegistryStatus | None:
+    """Estado da fonte para DEC-035; `None` se o próprio estado for inválido (já reportado)."""
+    if "registry_status" not in item:
+        return _DEFAULT_REGISTRY_STATUS
+    status = _by_name(item, "registry_status", RegistryStatus, [])
+    return None if status is _MISSING else status
+
+
 def _parse_endpoint(
-    item: dict, source_id: object, where: str, errors: list[str]
+    item: dict,
+    source_id: object,
+    source_status: RegistryStatus | None,
+    where: str,
+    errors: list[str],
 ) -> SourceEndpoint | None:
     problems = _check_keys(item, ENDPOINT_REQUIRED, ENDPOINT_OPTIONAL)
     fields: dict[str, object] = {"source_id": source_id}
@@ -170,6 +185,12 @@ def _parse_endpoint(
             problems.append("um endpoint ACTIVE exige url")
         if fields.get("validated_at") is None:
             problems.append("um endpoint ACTIVE exige validated_at")
+        # DEC-035: só com o estado da fonte lido sem erro; nenhuma outra regra entre estados.
+        if source_status is not None and source_status is not RegistryStatus.VALIDATED:
+            problems.append(
+                "um endpoint ACTIVE exige fonte VALIDATED "
+                f"(fonte {source_id}: {source_status.name})"
+            )
 
     if problems:
         errors.extend(f"{where}: {problem}" for problem in problems)
@@ -211,6 +232,9 @@ class _Missing:
 
 
 _MISSING = _Missing()
+
+# Valor por omissão de `SourceRegistry.registry_status` (M2.2), quando o campo falta no YAML.
+_DEFAULT_REGISTRY_STATUS = RegistryStatus.CANDIDATE
 
 
 def _text(item: Mapping, key: str, problems: list[str]) -> object:

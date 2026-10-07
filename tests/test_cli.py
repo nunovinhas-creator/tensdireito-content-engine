@@ -85,6 +85,32 @@ def test_sources_validate_invalid_config_exits_one(tmp_path, capsys):
     ]
 
 
+def test_sources_validate_dec_035_active_endpoint_in_candidate_source_exits_one(tmp_path, capsys):
+    config = write_config(
+        tmp_path,
+        "- id: fonte_a\n"
+        "  name: A\n"
+        "  entity_type: public_body\n"
+        "  tier: T1\n"
+        "  registry_status: CANDIDATE\n"
+        "  endpoints:\n"
+        "    - id: fonte_a_feed\n"
+        "      endpoint_type: rss\n"
+        "      url: https://exemplo.invalid/feed\n"
+        "      endpoint_status: ACTIVE\n"
+        "      validated_at: '2026-10-01T09:00:00Z'\n"
+        "      validated_by: editor_ficticio\n",
+    )
+    assert main(["--config", str(config), "sources", "validate"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.splitlines() == [
+        f"sources: ERRO — {config / 'sources.yaml'}",
+        "- sources[0].endpoints[0] (id=fonte_a_feed): "
+        "um endpoint ACTIVE exige fonte VALIDATED (fonte fonte_a: CANDIDATE)",
+    ]
+
+
 def test_sources_validate_missing_file_exits_one(tmp_path, capsys):
     assert main(["--config", str(tmp_path), "sources", "validate"]) == 1
     assert "ficheiro não encontrado" in capsys.readouterr().err

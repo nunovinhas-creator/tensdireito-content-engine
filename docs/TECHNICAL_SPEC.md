@@ -101,6 +101,8 @@ Implementado (M2.8, integrado no PR #14; DEC-031): `tde [--db PATH] collect [--s
 
 Implementado (M2.9; DEC-032, DEC-033): `tde collect` não muda de interface, saídas nem códigos; o registo de produção passa a ter o collector `rss`. Sem endpoints `ACTIVE` (D1), nenhum pedido de rede é feito. Contrato em [ROADMAP.md](ROADMAP.md#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito).
 
+Implementado (M2.10; DEC-035): `tde sources validate` recusa um endpoint `ACTIVE` cuja fonte não esteja `VALIDATED` (`CANDIDATE` ou `INACTIVE`), com o erro `um endpoint ACTIVE exige fonte VALIDATED (fonte <id>: <ESTADO>)`, reportado por endpoint ao lado dos restantes erros (código `1`); se o `registry_status` da própria fonte for inválido, só esse erro é reportado. A regra vive na leitura do registo (`sources/registry.py`), pelo que `tde sources sync` recusa o mesmo registo, sem verificação própria (DEC-028 (3)). Interface, saídas dos casos válidos e códigos de saída não mudam; `tde collect` não muda. Nenhuma outra regra entre estados é verificada: `domains`, evidência (DEC-036), verificações V1–V5 e identidade de `validated_by` (além do prefixo `llm:`) ficam para a revisão humana do pull request. Contrato em [ROADMAP.md](ROADMAP.md#m210--validação-de-fontes).
+
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 
 ## 4. Interfaces internas
