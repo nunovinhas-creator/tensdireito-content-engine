@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) implementado, a integrar. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) concluído e integrado (PR #12); M2.8 (recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`) definido, por implementar. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)). | **Em curso** — M2.1 a M2.6 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10); M2.7 implementado, a integrar |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)); M2.8 recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`, sem collectors concretos nem rede (DEC-031; ver [M2.8](#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)). | **Em curso** — M2.1 a M2.7 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10, M2.7 no PR #12); M2.8 definido, por implementar |
 
 ### M2.5 — registo de fontes e validação de fontes
 
@@ -105,7 +105,7 @@ Regras do esquema:
 
 ### M2.7 — sincronização explícita de `sources.yaml` para SQLite
 
-**Estado:** implementado, a integrar. Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. Decisões: DEC-027 (fonte de verdade e sentido da sincronização), DEC-028 (contrato da sincronização), DEC-029 (identidade e reconciliação) e DEC-030 (estado de validação operacional sem `editorial_decision`).
+**Estado:** concluído e integrado (PR #12). Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. Decisões: DEC-027 (fonte de verdade e sentido da sincronização), DEC-028 (contrato da sincronização), DEC-029 (identidade e reconciliação) e DEC-030 (estado de validação operacional sem `editorial_decision`).
 
 **Objectivo:** projectar o registo de fontes validado de `config/sources.yaml` nas tabelas `source_registry` e `source_endpoint` criadas pela `0001` (M2.6), através de um comando explícito e local. O SQLite é o **espelho operacional dos campos do registo actualmente projectados pelo domínio/storage** — não é um espelho completo do YAML (ver *Campos*). As tabelas existem para as chaves estrangeiras de `raw_item` e para o estado de execução (DEC-027).
 
@@ -188,6 +188,91 @@ Regras do esquema:
 
 **Implementação:** `src/tensdireito_content_engine/storage/source_sync.py` (`sync_sources`) e `tde [--config DIR] [--db PATH] sources sync` em `cli.py`. A CLI lê o registo com `load_sources` (M2.5) e passa os objectos de domínio a `storage`, sem SQL; `storage` não importa `sources`. Ordem: (1) YAML inválido → `sources sync: ERRO — <caminho do YAML>` e os mesmos erros de `tde sources validate`, sem abrir a base de dados; (2) base inexistente → erro antes de `connect()`, sem criar ficheiro nem directório; (3) esquema verificado com as funções do executor de migrações (`applied_migrations`/`pending_migrations`), sem aplicar nenhuma — os erros são prefixados por `esquema não conforme:` e pedem `tde init`; (4) numa transacção explícita (`BEGIN` … `COMMIT`), leitura dos campos projectados existentes e dos endpoints referenciados por `raw_item`, cálculo do plano (inserir/actualizar/inalterado/remover, comparando na forma guardada) e de todos os conflitos de DEC-029; havendo conflitos, `ROLLBACK` sem nenhuma escrita; senão, escritas pela ordem de DEC-029 e `COMMIT`; qualquer erro SQLite → `ROLLBACK`. `UPDATE` só nas colunas projectadas e `updated_at`; `INSERT` com `fetch`, `last_success_at` e `last_error` nulos e `created_at` = `updated_at`; `DELETE` só das entradas retiradas sem referências. Listas guardadas com `json.dumps` (UTF-8, sem escape). Saída: `sources sync: OK — <caminho da base>` e as linhas `inseridos`, `actualizados`, `inalterados`, `removidos` (totais de fontes e endpoints), código `0`; em erro, `sources sync: ERRO — <caminho>` e `- <motivo>` por motivo em stderr, código `1`, em que `<caminho>` é o do YAML quando o YAML é inválido e o da base de dados nos restantes erros. Sem migrações nem dependências novas.
 
+### M2.8 — recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`
+
+**Estado:** definido, por implementar. Esta secção é o contrato da unidade. Decisão: DEC-031 (contrato de `tde collect` e ciclo de vida de `run`). Respeita DEC-013, DEC-021, DEC-026, DEC-027, DEC-028, DEC-029 e DEC-030.
+
+**Objectivo:** implementar a infra-estrutura e a orquestração da etapa COLLECT ([CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-1--collect), etapa 1) sem rede: abrir e fechar um `run`, seleccionar os endpoints `ACTIVE` do espelho SQLite, chamar o `Collector` registado para o `endpoint_type` de cada um, persistir de forma idempotente os `RawItem` devolvidos, com `created_in_run`, e actualizar o estado operacional do endpoint (`last_success_at`, `last_error`). O M2.8 **não** implementa nenhum collector concreto nem transporte de rede: em produção, o registo de collectors fica vazio; os testes usam collectors falsos.
+
+**Âmbito (entregáveis da implementação):**
+
+1. **Contrato `Collector`** ([TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#41-collector) §4.1), em `src/tensdireito_content_engine/collectors/base.py`: atributo `endpoint_type` e `fetch(endpoint, since) -> Iterable[RawItem]`. `endpoint` é o `SourceEndpoint` de domínio; `RawItem` é o modelo de domínio do M2.3 (corresponde ao `RawItemIn` da especificação; não há entidade nova). `collectors/` depende só de `domain`: não importa `storage` nem `sqlite3`. No M2.8, `since` é sempre `None`.
+2. **Registo de collectors por `endpoint_type`:** mecanismo que associa cada `endpoint_type` a, no máximo, um `Collector`. Na configuração de produção fica vazio; os testes injectam collectors falsos. Nenhum collector `rss`, `html_page` ou `manual` é implementado.
+3. **Comando `tde [--db PATH] collect [--source ID]`** (DEC-031). Local, sem rede. `--since` não faz parte do M2.8 e não é aceite pela CLI; `--dry-run` também não.
+4. **Persistência em `storage`:** criação e finalização de `run`; leitura dos endpoints `ACTIVE`, devolvidos como `SourceEndpoint` de domínio; inserção idempotente de `raw_item`; actualização de `last_success_at` e `last_error`. Todo o SQL fica em `src/tensdireito_content_engine/storage/` (M2.6, regra 5); `storage` continua a depender só de `domain` e não importa `collectors` nem `sources`.
+5. **Orquestração** fora de `storage` e de `collectors` (na CLI ou num módulo próprio), sem SQL: liga a selecção de endpoints, o registo de collectors e a persistência.
+
+**Pré-condições, verificadas por esta ordem antes de criar o `run`** (DEC-031):
+- Base de dados inexistente no caminho resolvido (`--db`, depois `TDE_DB_PATH`, depois `data/tde.sqlite3`) → erro, código `1`, pedindo `tde init`. A existência é verificada antes de abrir qualquer ligação, como no M2.7: não se cria ficheiro nem directório.
+- Esquema não conforme (ficheiro que não é SQLite, migrações pendentes, migração registada desconhecida do código, checksum diferente) → erro, código `1`, pedindo `tde init`, com a mesma verificação do M2.7. Nenhuma migração é aplicada.
+- `--source ID` indicado e sem linha correspondente em `source_registry` → erro, código `1`.
+- Numa falha de pré-condição, não se cria `run` e a base de dados não é alterada.
+- O comando não lê `config/sources.yaml` nem sincroniza implicitamente (DEC-028): opera sobre o espelho SQLite tal como está. Manter o espelho actualizado com `tde sources sync` é responsabilidade de quem opera.
+
+**Selecção de endpoints:** linhas de `source_endpoint` com `endpoint_status` `ACTIVE` (valor interno `active`; DEC-024), ordenadas por `id`; com `--source ID`, apenas as que têm `source_id = ID`. Endpoints `CANDIDATE`, `VALIDATED` ou `INACTIVE` nunca são passados a um collector. Uma fonte existente sem endpoints `ACTIVE` resulta em zero endpoints seleccionados, o que não é erro.
+
+**Ciclo de vida do `run`** ([DATA_MODEL.md](DATA_MODEL.md#29-run) §2.9; DEC-031):
+1. **Início** (depois das pré-condições): numa transacção própria, insere-se um `run` com `command = "collect"`, `started_at`, `finished_at = NULL` e `status = NULL`. Não existe estado `running`.
+2. **Fim:** numa transacção própria, gravam-se `finished_at`, `status` e `stats`. `outcome` e `report_path` ficam nulos no M2.8.
+3. **Estados finais:** `success` — nenhum endpoint seleccionado falhou (incluindo zero endpoints seleccionados); `partial` — pelo menos um endpoint teve sucesso e pelo menos um falhou; `failed` — todos os endpoints seleccionados (pelo menos um) falharam.
+4. Um `run` com `finished_at IS NULL` representa uma execução interrompida ou não concluída. O M2.8 não fecha nem corrige `run` interrompidos.
+5. Não há modelo de domínio `Run` nem enumerações novas: o tratamento de `run` fica em `storage` e na orquestração, com os valores de `status` de DATA_MODEL.md §2.9.
+
+**`stats`** (JSON em `TEXT`), com os endpoints pela ordem de selecção:
+
+```json
+{
+  "endpoints": [
+    {"id": "<endpoint_id>", "result": "success", "new": 0, "existing": 0, "error": null}
+  ],
+  "totals": {"selected": 0, "succeeded": 0, "failed": 0, "new": 0, "existing": 0}
+}
+```
+
+`result` é `success` ou `failed`; num endpoint que falhou, `new` e `existing` são `0` (rollback) e `error` contém o motivo.
+
+**Processamento de cada endpoint** (DEC-031):
+- **Sem collector registado** para o `endpoint_type` → falha desse endpoint, com o motivo `sem collector para endpoint_type <tipo>`. Não é falha de pré-condição.
+- **Com collector:** chama-se `fetch(endpoint, None)` e todos os itens devolvidos são persistidos numa transacção do endpoint. Cada `RawItem` tem de ter `source_endpoint_id` igual ao `id` do endpoint; um item com outro valor, ou nulo, é falha do endpoint (a proveniência de `raw_item` não é reinterpretada — DEC-029).
+- **Identidade de `raw_item`:** `(source_endpoint_id, url, content_hash)` (DATA_MODEL.md §2.1; `content_hash` do domínio, DEC-021). Um item cuja identidade já existe — de uma execução anterior ou de um item anterior do mesmo `fetch` — não é inserido nem alterado e conta como `existing`. A verificação faz-se com `SELECT` antes do `INSERT`, dentro da transacção do endpoint; sem `INSERT OR IGNORE`, `INSERT OR REPLACE` nem `ON CONFLICT`.
+- **Item novo:** `INSERT` com os campos do `RawItem`, o `content_hash`, `created_in_run` = `id` do `run` em curso e `created_at` = `updated_at`, preenchidos pela `storage`.
+- **Sucesso do endpoint:** na mesma transacção, `last_success_at` = instante do fim do processamento do endpoint (UTC) e `last_error = NULL`; commit. Um erro anterior deixa de figurar como erro actual.
+- **Falha do endpoint** (excepção do collector, na chamada ou durante a iteração; item inválido; collector em falta): rollback da transacção do endpoint — nenhum item desse endpoint fica gravado nesta execução e os `raw_item` anteriores ficam intactos; depois, numa transacção própria, `last_error` = motivo, com `last_success_at` preservado. A falha fica em `stats` e o processamento continua no endpoint seguinte.
+- `last_success_at` e `last_error` são campos operacionais (DEC-027): a sua actualização pelo collect não altera nenhum campo projectado nem `source_endpoint.updated_at`, que continua a indicar só alterações aos campos projectados (DEC-028).
+- **Erro da camada `storage`** (por exemplo, erro SQLite) não é falha de endpoint: rollback da transacção em curso e termina com código `1`; o `run` fica com `finished_at IS NULL` (execução interrompida).
+
+**Saída e códigos de saída** (DEC-031):
+- Execução concluída: resumo em stdout — `collect: OK — <caminho da base>` (código `0`, `success`), `collect: PARCIAL — <caminho>` (código `2`, `partial`) ou `collect: ERRO — <caminho>` (código `1`, `failed`), seguido de `run: <id>`, `endpoints: <seleccionados>`, `com sucesso: <n>`, `com falha: <n>`, `itens novos: <n>` e `itens existentes: <n>`; cada endpoint que falhou é indicado em stderr como `- <endpoint_id>: <motivo>`.
+- Falha de pré-condição ou erro da `storage`: `collect: ERRO — <caminho da base>` e `- <motivo>` em stderr, código `1`.
+- Zero endpoints `ACTIVE` é sucesso: código `0`, `run` em `success` com zero itens.
+
+**Idempotência:** uma nova execução sem dados novos cria um novo `run`, não cria `raw_item`, conta os itens já existentes como `existing`, não altera os `raw_item` anteriores e actualiza o estado operacional de cada endpoint segundo o resultado actual.
+
+**Esquema e portabilidade (DEC-013, DEC-026):** usa a `0001` do M2.6 sem alterações — sem migrações, tabelas, colunas nem índices novos. `raw_item.created_in_run` passa a ser preenchido para os itens criados por `tde collect`. Só `SELECT`, `INSERT` e `UPDATE` simples, com equivalente directo em PostgreSQL; sem `PRAGMA` fora da configuração da ligação.
+
+**Dependências:** M2.3 (`RawItem`, `content_hash`); M2.6 (`0001`, verificação de migrações, resolução do caminho da base de dados); M2.7 (espelho de `source_endpoint`, verificação de esquema). Nenhuma dependência externa nova.
+
+**D1, D8, D12 e D13:** continuam OPEN e não são afectados. Com `config/sources.yaml` vazio (`[]`, por D1) e sem collectors concretos, `tde collect` não recolhe nada até unidades posteriores; o comportamento verifica-se com fixtures e collectors falsos.
+
+**Exclusões:** collectors `rss`, `html_page` e `manual`; HTTP e qualquer acesso à rede; `robots.txt`; `User-Agent`; rate limiting; transporte concreto de `fetch` (continua fora da projecção — DEC-028); `--since`; `tde add-manual` (e a limitação do `NULL` em `UNIQUE`); NORMALIZE; `source_document`; migração `0002`; D1, D8, D12 e D13; IA; execução agendada; PostgreSQL; `editorial_decision`; `--dry-run`; `tde run` e `tde report`; política de retenção; modelo de domínio `Run`. Não altera `tde doctor`, `tde init`, `tde sources validate`, `tde sources sync`, o domínio nem o formato do YAML.
+
+**Critérios de aceitação (verificáveis na implementação):**
+1. **Zero endpoints `ACTIVE`:** código `0`; é criado um `run` com `command = "collect"`, `status = success`, `finished_at` preenchido e zero itens; nenhum `raw_item` criado.
+2. **Sucesso com collector falso:** os itens devolvidos ficam em `raw_item` com `created_in_run` do `run` criado; `last_success_at` preenchido e `last_error` nulo, mesmo que antes tivesse um erro; `run` em `success`, código `0`.
+3. **Idempotência:** segunda execução com os mesmos itens cria um novo `run`, zero `raw_item` novos, `existing` igual ao número de itens, e os `raw_item` anteriores ficam inalterados (incluindo `created_in_run`); itens repetidos no mesmo `fetch` contam como `existing`.
+4. **Falha isolada:** com um endpoint cujo collector falso falha a meio da iteração e outro com sucesso, nenhum item do primeiro fica gravado nesta execução, os seus `raw_item` anteriores e `last_success_at` mantêm-se, `last_error` é preenchido; o segundo é processado; `run` em `partial`, código `2`.
+5. **Todos falham:** `run` em `failed`, código `1`, com `finished_at` e `stats` preenchidos.
+6. **Endpoint sem collector:** um endpoint `ACTIVE` cujo `endpoint_type` não tem collector registado conta como falha desse endpoint (`last_error` preenchido), não impede os restantes e não é erro de pré-condição.
+7. **Endpoints não `ACTIVE`:** endpoints `CANDIDATE`, `VALIDATED` ou `INACTIVE` nunca são passados a um collector; os endpoints são processados por ordem de `id`.
+8. **`--source`:** restringe aos endpoints da fonte indicada; fonte inexistente → código `1`, sem `run`; fonte sem endpoints `ACTIVE` → `success` com zero itens.
+9. **Pré-condições:** base inexistente → código `1`, pedindo `tde init`, sem ficheiro nem directório criados; esquema não conforme → código `1`, pedindo `tde init`, sem migração aplicada; em ambos os casos não é criado `run`.
+10. **Execução interrompida:** um erro da `storage` injectado durante o processamento termina com código `1`, deixa o `run` com `finished_at IS NULL` e sem itens da transacção interrompida.
+11. **Isolamento das camadas:** `collectors/` não importa `storage` nem `sqlite3`; `storage` não importa `collectors` nem `sources`; SQL só em `storage/`; sem `INSERT OR IGNORE`, `INSERT OR REPLACE` nem `ON CONFLICT`; o collect não altera campos projectados nem `updated_at` de `source_endpoint`, nem lê ou altera `config/sources.yaml`.
+12. **CLI:** `tde collect` aparece em `tde --help`, com `--source` e sem `--since`.
+13. **Comportamento existente preservado:** `tde doctor`, `tde init`, `tde sources validate` e `tde sources sync` mantêm o comportamento; o esquema não muda; os testes existentes continuam a passar.
+14. **Testes offline:** bases de dados em directórios temporários, collectors falsos, sem rede, sem fornecedor de IA e sem fontes nem URLs reais; nenhum teste escreve em `data/`.
+15. **Validação do repositório:** `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .` e `uv run tde doctor` passam.
+
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
 - [x] Documentação técnica inicial em `docs/`.
@@ -202,7 +287,7 @@ Regras do esquema:
 - Projecto Python gerido com `uv` (`pyproject.toml`, `uv.lock`), pacote `tensdireito_content_engine`, CLI `tde`, `ruff`, `pytest`.
 - Camada `storage` com SQLite e migrações numeradas para `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run`: a migração inicial (M2.6) cobre `run`, `source_registry`, `source_endpoint` e `raw_item`; `source_document` entra numa migração seguinte, com a persistência da etapa NORMALIZE (DEC-026).
 - Registo de fontes + `tde sources validate` (M2.5) + `tde sources sync`, sincronização explícita YAML → SQLite dos campos projectados (M2.7).
-- Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados.
+- Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados. A orquestração de `tde collect`, o ciclo de vida de `run`, a persistência de `raw_item` e o contrato `Collector` são o M2.8 (DEC-031); os collectors concretos, o transporte de rede e `fetch` ficam para unidades posteriores.
 - NORMALIZE com deduplicação exacta.
 - Validação manual de 5–10 fontes (prioridade T1), registando endpoints reais só após confirmação.
 - Relatório mínimo da execução.

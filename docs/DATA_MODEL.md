@@ -53,7 +53,7 @@ A publicação nos canais **não** é um nível gerido pelo sistema na V1 (ver s
 Detalhe e regras em [SOURCES.md](SOURCES.md).
 
 #### `source_registry`
-Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdade). A sincronização é unidireccional YAML → SQLite; os campos operacionais de `source_endpoint` (`last_success_at`, `last_error`) só existem na base de dados (DEC-027). Mais precisamente, `source_registry` e `source_endpoint` são o espelho operacional dos **campos do registo projectados pelo domínio/storage**, por `tde sources sync` (M2.7, implementado; DEC-028): `fetch` fica fora da projecção no M2.7 e a coluna fica nula. Identidade pelo `id` do YAML; uma entrada retirada do YAML só é removida se nenhum `raw_item` a referenciar, e um endpoint referenciado não muda de `source_id` nem de `endpoint_type` (DEC-029). Estas tabelas não têm `created_in_run` (DEC-028). Nesta fase, `validated_at`/`validated_by` constituem o estado de validação operacional; `VALIDATE_SOURCE` em `editorial_decision` fica para unidade futura (DEC-030).
+Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdade). A sincronização é unidireccional YAML → SQLite; os campos operacionais de `source_endpoint` (`last_success_at`, `last_error`) só existem na base de dados (DEC-027). Mais precisamente, `source_registry` e `source_endpoint` são o espelho operacional dos **campos do registo projectados pelo domínio/storage**, por `tde sources sync` (M2.7, concluído e integrado; DEC-028): `fetch` fica fora da projecção no M2.7 e a coluna fica nula. Identidade pelo `id` do YAML; uma entrada retirada do YAML só é removida se nenhum `raw_item` a referenciar, e um endpoint referenciado não muda de `source_id` nem de `endpoint_type` (DEC-029). Estas tabelas não têm `created_in_run` (DEC-028). Nesta fase, `validated_at`/`validated_by` constituem o estado de validação operacional; `VALIDATE_SOURCE` em `editorial_decision` fica para unidade futura (DEC-030).
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
@@ -77,7 +77,7 @@ Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdad
 | `fetch` | json | Frequência indicativa, `rate_limit_seconds`, `max_items`, selectores. |
 | `endpoint_status` | text | `CANDIDATE` \| `VALIDATED` \| `ACTIVE` \| `INACTIVE`. Só `ACTIVE` é recolhido. |
 | `validated_at` / `validated_by` | datetime / text | |
-| `last_success_at` / `last_error` | datetime / text | |
+| `last_success_at` / `last_error` | datetime / text | Operacionais (DEC-027). Definido no M2.8 (DEC-031): actualizados por `tde collect` — sucesso → `last_success_at` actualizado e `last_error` nulo; falha → `last_error` actualizado e `last_success_at` preservado; sem alterar `updated_at` (DEC-028). |
 
 #### `raw_item` — Nível 1 (captura bruta de um source_document)
 | Campo | Tipo | Notas |
@@ -240,6 +240,8 @@ Cada afirmação factual relevante de um evento, formulada **com o seu estágio*
 | `stats` | json | Contagens por etapa, erros por fonte, tokens de IA. |
 | `outcome` | text | `items_for_editorial_review` \| `nothing_to_publish` \| `n/a`. |
 | `report_path` | text | |
+
+Uso definido no M2.8 (DEC-031; contrato em [ROADMAP.md](ROADMAP.md#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)): `tde collect` cria um `run` com `command = "collect"` e `started_at`; **durante a execução, `finished_at` e `status` são nulos** (não existe estado `running`); no fim grava `finished_at`, `status` (`success`, `partial` ou `failed`) e `stats` (contagens por endpoint e totais). `outcome` e `report_path` ficam nulos no M2.8. Um `run` com `finished_at` nulo representa uma execução interrompida ou não concluída. `run` não tem modelo de domínio; é tratado na camada `storage`. Os `raw_item` criados por `tde collect` guardam o `run` em `created_in_run`.
 
 ### 2.10 `llm_call`
 | Campo | Tipo | Notas |
