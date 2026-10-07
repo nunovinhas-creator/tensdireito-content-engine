@@ -1,6 +1,6 @@
 # Modelo de Dados
 
-> Estado: **especificação conceptual (M1)**. Esquema-alvo para SQLite (V1), escrito de forma portável para PostgreSQL. Tipos indicados de forma lógica; datas em UTC, formato ISO 8601. Nada aqui está implementado.
+> Estado: **especificação conceptual (M1)**. Esquema-alvo para SQLite (V1), escrito de forma portável para PostgreSQL. Tipos indicados de forma lógica; datas em UTC, formato ISO 8601. Nenhuma persistência está implementada. Desde o M2.2 existem modelos de domínio (sem persistência) em `src/tensdireito_content_engine/domain/` para `event`, `source_registry`, `source_endpoint`, `source_document`, `source_evidence` e para as enumerações das secções 2–3; os campos de etapas ainda não implementadas (recolha, normalização, classificação) e as restantes entidades ficam para as unidades correspondentes.
 
 **Convenção de nomes de estados.** Nos documentos, os estados conceptuais escrevem-se em maiúsculas (ex.: `VERIFIED_OFFICIAL`, `EDITORIAL_REVIEW`). Na implementação, o código armazenado será a mesma designação em minúsculas (ex.: `verified_official`). Não existem outros nomes para estes estados.
 

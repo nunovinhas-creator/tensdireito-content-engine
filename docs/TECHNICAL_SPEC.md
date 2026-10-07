@@ -43,8 +43,8 @@ tensdireito-content-engine/
 ├── prompts/                  # prompts versionados, um ficheiro por tarefa e versão
 ├── src/tensdireito_content_engine/
 │   ├── cli.py
-│   ├── config.py
-│   ├── models.py             # dataclasses das entidades (DATA_MODEL.md)
+│   ├── config.py             # configuração interna mínima (M2.2)
+│   ├── domain/               # enums e entidades de domínio, sem persistência (DATA_MODEL.md; M2.2)
 │   ├── storage/              # repositórios + esquema SQL + migrações
 │   ├── sources/
 │   ├── collectors/           # base.py (interface Collector), rss.py, html_page.py, manual.py
@@ -158,6 +158,7 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 - Segredos (chaves de API) — exclusivamente em variáveis de ambiente (ex.: `TDE_LLM_API_KEY_<FORNECEDOR>`); em GitHub Actions via *repository secrets*. Ver [SECURITY.md](SECURITY.md).
 - `TDE_DB_PATH` — caminho da base de dados (por defeito `data/tde.sqlite3`).
 - Fuso horário de referência: `Europe/Lisbon` para apresentação; armazenamento em UTC (ISO 8601).
+- Implementado (M2.2): `config.py` contém apenas nome, versão (a do pacote) e ambiente (`development` por defeito, `test`). Não lê ficheiros nem variáveis de ambiente; os ficheiros YAML e os segredos acima entram quando tiverem consumidor.
 
 ## 6. Requisitos não funcionais
 

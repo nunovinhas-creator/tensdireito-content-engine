@@ -3,7 +3,7 @@
 Editorial Intelligence Engine para o [TensDireito.com](https://tensdireito.com) — descobre, verifica, classifica, pontua e transforma informação sobre apoios e direitos sociais em conteúdo editorial publicável.
 
 > **Estado actual: M2 — fundação executável.** As decisões fundamentais foram fechadas no M1.
-> Existe apenas a fundação mínima do projecto Python (pacote, CLI `tde` com `doctor`, testes). Ainda não há recolha, verificação, pontuação, geração nem exportação; a documentação em `docs/` continua a ser a especificação da implementação.
+> Existe a fundação mínima do projecto Python (pacote, CLI `tde` com `doctor`, testes) e o núcleo de domínio (configuração mínima, enumerações, `Event` e modelo de fontes/evidência), sem persistência. Ainda não há recolha, verificação, pontuação, geração nem exportação; a documentação em `docs/` continua a ser a especificação da implementação.
 
 ## Propósito
 
