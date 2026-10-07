@@ -48,9 +48,11 @@ Cada `event` tem:
 | `category` | exactamente 1 | Área temática principal. |
 | `subcategory` | 0..1 | Assunto específico dentro da categoria. |
 | `secondary_categories` | 0..N | Para assuntos transversais (ex.: IRS de pensionistas). |
-| `audience` | 1..N | Quem é afectado. Um evento sem audiência identificável não é publicável. |
+| `audience` | 1..N (ver nota) | Quem é afectado. Um evento sem audiência identificável não é publicável. |
 | `impact_type` | exactamente 1 | O que muda para essas pessoas. |
-| `legal_stage` | exactamente 1 | Em que fase está a medida (ver [DATA_MODEL.md](DATA_MODEL.md#33-legal_stage--em-que-fase-está-a-medida)). |
+| `legal_stage` | exactamente 1 | Em que fase está a medida (ver [DATA_MODEL.md](DATA_MODEL.md#33-legal_stage--em-que-fase-está-a-medida)). Só é estágio oficialmente confirmado quando o evento está `VERIFIED_OFFICIAL` (DEC-020). |
+
+**Nota sobre `audience` (DEC-019).** A cardinalidade 1..N aplica-se ao evento elegível para progressão editorial. Um evento `CANDIDATE` acabado de criar pode ainda não ter audiência identificada (`audience` vazia); se continuar sem audiência é rejeitado com `no_audience` (secção 8). A audiência vazia só é admitida em `CANDIDATE`, `REJECT` e `ARCHIVED`: nenhum evento entra em `WATCHLIST`, `EDITORIAL_REVIEW`, `READY_FOR_APPROVAL`, `APPROVED` ou `PUBLISHED` sem ≥1 audiência, nem por decisão humana.
 
 Estes campos são, nesta fase, **conceptuais**; não estão implementados.
 
@@ -150,7 +152,7 @@ Rejeita-se quando se verifica pelo menos um:
 | Motivo (`status_reason`) | Condição |
 |--------------------------|----------|
 | `out_of_scope` | Sem relação com a taxonomia ou com direitos dos cidadãos. |
-| `no_audience` | Sem audiência identificável em Portugal. |
+| `no_audience` | Sem audiência identificável em Portugal. Destino obrigatório de um candidato que não tenha audiência (DEC-019). |
 | `contradicted` | Claim crítica contradita por evidência oficial. |
 | `duplicate` | É o mesmo assunto de um evento existente (deve ser fundido — `MERGE`). |
 | `stale_no_change` | Informação antiga sem desenvolvimento material. |

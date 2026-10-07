@@ -68,7 +68,7 @@ Algoritmo V1 (simples e explicável):
 4. Opcional (IA): para pares no intervalo de incerteza, `same_event` (sim/não/incerto + justificação). "Incerto" nunca funde automaticamente: cria novo evento e assinala possível duplicado no relatório.
 5. Sem correspondência → novo `event` em `CANDIDATE`, documento com papel `trigger`.
 6. Com correspondência → o documento junta-se ao evento (`supporting` ou `update`). Se trouxer desenvolvimento **material**, o evento regista `last_material_change_at` e, se estiver em `REJECT`, `WATCHLIST`, `APPROVED` ou `ARCHIVED`, reabre em `CANDIDATE`.
-7. Consolida no evento `category`, `subcategory`, `audience`, `impact_type`; o `legal_stage` do evento só é actualizado na etapa VERIFY, com evidência.
+7. Consolida no evento `category`, `subcategory`, `audience`, `impact_type`. A `audience` pode ficar vazia num evento `CANDIDATE` (DEC-019). Um evento novo recebe como `legal_stage` o estágio menos avançado proposto pelos seus documentos; daí em diante o `legal_stage` só é recalculado na etapa VERIFY (DEC-020).
 
 Fusões manuais (`MERGE`) ficam registadas em `editorial_decision`; o evento absorvido passa a `ARCHIVED` com `merged_into`.
 
@@ -116,7 +116,7 @@ Calculado a partir das claims críticas (ou de todas, se não houver críticas; 
 | Todas as claims críticas `VERIFIED_OFFICIAL` | `VERIFIED_OFFICIAL` |
 | Restantes casos (todas verificadas, pelo menos uma só `VERIFIED_EDITORIAL`) | `VERIFIED_EDITORIAL` |
 
-O `legal_stage` do evento passa a ser o estágio mais avançado entre as suas claims críticas `VERIFIED_OFFICIAL`; sem nenhuma, mantém o estágio menos avançado proposto.
+O `legal_stage` do evento é recalculado (DEC-020, ordem em [DATA_MODEL.md](DATA_MODEL.md#33-legal_stage--em-que-fase-está-a-medida)): o estágio mais avançado entre as claims críticas `VERIFIED_OFFICIAL` (ou entre todas, se não houver críticas); sem nenhuma, o estágio menos avançado entre as claims (sem claims, entre os documentos). Só é estágio oficialmente confirmado quando o evento fica `VERIFIED_OFFICIAL`; caso contrário é um estágio de trabalho, nunca apresentado como facto jurídico.
 
 ### 5.6 Notas de verificação
 Lista legível do que falta confirmar (ex.: "Valor anunciado pelo Governo; diploma ainda não publicado em Diário da República").
@@ -134,6 +134,7 @@ Calcula o `editorial_score` de cada evento `CANDIDATE`/`WATCHLIST` e propõe o e
 | Política | Nenhum critério de rejeição de [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#8-critérios-para-rejeitar-reject). |
 
 - `CONTRADICTED` → `REJECT`.
+- Sem audiência identificável → `REJECT` (`no_audience`); um evento sem audiência nunca é proposto para `WATCHLIST` nem `EDITORIAL_REVIEW` (DEC-019).
 - Score elevado mas verificação insuficiente → `WATCHLIST` (`awaiting_verification` ou `awaiting_official_confirmation`). Um score alto **nunca** desbloqueia a verificação.
 - Um evento `VERIFIED_EDITORIAL` com claims críticas só chega a `EDITORIAL_REVIEW` por decisão humana (`PROMOTE_TO_EDITORIAL_REVIEW`, nota obrigatória) e com as restrições de redacção da [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#5-níveis-de-verificação).
 - `UNVERIFIED` e `CONTRADICTED` nunca chegam a `EDITORIAL_REVIEW`, nem por decisão humana.

@@ -166,3 +166,83 @@ def test_classification_lists_must_be_tuples_of_text():
 def test_dates_must_be_dates_not_datetimes():
     with pytest.raises(DomainValidationError):
         make_event(deadline=T0)
+
+
+# --- DEC-019: audience -----------------------------------------------------
+
+AUDIENCE_REQUIRED = [
+    EditorialStatus.WATCHLIST,
+    EditorialStatus.EDITORIAL_REVIEW,
+    EditorialStatus.READY_FOR_APPROVAL,
+    EditorialStatus.APPROVED,
+    EditorialStatus.PUBLISHED,
+]
+
+
+def test_candidate_event_may_start_without_audience():
+    event = make_event(audience=())
+    assert event.editorial_status is EditorialStatus.CANDIDATE
+    assert event.audience == ()
+
+
+def test_candidate_without_audience_can_be_rejected_with_no_audience():
+    event = make_event(audience=())
+    rejected = dataclasses.replace(
+        event, editorial_status=EditorialStatus.REJECT, status_reason="no_audience"
+    )
+    assert rejected.status_reason == "no_audience"
+
+
+def test_archived_event_may_have_no_audience():
+    event = make_event(audience=(), editorial_status=EditorialStatus.ARCHIVED)
+    assert event.audience == ()
+
+
+@pytest.mark.parametrize("status", AUDIENCE_REQUIRED)
+def test_editorial_progression_requires_audience(status):
+    with pytest.raises(DomainValidationError):
+        make_event(audience=(), editorial_status=status)
+    assert make_event(editorial_status=status).audience == ("beneficiarios_prestacoes",)
+
+
+@pytest.mark.parametrize("status", AUDIENCE_REQUIRED)
+def test_candidate_without_audience_cannot_advance(status):
+    event = make_event(audience=())
+    with pytest.raises(DomainValidationError):
+        dataclasses.replace(event, editorial_status=status)
+
+
+# --- DEC-020: legal_stage --------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "verification",
+    [
+        VerificationStatus.UNVERIFIED,
+        VerificationStatus.VERIFIED_EDITORIAL,
+        VerificationStatus.CONTRADICTED,
+    ],
+)
+@pytest.mark.parametrize("stage", list(LegalStage))
+def test_proposed_stage_is_not_officially_confirmed(verification, stage):
+    event = make_event(legal_stage=stage, verification_status=verification)
+    assert event.legal_stage is stage
+    assert event.legal_stage_officially_confirmed is False
+
+
+def test_new_event_stage_is_never_officially_confirmed():
+    assert make_event(legal_stage=LegalStage.IN_FORCE).legal_stage_officially_confirmed is False
+
+
+@pytest.mark.parametrize("stage", [s for s in LegalStage if s is not LegalStage.NOT_APPLICABLE])
+def test_stage_is_officially_confirmed_only_when_event_is_verified_official(stage):
+    event = make_event(legal_stage=stage, verification_status=VerificationStatus.VERIFIED_OFFICIAL)
+    assert event.legal_stage_officially_confirmed is True
+
+
+def test_not_applicable_stage_has_nothing_to_confirm():
+    event = make_event(
+        legal_stage=LegalStage.NOT_APPLICABLE,
+        verification_status=VerificationStatus.VERIFIED_OFFICIAL,
+    )
+    assert event.legal_stage_officially_confirmed is False

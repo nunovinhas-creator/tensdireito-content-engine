@@ -69,14 +69,14 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Decisão:** O campo `change_type` é substituído por dois campos ortogonais: `impact_type` (o que muda para o cidadão) e `legal_stage` (`proposal`, `announcement`, `approved`, `published`, `in_force`, `ended`, `not_applicable`). Cada claim é formulada com o seu estágio; o `legal_stage` de um evento só avança com evidência oficial.
 - **Razão:** `change_type` misturava a natureza da alteração com o seu estágio (`announcement` vs. `legislation`), o que impedia aplicar de forma determinista as regras "proposta ≠ medida aprovada" e "anúncio ≠ lei".
 - **Alternativas consideradas:** Manter `change_type` com mais valores (explosão combinatória); inferir o estágio do texto na geração (não auditável).
-- **Estado:** Aceite
+- **Estado:** Aceite (clarificada por DEC-020 — cálculo e significado do `legal_stage` do evento)
 - **Data:** 2026-10-07
 
 ### DEC-006 — Taxonomia editorial V1
 - **Decisão:** 14 categorias (Segurança Social e prestações; Pensões e reformas; Emprego e desemprego; Salários e rendimento; Fiscalidade para particulares; Habitação e arrendamento; Apoios às famílias; Educação e estudantes; Saúde e apoios relacionados; Energia e água; Consumo e direitos do consumidor; Deficiência e inclusão; Idosos e cuidadores; Justiça e direitos dos cidadãos). Cada evento tem `category` (1), `subcategory` (0..1), `secondary_categories` (0..N), `audience` (1..N) e `impact_type` (1). A taxonomia é extensível e as categorias não têm o mesmo peso editorial. Campos conceptuais, não implementados.
 - **Razão:** Resolver D4 e dar base comum à classificação, ao score e ao estilo.
 - **Alternativas consideradas:** Manter a lista inicial de temas (misturava níveis, ex.: `desemprego` e `emprego_formacao`, sem audiência nem impacto); taxonomia hierárquica profunda (prematura sem dados reais).
-- **Estado:** Aceite
+- **Estado:** Aceite (clarificada por DEC-019 — `audience` 1..N aplica-se ao evento em progressão editorial)
 - **Data:** 2026-10-07
 
 ### DEC-007 — Modelo de fontes em quatro conceitos; source discovery ≠ source verification
@@ -163,7 +163,29 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Aceite
 - **Data:** 2026-10-07
 
-## 4. Estado das decisões pendentes
+## 4. Decisões do M2
+
+### DEC-019 — `audience` obrigatória para progressão editorial, não para o candidato
+- **Decisão:** A cardinalidade `audience` 1..N de DEC-006 aplica-se ao evento **elegível para progressão editorial**. Um evento pode ter `audience` vazia apenas em `CANDIDATE` (objecto técnico de entrada, ainda incompleto), `REJECT` e `ARCHIVED`. Em `WATCHLIST`, `EDITORIAL_REVIEW`, `READY_FOR_APPROVAL`, `APPROVED` e `PUBLISHED` exige-se ≥1 audiência. Um `CANDIDATE` sem audiência identificável é rejeitado com `status_reason = no_audience`, que continua a ser um motivo de rejeição válido. Nenhuma decisão humana (`MOVE_TO_WATCHLIST`, `PROMOTE_TO_EDITORIAL_REVIEW`, aprovação) faz avançar um evento sem audiência.
+- **Razão:** O evento nasce no CLUSTER a partir de propostas de classificação, que podem não identificar audiência; o motivo `no_audience` (EDITORIAL_POLICY.md §8) pressupõe que esse evento existe para poder ser rejeitado (e mantido para deduplicação). Ter audiência é critério de relevância (§6), e a `WATCHLIST` só recebe acontecimentos relevantes (§9); por isso a exigência começa em `WATCHLIST`. Assim DEC-006, EDITORIAL_POLICY §4 e §8 e DATA_MODEL ficam coerentes sem remover nenhum conceito.
+- **Alternativas consideradas:** Exigir ≥1 audiência na criação (torna `no_audience` impossível e obriga a inventar uma audiência no CLUSTER); remover `no_audience` (perde-se o registo do motivo de rejeição e a deduplicação contra eventos rejeitados); permitir audiência vazia em `WATCHLIST` (contraria o critério de relevância).
+- **Documentos subordinados:** [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md) §4 e §8, [DATA_MODEL.md](DATA_MODEL.md) §2.2 e §3.5, [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md) etapas 4 e 6. Implementado como invariante de `Event` no domínio.
+- **Estado:** Aceite (clarifica DEC-006)
+- **Data:** 2026-10-07
+
+### DEC-020 — `legal_stage` do evento: regra de cálculo e significado
+- **Decisão:** O evento tem um único campo `legal_stage`, com regra de cálculo determinística e significado condicionado à verificação:
+  1. **Ordem de avanço** (a da tabela de DATA_MODEL.md §3.3 e de DEC-005): `proposal` < `announcement` < `approved` < `published` < `in_force` < `ended`. `not_applicable` fica fora da ordem e só é usado quando nenhuma claim/documento tem estágio aplicável.
+  2. **Na criação (CLUSTER):** o estágio menos avançado entre os `proposed_legal_stage` dos documentos agrupados.
+  3. **Em cada VERIFY** (recalculado, não acumulado), sobre as claims críticas (ou todas, se não houver críticas): se existir ≥1 claim `VERIFIED_OFFICIAL`, o estágio mais avançado entre essas claims; caso contrário, o estágio menos avançado entre as claims (ou, sem claims, entre os documentos).
+  4. **Significado:** o `legal_stage` do evento só é um estágio **oficialmente confirmado** quando `event.verification_status = VERIFIED_OFFICIAL`. Em qualquer outro estado é um estágio de trabalho (proposto, ou apenas parcialmente confirmado) e nunca é apresentado como facto jurídico; a redacção usa sempre o `legal_stage` e o `verification_status` de cada claim.
+- **Razão:** DATA_MODEL.md descrevia o campo como "mais avançado verificado", enquanto CONTENT_PIPELINE.md previa, sem claims oficiais, "o menos avançado proposto" — dois significados para o mesmo campo, e nenhum valor definido na criação do evento. A regra acima é determinista, conservadora (sem evidência oficial, escolhe o estágio menos avançado), e impede que uma inferência editorial, um anúncio ou a imprensa sejam lidos como confirmação jurídica, preservando `VERIFIED_OFFICIAL ≠ VERIFIED_EDITORIAL`.
+- **Alternativas consideradas:** Dois campos (`proposed_legal_stage` e `verified_legal_stage`) no evento (mais complexidade sem consumidor; a distinção já é dada pelo `verification_status` e pelas claims); `legal_stage` nulo até haver evidência oficial (contraria a cardinalidade "exactamente 1" e impede a pontuação de candidatos); manter o valor anterior quando não há claims oficiais (não determinista face à ordem de execução).
+- **Documentos subordinados:** [DATA_MODEL.md](DATA_MODEL.md) §2.2 e §3.3, [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md) etapas 4 e 5.5, [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md) §4. O significado (ponto 4) está exposto no domínio como `Event.legal_stage_officially_confirmed`; o cálculo (pontos 1–3) pertence à futura etapa VERIFY.
+- **Estado:** Aceite (clarifica DEC-005)
+- **Data:** 2026-10-07
+
+## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
 

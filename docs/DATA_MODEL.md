@@ -129,9 +129,9 @@ Um `event` representa **um assunto editorial** (ex.: "alteração do valor de um
 | `category` | text | Categoria principal (uma). |
 | `subcategory` | text, nulo | Subcategoria dentro da categoria principal. |
 | `secondary_categories` | json | Outras categorias, para assuntos transversais (opcional). |
-| `audience` | json | Lista de audiências-alvo (≥1). |
+| `audience` | json | Lista de audiências-alvo. ≥1 obrigatório a partir de `WATCHLIST`; vazia só em `CANDIDATE`, `REJECT` e `ARCHIVED` (DEC-019). |
 | `impact_type` | text | Ver 3.2. |
-| `legal_stage` | text | Estágio da medida mais avançado **verificado**. Ver 3.3. |
+| `legal_stage` | text | Estágio da medida, calculado pela regra de 3.3 (DEC-020). Só é estágio oficialmente confirmado quando `verification_status = VERIFIED_OFFICIAL`. |
 | `editorial_status` | text | Ver 3.5. |
 | `status_reason` | text | Motivo do estado actual (ex.: `awaiting_official_confirmation`, `below_threshold`, `expired`). |
 | `verification_status` | text | Ver 3.4. Calculado, nunca editado directamente. |
@@ -276,6 +276,11 @@ Cada afirmação factual relevante de um evento, formulada **com o seu estágio*
 
 O `legal_stage` de um evento só avança com evidência que o sustente; nunca é inferido do tom de uma notícia.
 
+**`legal_stage` do evento (DEC-020).** Ordem de avanço: `proposal` < `announcement` < `approved` < `published` < `in_force` < `ended`; `not_applicable` fica fora da ordem e só se usa quando nada tem estágio aplicável.
+- Na criação (CLUSTER): o estágio menos avançado entre os `proposed_legal_stage` dos documentos agrupados.
+- Em cada VERIFY (recalculado): o estágio mais avançado entre as claims críticas `VERIFIED_OFFICIAL` (ou entre todas as claims, se não houver críticas); sem nenhuma, o estágio menos avançado entre as claims (sem claims, entre os documentos).
+- Só é **oficialmente confirmado** quando `event.verification_status = VERIFIED_OFFICIAL`; nos restantes casos é um estágio de trabalho e nunca é apresentado como facto jurídico. A redacção usa o estágio e a verificação de cada claim.
+
 `impact_type` + `legal_stage` substituem o antigo campo único `change_type` (ver [DECISION_LOG.md](DECISION_LOG.md), DEC-005).
 
 ### 3.4 `verification_status` (claim e event)
@@ -319,6 +324,7 @@ CANDIDATE ──(SCORE)──┬──▶ REJECT
 
 Regras:
 - Nenhum evento chega a `EDITORIAL_REVIEW` com `verification_status ∈ {UNVERIFIED, CONTRADICTED}`.
+- `audience` vazia só é permitida em `CANDIDATE`, `REJECT` e `ARCHIVED`; nenhum evento passa a `WATCHLIST` ou a um estado posterior sem ≥1 audiência. Um candidato sem audiência identificável é rejeitado com `no_audience` (DEC-019).
 - `READY_FOR_APPROVAL → APPROVED` é **sempre** uma decisão humana.
 - Um desenvolvimento material num evento em `REJECT`, `WATCHLIST`, `APPROVED` ou `ARCHIVED` reabre-o (`CANDIDATE`), mantendo o histórico. Eventos `ARCHIVED` por fusão não reabrem: reabre o evento de destino.
 - Uma alteração ao `verification_status` de um evento em `EDITORIAL_REVIEW`, `READY_FOR_APPROVAL` ou `APPROVED` desencadeia reavaliação: se descer, o evento volta a `WATCHLIST` (ou `REJECT`, se `CONTRADICTED`) e as aprovações pendentes de exportação ficam invalidadas.

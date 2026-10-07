@@ -28,6 +28,12 @@ from tensdireito_content_engine.domain.validation import (
     require_utc,
 )
 
+# Estados em que `audience` pode estar vazia (DEC-019): o candidato ainda incompleto
+# e os estados terminais. Todos os outros exigem ≥1 audiência.
+AUDIENCE_OPTIONAL_STATUSES = frozenset(
+    {EditorialStatus.CANDIDATE, EditorialStatus.REJECT, EditorialStatus.ARCHIVED}
+)
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Event:
@@ -97,6 +103,10 @@ class Event:
         optional_text(self.status_reason, "status_reason")
         if self.editorial_status is EditorialStatus.REJECT and self.status_reason is None:
             raise DomainValidationError("um evento REJECT exige status_reason")
+        if not self.audience and self.editorial_status not in AUDIENCE_OPTIONAL_STATUSES:
+            raise DomainValidationError(
+                f"um evento {self.editorial_status.name} exige pelo menos uma audiência"
+            )
 
         optional_id(self.merged_into, "merged_into")
         if self.merged_into is not None:
@@ -118,3 +128,15 @@ class Event:
         optional_utc(self.last_material_change_at, "last_material_change_at")
         if self.last_seen_at < self.first_seen_at:
             raise DomainValidationError("last_seen_at não pode ser anterior a first_seen_at")
+
+    @property
+    def legal_stage_officially_confirmed(self) -> bool:
+        """True só se o `legal_stage` puder ser tratado como facto jurídico (DEC-020).
+
+        Fora de `VERIFIED_OFFICIAL` o estágio é de trabalho (proposto ou apenas
+        parcialmente confirmado); `not_applicable` não tem estágio a confirmar.
+        """
+        return (
+            self.verification_status is VerificationStatus.VERIFIED_OFFICIAL
+            and self.legal_stage is not LegalStage.NOT_APPLICABLE
+        )
