@@ -1,88 +1,99 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase**.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. Nenhum trabalho do M2 foi iniciado.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
+
+## Milestones
+
+| Milestone | Âmbito | Estado |
+|-----------|--------|--------|
+| Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
+| **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
+| M2 | A definir. | Não iniciado |
 
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
 - [x] Documentação técnica inicial em `docs/`.
 - [x] Revisão e aprovação da arquitectura.
-- [ ] Decisões pendentes da secção "Decisões pendentes" resolvidas ou explicitamente adiadas.
+- [x] M1 — decisões fundamentais fechadas e registadas em [DECISION_LOG.md](DECISION_LOG.md).
+- [ ] Decisões pendentes restantes resolvidas ou explicitamente adiadas (ver abaixo).
 
-**Critério de saída:** documentação aprovada; lista de fontes T1 prioritárias acordada.
+**Critério de saída:** documentação aprovada; lista de fontes T1 prioritárias acordada (D1).
 
 ## Fase 1 — Fundação e recolha (manual)
 
-- Estrutura do pacote Python, `pyproject.toml`, `ruff`, `pytest`.
-- Camada `storage` com SQLite e migração inicial (`raw_item`, `document`, `source`, `run`).
+- Projecto Python gerido com `uv` (`pyproject.toml`, `uv.lock`), pacote `tensdireito_content_engine`, CLI `tde`, `ruff`, `pytest`.
+- Camada `storage` com SQLite e migração inicial (`source_registry`, `source_endpoint`, `raw_item`, `source_document`, `run`).
 - Registo de fontes + `tde sources validate`.
-- Collectors `rss`, `html_page`, `manual`.
+- Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados.
 - NORMALIZE com deduplicação exacta.
-- Validação manual de 5–10 fontes (prioridade T1).
+- Validação manual de 5–10 fontes (prioridade T1), registando endpoints reais só após confirmação.
 - Relatório mínimo da execução.
 
 **Critério de saída:** `tde collect && tde normalize` corre localmente, de forma idempotente, sobre as fontes validadas; testes offline com fixtures.
 
 ## Fase 2 — Classificação, agrupamento e pontuação
 
-- `taxonomy.yaml` e CLASSIFY por regras.
-- Interface `LLMProvider` + `NullProvider` + primeira implementação de fornecedor (após decisão).
+- `taxonomy.yaml` (taxonomia V1) e CLASSIFY por regras.
+- Interface `LLMProvider` + `NullProvider` + primeira implementação de fornecedor (após D3).
 - CLASSIFY assistida por IA.
-- CLUSTER (similaridade lexical + sinais fortes).
-- SCORE com `scoring.yaml` e relatório completo, incluindo "nada a publicar".
+- CLUSTER com actualização de eventos existentes (similaridade lexical + sinais fortes).
+- SCORE com `scoring.yaml` (sem componente de verificação) e relatório, incluindo "nada suficientemente importante para publicar".
 - Calibração com 2–4 semanas de dados reais.
 
-**Critério de saída:** `tde run` produz relatório útil com eventos ordenados; editor confirma que a lista seleccionada é razoável.
+**Critério de saída:** `tde run` produz relatório útil com eventos ordenados; editor confirma que a ordenação é razoável.
 
 ## Fase 3 — Verificação e rastreabilidade
 
-- Entidades `claim` e `evidence`.
+- Entidades `claim` e `source_evidence`, com `legal_stage`.
 - Extracção de claims e associação a evidência com validação literal de excertos.
-- Cálculo determinista de `verification_status`.
-- Gates de verificação na pontuação; watchlist.
-- Comandos de override e fusão de eventos.
+- Cálculo determinista de `VERIFIED_OFFICIAL` / `VERIFIED_EDITORIAL` / `UNVERIFIED` / `CONTRADICTED`.
+- Gate de verificação na proposta editorial; watchlist com motivos.
+- Comandos de override (limitado), evidência manual e fusão de eventos.
 
-**Critério de saída:** nenhum evento `selected` sem claims críticas com evidência validada (ou override registado).
+**Critério de saída:** nenhum evento chega a `EDITORIAL_REVIEW` sem passar o gate de verificação; nenhuma claim é `VERIFIED_OFFICIAL` sem evidência T1 validada e adequada ao estágio.
 
-## Fase 4 — Produção editorial e revisão
+## Fase 4 — Produção editorial e revisão humana
 
-- GENERATE para `whatsapp`, `article`, `seo_meta`.
-- Validações automáticas pós-geração.
-- REVIEW (`list`, `approve`, `reject`) e EXPORT.
+- GENERATE para `whatsapp`, `article`, `seo_meta`, segundo o [STYLE_GUIDE.md](STYLE_GUIDE.md).
+- Validações automáticas pós-geração (incluindo estágio legal e atribuição).
+- REVIEW (`APPROVED`, `REJECTED`, `NEEDS_REVISION`, com revisor, data e nota) e EXPORT.
 
-**Critério de saída:** fluxo completo manual, de recolha a conteúdo `ready_to_publish` exportado, com rastreabilidade claim → fonte.
+**Critério de saída:** fluxo completo manual, de recolha a conteúdo `APPROVED` exportado, com rastreabilidade claim → fonte. Sem publicação automática.
 
 ## Fase 5 — Automação
 
+**Pré-requisito bloqueante:** antes de activar qualquer execução agendada via GitHub Actions, tem de ser tomada e registada no [DECISION_LOG.md](DECISION_LOG.md) uma decisão sobre **persistência durável e estado partilhado** (D8). Um SQLite local num runner efémero **não** é solução suficiente para produção: o estado perde-se entre execuções e não é partilhado com a revisão humana.
+
 - Workflow GitHub Actions agendado para `tde run`.
-- Armazenamento persistente da base de dados fora do runner.
+- Persistência conforme a decisão D8.
 - Notificação com o relatório da execução.
 
-**Critério de saída:** execuções agendadas estáveis durante 2 semanas sem intervenção, com geração de conteúdo ainda despoletada manualmente.
+**Critério de saída:** execuções agendadas estáveis durante 2 semanas sem intervenção; geração e revisão continuam manuais.
 
 ## Fase 6 — Evolução (a avaliar)
 
 - Migração para PostgreSQL.
 - Formatos `newsletter` e `social_post`.
-- Integração de publicação (ex.: CMS do TensDireito.com) — requer decisão.
+- Integração de publicação (ex.: CMS do TensDireito.com) e uso do estado `PUBLISHED` — requer decisão.
 - Recolha automatizada de redes sociais — requer decisão (termos, custo, RGPD).
+- Calibração de pesos por categoria, audiência, histórico de desempenho e tipo de notícia.
 - Similaridade semântica (embeddings) para clustering.
-- Interface de revisão web.
+- Interface de revisão web com autenticação.
 
 ## Decisões pendentes
 
-Decisões a tomar antes (ou no início) da fase indicada:
-
-| # | Decisão | Fase | Opções / notas |
+| # | Decisão | Fase | Estado / notas |
 |---|---------|------|----------------|
-| D1 | Fontes T1 prioritárias para a Fase 1 e confirmação de mecanismo de recolha de cada uma | 1 | Lista candidata em [SOURCES.md](SOURCES.md). |
-| D2 | Selecção de fontes T2/T3 (imprensa) | 1–2 | Decisão editorial. |
-| D3 | Fornecedor(es) de IA inicial(is) e orçamento mensal | 2 | Interface já é agnóstica; afecta custos e termos de tratamento de dados. |
-| D4 | Âmbito temático definitivo (taxonomia) | 2 | Lista inicial em [DATA_MODEL.md](DATA_MODEL.md#31-temas-taxonomyyaml-lista-inicial). |
-| D5 | Regra de verificação na ausência de fonte oficial (2×T2 + override é suficiente?) | 3 | Proposta em [SOURCES.md](SOURCES.md#33-ausência-de-fonte-oficial). |
-| D6 | Guias de estilo editorial por formato (tom, extensão, nota de responsabilidade) | 4 | Especificação inicial em [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-7--generate). |
-| D7 | Quem revê e aprova (uma pessoa? várias?) | 4 | Afecta campo `actor` e eventual autenticação. |
-| D8 | Armazenamento da base de dados em modo agendado (artefacto, storage externo, PostgreSQL gerido) | 5 | SQLite num runner efémero não persiste. |
-| D9 | Frequência das execuções agendadas | 5 | Ex.: diária vs. várias vezes por dia. |
-| D10 | Destino de publicação e formato de integração com o TensDireito.com | 6 | Na v1 apenas exportação de ficheiros. |
+| D1 | Fontes T1 prioritárias e confirmação de endpoints reais de cada uma | 1 | **Pendente.** Lista candidata em [SOURCES.md](SOURCES.md). Exige validação manual; nenhum endpoint é assumido. |
+| D2 | Selecção de fontes T2/T3 (imprensa) | 1–2 | **Pendente.** Decisão editorial. |
+| D3 | Fornecedor(es) de IA inicial(is) e orçamento mensal | 2 | **Pendente.** Interface agnóstica já definida. |
+| D4 | Âmbito temático (taxonomia) | 2 | **Fechada no M1** — taxonomia V1 extensível (DEC-006). |
+| D5 | Verificação na ausência de fonte oficial | 3 | **Fechada no M1** — máximo `VERIFIED_EDITORIAL`; override nunca produz `VERIFIED_OFFICIAL` (DEC-004). |
+| D6 | Guia de estilo por formato | 4 | **Fechada no M1** — [STYLE_GUIDE.md](STYLE_GUIDE.md) (DEC-008). Falta validar editorialmente o texto final da nota de responsabilidade. |
+| D7 | Quem revê e aprova | 4 | **Parcialmente fechada** — formato do registo de revisão definido (DEC-014); pessoas concretas e eventual autenticação a decidir. |
+| D8 | Persistência durável e estado partilhado em modo agendado (ex.: storage externo, PostgreSQL gerido) | **Antes da Fase 5** | **Pendente e bloqueante** para qualquer execução agendada (DEC-013). |
+| D9 | Frequência das execuções agendadas | 5 | **Pendente.** |
+| D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
+| D11 | Norma ortográfica do conteúdo publicado (ex.: Acordo Ortográfico de 1990 ou não) | 4 | **Pendente.** Decisão editorial; afecta o [STYLE_GUIDE.md](STYLE_GUIDE.md) e os prompts de geração. |

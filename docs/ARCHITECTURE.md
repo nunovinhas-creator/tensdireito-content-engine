@@ -1,146 +1,151 @@
 # Arquitectura
 
-> Estado: **Architecture / Documentation phase** — este documento descreve a arquitectura-alvo da primeira implementação. Nada aqui está ainda implementado.
+> Estado: **Architecture / Documentation phase — decisões fundamentais fechadas no M1.** Este documento descreve a arquitectura-alvo da primeira implementação. Nada aqui está ainda implementado. As decisões e a sua justificação estão no [DECISION_LOG.md](DECISION_LOG.md).
 
 ## 1. Propósito
 
-O TensDireito Content Engine é um *Editorial Intelligence Engine*: descobre informação sobre apoios sociais, direitos sociais, Segurança Social, emprego, habitação, fiscalidade e matérias afins; verifica-a contra fontes oficiais; agrupa-a em acontecimentos; pontua a sua relevância editorial; e transforma os acontecimentos verificados em conteúdo publicável para o TensDireito.com e outros canais.
+O TensDireito Content Engine é um *Editorial Intelligence Engine*: descobre informação sobre apoios sociais, direitos sociais, Segurança Social, emprego, habitação, fiscalidade e matérias afins; agrupa-a em acontecimentos; verifica-a contra fontes oficiais; pontua a sua relevância editorial; e apoia a produção de conteúdo, que só avança com aprovação humana.
 
 O sistema **não é** um agregador de notícias nem um gerador automático de artigos. É uma ferramenta de apoio à decisão editorial, com rastreabilidade obrigatória entre cada afirmação e as respectivas fontes.
+
+**Regra central:** descobrir não é verificar; verificar não é aprovar; aprovar não é publicar (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#2-regra-central)).
 
 ## 2. Princípios arquitecturais
 
 | # | Princípio | Consequência na arquitectura |
 |---|-----------|------------------------------|
-| P1 | Descoberta ≠ confirmação | Etapas e estados separados para "descoberto" e "verificado"; nenhum atalho entre eles. |
-| P2 | Alterações a direitos, valores, condições, prazos ou legislação exigem fonte oficial sempre que possível | A etapa de verificação procura evidência de nível T1 (ver [SOURCES.md](SOURCES.md)); sem ela o acontecimento fica limitado a `unverified`/`partially_verified`. |
-| P3 | Estados explícitos ao longo do ciclo de vida | Seis níveis de maturidade da informação (secção 4), cada um com entidade/estado próprio no modelo de dados. |
-| P4 | Deduplicação por acontecimento | Etapa de *clustering* que agrega vários itens num único `Event`. |
-| P5 | "Nada a publicar" é um resultado válido | Cada execução produz um relatório que pode concluir explicitamente que nenhum acontecimento atinge o limiar. |
-| P6 | IA assiste, não inventa nem verifica sozinha | A IA opera sobre evidência fornecida; a confirmação depende de documentos, não de respostas do modelo. Ver [AI_RULES.md](AI_RULES.md). |
-| P7 | Rastreabilidade afirmação → fonte | Entidades `Claim` e `Evidence` ligam cada afirmação relevante a excertos de fontes concretas. |
-| P8 | Hierarquia de fontes | Cada fonte tem um nível (T1–T4) que condiciona o que pode confirmar. |
-| P9 | Redes sociais só como sinal | Fontes T4 podem gerar candidatos e sinais de tendência; nunca confirmam isoladamente. |
-| P10 | Múltiplos formatos a partir do mesmo acontecimento | O `Event` verificado é a unidade editorial; os formatos (`ContentPiece`) são derivados dele. |
-| P11 | Começar simples, evitar monólito desnecessário | Um único pacote Python modular, com etapas desacopladas que comunicam através da base de dados. Sem microserviços, filas ou orquestradores nesta fase. |
-| P12 | Python + base de dados simples | SQLite na v1; acesso a dados isolado numa camada de repositório para permitir migração para PostgreSQL. |
-| P13 | Execução manual antes de automática | Cada etapa é um comando CLI. A automação (GitHub Actions / cron) apenas invoca os mesmos comandos. |
-| P14 | Independência de fornecedor de IA | Interface `LLMProvider` abstracta; fornecedor e modelo definidos por configuração. |
+| P1 | Descoberta ≠ verificação ≠ aprovação ≠ publicação | Entidades e estados separados para cada passo; nenhum atalho entre eles. |
+| P2 | Alterações a direitos, valores, condições, prazos ou legislação exigem `VERIFIED_OFFICIAL` para serem afirmadas como facto | VERIFY procura evidência T1 adequada ao estágio da claim; sem ela, no máximo `VERIFIED_EDITORIAL`, que nunca é apresentado como confirmação legal. |
+| P3 | Estados explícitos ao longo do ciclo de vida | Níveis de maturidade (secção 4), estados de verificação, estados editoriais e estados de revisão, cada um com campo próprio. |
+| P4 | O `Event` é a unidade editorial | CLUSTER agrega notícias num único `Event` e actualiza-o com desenvolvimentos posteriores, em vez de criar duplicados. |
+| P5 | "Nada a publicar" é um resultado válido | Cada execução produz um relatório que pode concluir "nada suficientemente importante para publicar". |
+| P6 | IA assiste, não inventa, não verifica, não aprova | A IA opera sobre evidência fornecida; verificação por regras; aprovação humana. Ver [AI_RULES.md](AI_RULES.md). |
+| P7 | Rastreabilidade afirmação → fonte | `claim` e `source_evidence` ligam cada afirmação a excertos literais. |
+| P8 | Hierarquia de fontes | Cada fonte tem tier (T1–T4); só T1 produz `VERIFIED_OFFICIAL`. Source discovery ≠ source verification. |
+| P9 | Redes sociais só como sinal | T4 pode gerar candidatos e sinais de interesse; nunca é evidência. |
+| P10 | Múltiplos formatos a partir do mesmo acontecimento | Os formatos (`content_piece`) derivam do `Event`. |
+| P11 | Monólito modular | Um único pacote Python modular; etapas desacopladas que comunicam pela base de dados. Sem microserviços, filas ou orquestradores. |
+| P12 | Python + base de dados simples | SQLite na V1; SQL isolado numa camada de repositório para permitir migração para PostgreSQL. |
+| P13 | Execução manual antes de automática | Cada etapa é um comando CLI. A automação apenas invoca os mesmos comandos, e só depois de decidida a persistência durável. |
+| P14 | Independência de fornecedor de IA | Interface `LLMProvider`; fornecedor e modelo definidos por configuração. |
+| P15 | Score ≠ verificação | `editorial_score` ordena; `verification_status` bloqueia. Um não altera o outro. |
+| P16 | Humano no circuito | Na V1, só uma pessoa aprova conteúdo; a V1 termina em `APPROVED → EXPORT`. |
 
 ## 3. Visão conceptual
 
 ```
                  ┌───────────────────────────────────────────────────────────┐
-                 │                   Registo de Fontes (YAML)                │
-                 │        T1 oficiais · T2 especializadas · T3 imprensa      │
-                 │                    · T4 redes / não confirmado            │
+                 │  source_registry (quem, tier) ─< source_endpoint (onde)   │
+                 │  T1 oficiais · T2 especializadas · T3 imprensa · T4 sinal │
                  └───────────────┬───────────────────────────────────────────┘
-                                 │
+                                 │  só endpoints validados e ACTIVE
  ┌──────────────┐   ┌────────────▼───┐   ┌──────────────┐   ┌──────────────┐
  │ 1. COLLECT   │──▶│ 2. NORMALIZE   │──▶│ 3. CLASSIFY  │──▶│ 4. CLUSTER   │
- │ descoberta   │   │ texto, datas,  │   │ tema, tipo,  │   │ agrupa itens │
- │ (RawItem)    │   │ dedupe exacto  │   │ relevância   │   │ em Events    │
- └──────────────┘   │ (Document)     │   │ inicial      │   │ (candidate)  │
-                    └────────────────┘   └──────────────┘   └──────┬───────┘
+ │ descoberta   │   │ source_document│   │ categoria,   │   │ cria/actualiza│
+ │ (raw_item)   │   │                │   │ impacto,     │   │ Event        │
+ └──────────────┘   └────────────────┘   │ estágio      │   │ (CANDIDATE)  │
+                                         └──────────────┘   └──────┬───────┘
                                                                    │
- ┌──────────────┐   ┌────────────────┐   ┌──────────────┐   ┌──────▼───────┐
- │ 9. EXPORT    │◀──│ 8. REVIEW      │◀──│ 7. GENERATE  │◀──│ 5. VERIFY    │
- │ (publicação  │   │ revisão humana │   │ formatos a   │   │ claims +     │
- │ fora do      │   │ ready_to_      │   │ partir do    │   │ evidência T1 │
- │ âmbito v1)   │   │ publish        │   │ Event        │   │ 6. SCORE     │
- └──────────────┘   └────────────────┘   └──────────────┘   └──────────────┘
-                                                                   │
-                                              ┌────────────────────▼───────┐
-                                              │ Relatório da execução:     │
-                                              │ seleccionados / descartados│
-                                              │ / "nada a publicar"        │
-                                              └────────────────────────────┘
+                    ┌──────────────────────────────────────────────▼───────┐
+                    │ 5. VERIFY — claims + source_evidence                 │
+                    │    UNVERIFIED · VERIFIED_EDITORIAL · VERIFIED_OFFICIAL│
+                    │    · CONTRADICTED                                    │
+                    ├──────────────────────────────────────────────────────┤
+                    │ 6. SCORE — editorial_score (independente)            │
+                    │    + gate de verificação → REJECT / WATCHLIST /      │
+                    │      EDITORIAL_REVIEW                                │
+                    └──────────────┬───────────────────────────┬───────────┘
+                                   │                           │
+                                   ▼                           ▼
+ ┌──────────────┐   ┌────────────────┐   ┌──────────────┐   Relatório: selecção /
+ │ 10. EXPORT   │◀──│ 9. REVIEW      │◀──│ 7. GENERATE  │   watchlist / rejeitados /
+ │ ficheiros    │   │ humano:        │   │ 8. CHECK     │   "nada suficientemente
+ │ (não publica)│   │ APPROVED /     │   │ READY_FOR_   │   importante para publicar"
+ └──────────────┘   │ REJECTED /     │   │ APPROVAL     │
+                    │ NEEDS_REVISION │   └──────────────┘
+                    └────────────────┘
 ```
 
 Detalhe de cada etapa em [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md).
 
 ## 4. Níveis de maturidade da informação
 
-O sistema distingue seis níveis. Cada nível corresponde a uma entidade ou a um estado explícito no [modelo de dados](DATA_MODEL.md):
-
 | Nível | Designação | Entidade / estado | Significado |
 |-------|-----------|-------------------|-------------|
-| 1 | Informação descoberta | `RawItem` | Algo foi encontrado numa fonte. Guardado tal como foi obtido. Nenhuma garantia de veracidade. |
-| 2 | Informação normalizada | `Document` | Texto limpo, metadados extraídos (datas, URL canónico, língua), duplicados exactos removidos, classificação temática. |
-| 3 | Candidato editorial | `Event.status = candidate` | Um ou mais documentos agrupados num acontecimento potencialmente relevante. Ainda não verificado. |
-| 4 | Acontecimento verificado | `Event.verification_status = verified` (ou `partially_verified`) | As afirmações críticas (`Claim`) têm evidência suficiente segundo as regras de verificação. |
-| 5 | Conteúdo editorial | `ContentPiece.status = draft` / `in_review` | Texto produzido para um formato concreto, com referências às claims e fontes. |
-| 6 | Pronto para publicação | `ContentPiece.status = ready_to_publish` | Aprovado por um humano. Pode ser exportado/publicado. |
+| 1 | Informação descoberta | `raw_item` | Algo foi encontrado numa fonte. Nenhuma garantia de veracidade. |
+| 2 | Informação normalizada | `source_document` | Texto limpo, metadados, duplicados exactos removidos, classificação proposta. |
+| 3 | Candidato editorial | `event.editorial_status ∈ {CANDIDATE, WATCHLIST}` | Documentos agrupados num assunto potencialmente relevante. |
+| 4 | Acontecimento verificado | `event.verification_status ∈ {VERIFIED_EDITORIAL, VERIFIED_OFFICIAL}` | As claims críticas têm evidência suficiente para o nível indicado. Só `VERIFIED_OFFICIAL` permite afirmar alterações legais como facto. |
+| 5 | Conteúdo editorial | `content_piece.review_status ∈ {DRAFT, HUMAN_REVIEW_REQUIRED, NEEDS_REVISION}` | Texto num formato concreto, com referências às claims e fontes. |
+| 6 | Aprovado | `content_piece.review_status = APPROVED` | Aprovado por uma pessoa identificada. Pode ser exportado. |
+
+Publicação: fora do sistema na V1. O estado editorial `PUBLISHED` está reservado para uma futura integração.
 
 Regras de transição:
-
-- Só se passa de 3 para 4 através da etapa VERIFY; nenhuma outra etapa pode marcar um acontecimento como verificado.
-- Só se passa de 5 para 6 por acção humana explícita (na v1).
-- Um acontecimento pode ser descartado (`discarded`) em qualquer ponto, com motivo registado.
+- Só a etapa VERIFY altera o estado de verificação; nenhuma outra etapa (nem o score) marca um acontecimento como verificado.
+- Nenhum evento `UNVERIFIED` ou `CONTRADICTED` chega a produção editorial.
+- Só se passa de 5 para 6 por decisão humana explícita.
+- Um acontecimento pode ser rejeitado ou arquivado em qualquer ponto, com motivo registado, e reaberto por desenvolvimento material.
 
 ## 5. Componentes
 
-Um único pacote Python (`tensdireito_engine`, nome provisório), com módulos por responsabilidade. Os módulos não se chamam directamente entre etapas: **cada etapa lê da base de dados, faz o seu trabalho e escreve na base de dados**. Isto permite correr etapas isoladamente, repetir etapas e substituir implementações.
+Um único pacote Python, **`tensdireito_content_engine`**, com CLI **`tde`**, organizado em módulos por responsabilidade. Os módulos não se chamam directamente entre etapas: **cada etapa lê da base de dados, faz o seu trabalho e escreve na base de dados**.
 
 | Módulo | Responsabilidade |
 |--------|------------------|
-| `sources` | Carregar e validar o registo de fontes (YAML). |
-| `collectors` | Implementações de recolha por tipo de fonte (RSS, página HTML, entrada manual). Interface comum `Collector`. |
-| `normalize` | Extracção de texto, limpeza, datas, URL canónico, hash de conteúdo, deduplicação exacta. |
-| `classify` | Classificação temática e de tipo de alteração (regras + IA opcional). |
-| `cluster` | Agrupamento de documentos em `Event`. |
-| `verify` | Extracção de claims, procura e associação de evidência, cálculo do estado de verificação. |
-| `scoring` | Cálculo da pontuação editorial e decisão de selecção. |
-| `generate` | Produção de formatos (`ContentPiece`) a partir de um `Event` verificado. |
-| `review` | Comandos para revisão humana, aprovação e rejeição. |
+| `sources` | Carregar e validar o registo de fontes (`source_registry`, `source_endpoint`). |
+| `collectors` | Recolha por tipo de endpoint (`rss`, `html_page`, `manual`). Interface comum `Collector`. |
+| `normalize` | Extracção de texto, limpeza, datas, URL canónico, hash, deduplicação exacta, tier e tipo de documento. |
+| `classify` | Propostas de categoria, subcategoria, audiência, `impact_type`, `legal_stage`, relevância. |
+| `cluster` | Criação e actualização de `Event`; detecção de desenvolvimentos materiais. |
+| `verify` | Claims, evidência, cálculo determinista do estado de verificação. |
+| `scoring` | `editorial_score` e proposta de estado editorial, com gate de verificação. |
+| `generate` | Produção de formatos a partir de um `Event` em `EDITORIAL_REVIEW`. |
+| `checks` | Validações automáticas pós-geração. |
+| `review` | Revisão humana e restantes decisões editoriais. |
+| `export` | Exportação de conteúdo aprovado para ficheiros. |
 | `report` | Relatório de cada execução (incluindo "nada a publicar"). |
-| `llm` | Abstracção `LLMProvider`, registo de chamadas, gestão de prompts versionados. |
-| `storage` | Camada de repositório sobre SQLite (v1); esquema e migrações. |
-| `cli` | Ponto de entrada único; um subcomando por etapa. |
+| `llm` | Abstracção `LLMProvider`, registo de chamadas, prompts versionados. |
+| `storage` | Camada de repositório sobre SQLite (V1); todo o SQL vive aqui. |
+| `cli` | Ponto de entrada único (`tde`); um subcomando por etapa. |
 
 Especificação técnica em [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md).
 
-## 6. Decisões arquitecturais (ADR resumidos)
+## 6. Decisões arquitecturais (resumo)
 
-**ADR-001 — Pipeline por etapas com estado persistido.**
-Cada etapa é idempotente e comunica pela base de dados. *Alternativa rejeitada:* pipeline em memória num único processo — impede re-execução parcial, auditoria e revisão humana entre etapas.
+Os ADR da especificação inicial mantêm-se, com as alterações do M1. O registo completo, com razões e alternativas, está no [DECISION_LOG.md](DECISION_LOG.md).
 
-**ADR-002 — SQLite na v1, PostgreSQL depois.**
-Ficheiro único, zero infraestrutura, suficiente para o volume esperado (centenas a poucos milhares de itens/dia). Todo o SQL fica na camada `storage`; evitar funcionalidades específicas de SQLite. *Gatilho para migrar:* execução concorrente, múltiplos utilizadores ou necessidade de pesquisa full-text avançada.
+| ID | Decisão | Estado |
+|----|---------|--------|
+| ADR-001 | Pipeline por etapas com estado persistido; etapas idempotentes que comunicam pela base de dados. | Aceite |
+| ADR-002 | SQLite na V1, PostgreSQL depois; SQL isolado em `storage`. Complementado por DEC-013 (persistência durável antes de agendamento). | Aceite, complementado |
+| ADR-003 | O `Event` é a unidade editorial. Complementado por DEC-010 (actualizar em vez de duplicar). | Aceite, complementado |
+| ADR-004 | Verificação baseada em evidência documental e regras deterministas, não em julgamento do modelo. Os estados passam a `VERIFIED_OFFICIAL`/`VERIFIED_EDITORIAL` (DEC-003). | Aceite, alterado |
+| ADR-005 | IA atrás de uma interface; opcional em todas as etapas. | Aceite |
+| ADR-006 | Humano no circuito; sem publicação automática na V1. Concretizado por DEC-012 e DEC-014. | Aceite, complementado |
+| ADR-007 | CLI primeiro, automação depois; a automação não contém lógica própria. | Aceite |
+| ADR-008 | Configuração (fontes, taxonomia, pesos, prompts) como ficheiros versionados revistos por pull request. | Aceite |
 
-**ADR-003 — O `Event` é a unidade editorial.**
-Todas as decisões (pontuação, verificação, publicação) operam sobre acontecimentos, não sobre notícias individuais. Isto resolve a duplicação e permite gerar múltiplos formatos.
+## 7. Fora do âmbito (V1)
 
-**ADR-004 — Verificação baseada em evidência documental, não em julgamento do modelo.**
-O estado `verified` deriva de regras deterministas sobre a existência de evidência T1/T2 ligada às claims críticas. A IA pode *propor* associações entre claim e excerto; a regra decide.
-
-**ADR-005 — IA atrás de uma interface.**
-Nenhum módulo importa SDKs de fornecedores directamente, excepto as implementações de `LLMProvider`. A IA é opcional em todas as etapas: o pipeline tem de conseguir correr (com qualidade reduzida) sem IA.
-
-**ADR-006 — Humano no circuito para publicação.**
-Na v1, nenhum conteúdo passa a `ready_to_publish` sem aprovação humana. A publicação propriamente dita (envio para WordPress, WhatsApp, etc.) está fora do âmbito da v1 — o sistema produz ficheiros exportáveis.
-
-**ADR-007 — CLI primeiro, automação depois.**
-A automação (GitHub Actions) apenas encadeia comandos CLI já existentes; não contém lógica própria.
-
-**ADR-008 — Configuração como ficheiros versionados.**
-Fontes, pesos de pontuação, taxonomia e prompts vivem em ficheiros no repositório, revistos via pull request.
-
-## 7. Fora do âmbito (v1)
-
-- Publicação automática em qualquer canal.
-- Interface web/dashboard.
-- Recolha a partir de APIs de redes sociais (requer decisão sobre termos de utilização e custo).
+- Publicação automática em qualquer canal (o sistema termina em `APPROVED → EXPORT`).
+- Interface web/dashboard e autenticação.
+- Recolha a partir de APIs de redes sociais.
+- Pesquisa web aberta durante a verificação.
 - Execução distribuída, filas de mensagens, microserviços.
-- Pesquisa semântica com base de dados vectorial (pode ser avaliada mais tarde para clustering).
+- Execução agendada em produção antes da decisão sobre persistência durável.
+- Pesquisa semântica com base de dados vectorial.
 
 ## 8. Documentos relacionados
 
+- [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md) — política editorial, taxonomia, verificação, estados, revisão humana.
+- [STYLE_GUIDE.md](STYLE_GUIDE.md) — estilo editorial e regras por formato.
+- [DECISION_LOG.md](DECISION_LOG.md) — registo de decisões.
 - [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md) — stack, estrutura de código, CLI, configuração.
 - [DATA_MODEL.md](DATA_MODEL.md) — entidades, estados e esquema.
 - [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md) — etapas em detalhe.
-- [SOURCES.md](SOURCES.md) — hierarquia e registo de fontes.
+- [SOURCES.md](SOURCES.md) — modelo, hierarquia e registo de fontes.
 - [SCORING.md](SCORING.md) — pontuação e limiares.
 - [AI_RULES.md](AI_RULES.md) — regras de utilização de IA.
 - [SECURITY.md](SECURITY.md) — segurança, privacidade e conformidade.
-- [ROADMAP.md](ROADMAP.md) — fases de implementação.
+- [ROADMAP.md](ROADMAP.md) — fases de implementação e decisões pendentes.

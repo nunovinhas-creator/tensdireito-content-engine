@@ -1,39 +1,62 @@
 # Pontuação Editorial
 
-> Estado: **especificação**. Pesos e limiares são valores iniciais a calibrar com dados reais na Fase 2. Todos os valores vivem em `config/scoring.yaml`.
+> Estado: **especificação (M1)**. Pesos e limiares são valores iniciais a calibrar com dados reais. Todos os valores viverão em `config/scoring.yaml`. Nada aqui está implementado.
 
 ## 1. Objectivo
 
-Ordenar acontecimentos (`event`) por valor editorial para o leitor do TensDireito.com e decidir, para cada um: `selected`, `watchlist` ou `rejected`. A pontuação tem de ser **explicável**: cada decisão mostra os componentes que a determinaram.
+Ordenar e priorizar acontecimentos (`event`) por valor editorial para o leitor do TensDireito, e propor para cada um: `REJECT`, `WATCHLIST` ou `EDITORIAL_REVIEW`. A pontuação tem de ser **explicável**: cada proposta mostra os componentes que a determinaram.
 
-A pontuação **não** substitui a verificação. A verificação é um *gate*; a pontuação ordena o que passa o gate.
+## 2. Score e verificação são dimensões separadas
 
-## 2. Dimensões
+| | `EDITORIAL_SCORE` | `VERIFICATION_STATUS` |
+|---|-------------------|-----------------------|
+| Pergunta | Quão importante e útil seria isto para o leitor, se se confirmar? | Está confirmado? Com que nível? |
+| Natureza | Prioridade (0–100), comparativa | Estado (`UNVERIFIED`, `VERIFIED_EDITORIAL`, `VERIFIED_OFFICIAL`, `CONTRADICTED`) |
+| Calculado em | SCORE | VERIFY |
+| Serve para | Ordenar, priorizar, decidir entre `REJECT`/`WATCHLIST`/selecção | Bloquear ou permitir a passagem a produção editorial; limitar o que pode ser afirmado |
+
+Regras:
+- O score **não** inclui nenhuma componente de verificação ou de confiança na fonte. (A dimensão `confidence` e as penalizações `single_t3_source` e `t4_only` da especificação inicial foram removidas — DEC-011.)
+- O score **nunca** transforma uma notícia não verificada numa notícia publicável. A verificação é um *gate* independente.
+- Uma notícia muito relevante mas sem confirmação suficiente pode ter score elevado **e** continuar bloqueada pela verificação (fica em `WATCHLIST`).
+- O score avalia a informação **tal como reportada** (incluindo o estágio legal e as datas reportadas); a verificação decide o que pode ser afirmado.
+
+Exemplo:
+
+```
+[84] Aumento anunciado de uma prestação (reportado por imprensa)
+     impact 5 · reach 4 · urgency 3 · actionability 3 · novelty 5 · interest 4
+     verificação: UNVERIFIED (uma única fonte T3)
+     proposta: WATCHLIST — awaiting_verification
+```
+
+## 3. Dimensões
 
 Cada dimensão é avaliada numa escala 0–5. A coluna "Origem" indica se o valor vem de regras deterministas, de IA (opcional, com fallback por regras) ou de ambos.
 
 | Dimensão | Código | Peso inicial | Pergunta | Origem |
 |----------|--------|--------------|----------|--------|
-| Impacto nos direitos | `impact` | 25 | Altera direitos, valores, condições ou obrigações dos cidadãos? | `change_type` + IA |
-| Abrangência | `reach` | 15 | Quantas pessoas são potencialmente abrangidas? (nicho → generalizada) | IA + temas |
-| Urgência / prazo | `urgency` | 15 | Existe prazo próximo ou data de entrada em vigor iminente? | `deadline`/`effective_date` verificados |
-| Accionabilidade | `actionability` | 15 | O leitor pode/deve fazer algo (pedir, entregar, actualizar)? | IA + `change_type` |
-| Confiança | `confidence` | 20 | Qual o nível de verificação? | `verification_status` (regras) |
-| Novidade | `novelty` | 5 | É novo face ao que já foi publicado/seleccionado? | regras (histórico de eventos) |
-| Interesse público | `interest` | 5 | Quantas fontes independentes / sinais de tendência? | nº de fontes independentes, sinais T4 |
+| Impacto nos direitos | `impact` | 30 | Altera direitos, valores, condições ou obrigações? Em que estágio? | `impact_type` + `legal_stage` reportado + IA |
+| Abrangência | `reach` | 20 | Quantas pessoas são potencialmente abrangidas? | `audience` + IA |
+| Accionabilidade | `actionability` | 20 | O leitor pode/deve fazer algo (pedir, entregar, actualizar)? | IA + `impact_type` |
+| Urgência / prazo | `urgency` | 15 | Existe prazo próximo ou entrada em vigor iminente? | datas reportadas |
+| Novidade | `novelty` | 10 | É novo face ao que já foi tratado? | regras (histórico de eventos) |
+| Interesse público | `interest` | 5 | Quantas fontes independentes falam disto / sinais de tendência? | nº de fontes independentes, sinais T4 |
 
-**Total = Σ (valor/5 × peso) − penalizações**, limitado a 0–100.
+**`editorial_score` = Σ (valor/5 × peso) − penalizações**, limitado a 0–100.
 
-### 2.1 Grelhas de referência
+`interest` mede atenção pública, não confiança: muitas notícias sobre o mesmo assunto aumentam a prioridade, mas não a verificação.
+
+### 3.1 Grelhas de referência
 
 **`impact`**
 | Valor | Critério |
 |-------|----------|
-| 5 | Nova prestação/direito, ou alteração de valor/condições de prestação existente, em vigor ou com data. |
-| 4 | Novo prazo ou alteração de procedimento obrigatório. |
-| 3 | Calendário de pagamentos; anúncio formal com diploma em preparação. |
-| 2 | Anúncio político sem diploma; proposta em discussão parlamentar. |
-| 1 | Informação contextual/estatística. |
+| 5 | `new_right`, `right_change`, `amount_change`, `new_obligation`, `measure_ending` com `legal_stage ∈ {published, in_force}`. |
+| 4 | `deadline`, `procedure_change` ou `obligation_change` com efeito actual; `new_right`/`amount_change` com `legal_stage = approved`. |
+| 3 | `payment_schedule`; medidas `approved` de menor alcance. |
+| 2 | `legal_stage ∈ {announcement, proposal}`. |
+| 1 | `informational`. |
 | 0 | Sem relação com direitos dos cidadãos. |
 
 **`urgency`**
@@ -45,58 +68,62 @@ Cada dimensão é avaliada numa escala 0–5. A coluna "Origem" indica se o valo
 | 1 | Sem data ou > 90 dias. |
 | 0 | Prazo já terminado. |
 
-Só datas de claims `confirmed_official` ou `supported` contam; datas não verificadas → valor 1.
-
-**`confidence`**
-| `verification_status` | Valor |
-|-----------------------|-------|
-| `verified` | 5 |
-| `not_applicable` (evento informativo com fonte T1/T2) | 4 |
-| `partially_verified` | 3 |
-| `unverified` | 1 |
-| `contradicted` | 0 (e bloqueio) |
-
 **`reach`** — 5: generalidade dos contribuintes/pensionistas/trabalhadores; 3: grupo amplo (ex.: famílias com filhos, desempregados); 1: grupo muito restrito.
 
-## 3. Penalizações
+## 4. Penalizações
 
 | Código | Pontos | Condição |
 |--------|--------|----------|
 | `uncertain_relevance` | −10 | Documento disparador com `relevance_flag = uncertain`. |
-| `single_t3_source` | −10 | Evento sustentado apenas por uma fonte T3. |
-| `t4_only` | −25 | Evento sustentado apenas por fontes T4. |
-| `already_covered` | −30 | Evento semelhante já `done` nos últimos N dias sem alteração material. |
+| `already_covered` | −30 | Assunto semelhante tratado nos últimos N dias sem alteração material (salvaguarda para falhas de agrupamento). |
 | `stale` | −15 | Documento mais recente com mais de `max_age_days`. |
 
-## 4. Decisão
+Nenhuma penalização depende do tier das fontes: a qualidade das fontes é tratada pela verificação.
+
+## 5. Proposta de estado
 
 ```
-se verification_status == contradicted               → rejected (motivo: contradição oficial)
-senão se total >= SELECT_THRESHOLD (inicial 65)
-     e verification_status ∈ {verified, partially_verified, not_applicable}
-                                                     → selected
-senão se total >= WATCH_THRESHOLD (inicial 45)        → watchlist
-senão                                                → rejected
+se critério de rejeição da política editorial               → REJECT  (motivo do critério)
+senão se verification_status == CONTRADICTED                → REJECT  (contradicted)
+senão se editorial_score < WATCH_THRESHOLD (inicial 45)     → REJECT  (below_threshold)
+senão se editorial_score >= SELECT_THRESHOLD (inicial 65):
+     se gate de verificação passa                           → EDITORIAL_REVIEW
+     senão se verification_status == VERIFIED_EDITORIAL     → WATCHLIST (awaiting_official_confirmation)
+     senão                                                  → WATCHLIST (awaiting_verification)
+senão                                                       → WATCHLIST (below_select_threshold)
 ```
+
+Gate de verificação (ver [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-6--score)): `VERIFIED_OFFICIAL`, ou `VERIFIED_EDITORIAL` sem claims críticas.
 
 Restrições adicionais:
-- **Máximo por execução** (`max_selected_per_run`, inicial 5): se houver mais candidatos acima do limiar, os restantes ficam em `watchlist` com motivo `capacity`.
-- **Watchlist expira** após `watchlist_ttl_days` (inicial 14) sem novos dados → `rejected` (motivo `expired`).
-- **Nada a publicar:** se nenhum evento for `selected`, a execução termina com `outcome = nothing_to_publish`. Os limiares **nunca** são baixados automaticamente para garantir resultados.
+- **Máximo por execução** (`max_editorial_review_per_run`, inicial 5): excedentes ficam em `WATCHLIST` com motivo `capacity`.
+- **Watchlist expira** após `watchlist_ttl_days` (inicial 14) sem novos dados → `REJECT` (`expired`).
+- **Nada a publicar:** se nenhum evento chegar a `EDITORIAL_REVIEW`, a execução termina com `outcome = nothing_to_publish` e o relatório conclui "Nada suficientemente importante para publicar nesta execução." Os limiares **nunca** são baixados automaticamente para garantir resultados.
+- A proposta do SCORE nunca leva um evento além de `EDITORIAL_REVIEW`; `APPROVED` é sempre humano.
 
-## 5. Explicabilidade
+## 6. Explicabilidade
 
-Cada `score` guarda `components`, `penalties`, `total`, `decision` e a versão da configuração. O relatório mostra, por evento:
+Cada `score` guarda `components`, `penalties`, `editorial_score`, `proposed_status`, `reasons`, o estado de verificação no momento e a versão da configuração. O relatório mostra, por evento:
 
 ```
-[72] Alteração ao valor do abono de família (verified)
-     impact 5 · reach 3 · urgency 4 · actionability 3 · confidence 5 · novelty 5 · interest 3
+[72] Alteração ao valor do abono de família
+     impact 5 · reach 3 · urgency 4 · actionability 3 · novelty 5 · interest 3
      penalizações: —
-     decisão: selected
+     verificação: VERIFIED_OFFICIAL (legal_stage: published)
+     proposta: EDITORIAL_REVIEW
 ```
 
-## 6. Calibração
+## 7. Calibração futura
 
-- Fase 2: correr o pipeline sobre 2–4 semanas de dados reais e comparar a decisão automática com a decisão editorial humana.
-- Ajustes a pesos/limiares por pull request em `scoring.yaml`, com nota da razão.
-- Métricas de acompanhamento: precisão dos `selected` (% aprovados na revisão), eventos relevantes perdidos (detectados manualmente), proporção de execuções "nada a publicar".
+Não implementado nesta fase. Os pesos e limiares poderão no futuro ser calibrados por:
+
+- **categoria** (as categorias não têm o mesmo peso editorial);
+- **audiência**;
+- **histórico de desempenho** (ex.: taxa de aprovação na revisão humana, interesse dos leitores);
+- **tipo de notícia** (`impact_type`, `legal_stage`).
+
+Processo:
+- Correr o pipeline sobre 2–4 semanas de dados reais e comparar a proposta automática com a decisão editorial humana.
+- Ajustes por pull request em `scoring.yaml`, com nota da razão; mudanças estruturais (novas dimensões, pesos por categoria) registadas no [DECISION_LOG.md](DECISION_LOG.md).
+- Métricas: precisão das propostas `EDITORIAL_REVIEW` (% aprovados na revisão), eventos relevantes perdidos, proporção de execuções "nada a publicar".
+- A calibração nunca pode introduzir verificação no score nem relaxar o gate de verificação.

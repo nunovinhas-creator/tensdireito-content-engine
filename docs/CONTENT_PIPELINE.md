@@ -1,147 +1,193 @@
 # Pipeline de Conteúdo
 
-> Estado: **especificação**. Descreve as etapas, entradas, saídas e regras de passagem. Cada etapa é um comando CLI independente (ver [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos)).
+> Estado: **especificação (M1)**. Descreve as etapas, entradas, saídas e regras de passagem. Cada etapa é um comando CLI independente (ver [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos)). Nada aqui está implementado.
+
+Regra central (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#2-regra-central)): **descobrir não é verificar; verificar não é aprovar; aprovar não é publicar.**
 
 ## Visão geral
 
-| # | Etapa | Entrada | Saída | IA | Nível atingido |
-|---|-------|---------|-------|----|----------------|
-| 1 | COLLECT | fontes activas | `raw_item` | Não | 1. Descoberta |
-| 2 | NORMALIZE | `raw_item` novos | `document` | Não | 2. Normalizada |
-| 3 | CLASSIFY | `document` normalizados | temas, tipo, relevância | Opcional | 2. Normalizada |
-| 4 | CLUSTER | `document` relevantes | `event` (candidate) | Opcional | 3. Candidato |
-| 5 | VERIFY | `event` candidatos | `claim`, `evidence`, verification_status | Opcional (assistida) | 4. Verificado |
-| 6 | SCORE | `event` | `score`, decisão | Opcional (componentes) | — |
-| 7 | GENERATE | `event` seleccionado e verificado | `content_piece` (draft) | Sim (com fallback por template) | 5. Conteúdo |
-| 8 | REVIEW | `content_piece` | aprovado/rejeitado | Não | 6. Pronto |
-| 9 | EXPORT | `content_piece` aprovado | ficheiros | Não | — |
+| # | Etapa | Entrada | Saída | IA | Efeito no estado |
+|---|-------|---------|-------|----|------------------|
+| 1 | COLLECT | endpoints `ACTIVE` | `raw_item` | Não | Nível 1 — descoberta |
+| 2 | NORMALIZE | `raw_item` novos | `source_document` | Não | Nível 2 — normalizada |
+| 3 | CLASSIFY | `source_document` normalizados | categoria, impacto, estágio, relevância (propostas) | Opcional | — |
+| 4 | CLUSTER | documentos relevantes | `event` novo ou actualizado | Opcional | `CANDIDATE` |
+| 5 | VERIFY | eventos activos | `claim`, `source_evidence`, `verification_status` | Opcional (assistida) | Nível 4 se `VERIFIED_*` |
+| 6 | SCORE | eventos `CANDIDATE`/`WATCHLIST` | `score`, proposta editorial | Opcional (componentes) | `REJECT` / `WATCHLIST` / `EDITORIAL_REVIEW` |
+| 7 | GENERATE | eventos `EDITORIAL_REVIEW` | `content_piece` (`DRAFT`) | Sim (com fallback por template) | Nível 5 |
+| 8 | CHECK | `content_piece` `DRAFT` | `checks` | Não | `HUMAN_REVIEW_REQUIRED`; evento `READY_FOR_APPROVAL` |
+| 9 | REVIEW | `content_piece` `HUMAN_REVIEW_REQUIRED` | decisão humana | **Não** | `APPROVED` / `REJECTED` / `NEEDS_REVISION` |
+| 10 | EXPORT | `content_piece` `APPROVED` | ficheiros | Não | `exported_at` (não é publicação) |
 | — | REPORT | execução | relatório | Não | — |
 
-`tde run` executa 1→6 e o REPORT. As etapas 7–9 são despoletadas manualmente na v1.
+`tde run` executa 1→6 e o REPORT. As etapas 7–10 são despoletadas manualmente na V1. **A V1 termina em `APPROVED → EXPORT`; não existe publicação automática.**
 
 ---
 
 ## Etapa 1 — COLLECT
 
-**Objectivo:** obter informação bruta das fontes. Não interpreta.
+**Objectivo:** obter informação bruta. Não interpreta nem verifica.
 
-- Lê `config/sources.yaml`; ignora fontes com `active: false`.
-- Usa o `Collector` correspondente a `source_type`.
-- Guarda cada item como `raw_item`; ignora se `(source_id, url, content_hash)` já existe.
+- Lê o registo de fontes; recolhe apenas endpoints `ACTIVE` (validados — ver [SOURCES.md](SOURCES.md)).
+- Usa o `Collector` correspondente a `endpoint_type`.
+- Guarda cada item como `raw_item`; ignora se `(source_endpoint_id, url, content_hash)` já existe.
 - Respeita `rate_limit`, `robots.txt` e `user_agent` (ver [SECURITY.md](SECURITY.md)).
-- Para fontes T1 do tipo `html_page`, quando o item aponta para um documento oficial (ex.: página de diploma), guarda também o conteúdo da página de destino — será usado como evidência.
-- Pistas manuais (`tde add-manual`) entram aqui com `source_type = manual` e tier definido pelo utilizador (por defeito T4).
+- Para endpoints T1, quando o item aponta para um documento oficial no mesmo domínio validado, guarda também esse documento — poderá servir de evidência.
+- Pistas manuais (`tde add-manual`) entram aqui; o tier é determinado pelo domínio (ver [SOURCES.md](SOURCES.md#34-pistas-manuais)), por defeito T4.
 
-**Falhas:** erro numa fonte → registado em `source.last_error` e `run.stats`; restantes continuam.
+**Falhas:** erro num endpoint → registado em `last_error` e `run.stats`; os restantes continuam.
 
 ## Etapa 2 — NORMALIZE
 
-- Extrai texto principal do HTML; remove navegação, publicidade, boilerplate.
+- Extrai texto principal; remove navegação, publicidade, boilerplate.
 - Normaliza `published_at` para UTC; se não for possível, deixa nulo (nunca inventa data).
-- Calcula `canonical_url` (remove `utm_*`, fragmentos, etc.).
-- Calcula `text_hash`; se já existir documento com o mesmo hash → `duplicate_of` e `status = ignored`.
-- Detecta língua; documentos não-`pt` ficam `ignored` (salvo fontes marcadas como multilíngues).
-- Descarta itens fora da janela temporal configurada (`max_age_days`, por defeito 14).
+- Calcula `canonical_url`, `text_hash`; duplicados exactos → `duplicate_of`, `status = ignored`.
+- Determina `source_tier` (T4 se a fonte não estiver `VALIDATED`) e `document_kind`.
+- Documentos não-`pt` ficam `ignored` (salvo fontes marcadas como multilíngues).
+- Itens fora da janela temporal (`max_age_days`, por defeito 14) ficam `ignored`, excepto documentos oficiais procurados como evidência.
 
 ## Etapa 3 — CLASSIFY
 
-**Objectivo:** decidir se o documento é relevante para o âmbito editorial e de que tipo.
+**Objectivo:** propor categoria, subcategoria, audiência, `impact_type`, `legal_stage` e relevância.
 
-1. **Regras** (sempre): palavras-chave por tema em `taxonomy.yaml`, temas por defeito da fonte, exclusões (ex.: desporto, crime sem relação com direitos).
-2. **IA** (opcional): classificação estruturada com o prompt `classify@vN`, devolvendo `topics`, `change_type`, `relevance_flag` e justificação curta.
-3. Em caso de conflito regras vs. IA → `relevance_flag = uncertain` (segue para clustering, com penalização na pontuação).
+1. **Regras** (sempre): palavras-chave por categoria (`config/taxonomy.yaml`), categorias por defeito da fonte, exclusões.
+2. **IA** (opcional): classificação estruturada (`classify@vN`) com justificação curta.
+3. Conflito regras vs. IA → `relevance_flag = uncertain` (segue, com penalização no score).
+4. `legal_stage` proposto nunca é mais avançado do que o texto do próprio documento sustenta; na dúvida, o estágio menos avançado.
 
-Saída: documentos `irrelevant` ficam `ignored`; os restantes seguem.
+Saída: documentos `irrelevant` ficam `ignored`; os restantes seguem. As classificações são **propostas**; os valores do evento são consolidados no CLUSTER e podem ser corrigidos por humanos.
 
 ## Etapa 4 — CLUSTER
 
-**Objectivo:** agrupar documentos que relatam o mesmo acontecimento num único `event` (princípio P4).
+**Objectivo:** garantir que cada assunto editorial é **um** `event` (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#10-event-actualizar-ou-criar)).
 
-Algoritmo v1 (simples e explicável):
-1. Candidatos a agrupamento: documentos relevantes da janela temporal, com pelo menos um tema em comum.
+Algoritmo V1 (simples e explicável):
+1. Comparar cada documento novo com eventos existentes **em qualquer estado**, excepto os fundidos (`merged_into`), dentro de uma janela de procura configurável — mais longa para eventos com referência oficial.
 2. Similaridade lexical do título + primeiros parágrafos (ex.: TF-IDF/cosseno ou Jaccard sobre n-gramas) acima de limiar configurável.
-3. Sinais fortes que forçam agrupamento: mesma referência legal (nº de diploma), mesmo URL oficial citado.
-4. Opcional (IA): para pares no intervalo de incerteza, perguntar ao modelo "relatam o mesmo acontecimento?" com resposta estruturada sim/não/incerto + justificação.
-5. Documento que não agrupa com nenhum evento existente → novo `event` (`candidate`), documento com papel `trigger`.
-6. Documentos novos podem juntar-se a eventos de execuções anteriores (ainda não `done`/`discarded`) — o evento é actualizado, não duplicado.
+3. Sinais fortes que forçam agrupamento: mesma referência legal, mesmo URL oficial citado, mesma prestação + mesmo período.
+4. Opcional (IA): para pares no intervalo de incerteza, `same_event` (sim/não/incerto + justificação). "Incerto" nunca funde automaticamente: cria novo evento e assinala possível duplicado no relatório.
+5. Sem correspondência → novo `event` em `CANDIDATE`, documento com papel `trigger`.
+6. Com correspondência → o documento junta-se ao evento (`supporting` ou `update`). Se trouxer desenvolvimento **material**, o evento regista `last_material_change_at` e, se estiver em `REJECT`, `WATCHLIST`, `APPROVED` ou `ARCHIVED`, reabre em `CANDIDATE`.
+7. Consolida no evento `category`, `subcategory`, `audience`, `impact_type`; o `legal_stage` do evento só é actualizado na etapa VERIFY, com evidência.
 
-Fusão manual de eventos (`merge`) registada em `editorial_decision`.
+Fusões manuais (`MERGE`) ficam registadas em `editorial_decision`; o evento absorvido passa a `ARCHIVED` com `merged_into`.
 
 ## Etapa 5 — VERIFY
 
-**Objectivo:** separar o que é afirmado do que está confirmado (princípios P1, P2, P7).
+**Objectivo:** separar o que é afirmado do que está confirmado, e com que nível.
 
-1. **Extracção de claims.** A partir dos documentos do evento, extrair afirmações atómicas e verificáveis. Marcar `critical = true` para claims sobre direitos, valores, condições, prazos, datas de entrada em vigor ou legislação.
-2. **Procura de evidência oficial.**
-   - Documentos T1 já agrupados no evento.
-   - Documentos T1 recolhidos na janela temporal com sinais fortes (referência legal, nome da prestação, entidade).
-   - Links para fontes oficiais citados nos documentos T2/T3 (recolhidos nesta etapa, se a fonte de destino estiver no registo como T1).
-   - Na v1 **não** há pesquisa web aberta; a evidência vem de fontes registadas.
-3. **Associação claim ↔ evidência.** Para cada claim, identificar excerto literal (`quote`) que a suporta ou contradiz. A IA pode propor; a associação só conta se o `quote` existir literalmente no `document.text` (`validated = true`).
-4. **Estado da claim:**
-   - `confirmed_official` — ≥1 evidência `supports` validada de fonte T1.
-   - `supported` — evidência validada apenas de T2/T3.
-   - `contradicted` — evidência T1 validada `contradicts`.
-   - `unsupported` — sem evidência validada.
-5. **Estado do evento** — calculado deterministicamente (ver [DATA_MODEL.md](DATA_MODEL.md#34-eventverification_status)).
-6. **Notas de verificação** — lista legível do que falta confirmar (ex.: "Valor anunciado pelo Governo; ainda sem publicação em Diário da República").
+### 5.1 Extracção de claims
+A partir dos documentos do evento, extrair afirmações atómicas, cada uma com `claim_type` e `legal_stage`. A mesma informação em estágios diferentes ("foi anunciado" vs. "está em vigor") dá claims diferentes.
+
+**Claims críticas** (`critical = true`): afirmações sobre legislação, direitos, prestações, valores, limites, elegibilidade, prazos, obrigações, entrada em vigor, alterações legais e regras administrativas relevantes — ou seja, `claim_type ∈ {legal_reference, legal_change, right, benefit, amount, limit, eligibility, deadline, effective_date, obligation, administrative_rule}`, e `procedure` quando condiciona o acesso a um direito ou o cumprimento de uma obrigação.
+
+### 5.2 Procura de evidência
+- Documentos T1 já agrupados no evento.
+- Documentos T1 recolhidos com sinais fortes (referência legal, nome da prestação, entidade).
+- Links para documentos oficiais citados em documentos T2/T3, recolhidos apenas se pertencerem a um domínio de fonte T1 `VALIDATED`.
+- Na V1 **não** há pesquisa web aberta: a evidência vem de fontes registadas ou é acrescentada manualmente (`ADD_EVIDENCE`), sujeita às mesmas validações.
+
+### 5.3 Associação claim ↔ evidência
+Para cada claim, identificar excertos literais (`quote`) que a suportam ou contradizem. A IA pode propor; a associação só conta se o `quote` existir literalmente no `source_document.text` (`validated = true`).
+
+### 5.4 Estado de verificação da claim (determinista, por esta ordem)
+
+1. **`CONTRADICTED`** — existe evidência T1 validada `contradicts`, adequada ao estágio. (Conflitos entre documentos oficiais de datas diferentes — ex.: diploma entretanto alterado — são resolvidos por revisão humana; até lá, mantém-se `CONTRADICTED`.)
+2. **`VERIFIED_OFFICIAL`** — existe evidência T1 validada `supports`, de um documento **adequado ao estágio da claim** (tabela em [SOURCES.md](SOURCES.md#5-evidência-oficial-adequada)). Para alterações legislativas, privilegia-se a versão consolidada oficial quando aplicável.
+3. **`VERIFIED_EDITORIAL`** — sem contradição e sem inconsistência entre fontes, e pelo menos uma:
+   - evidência validada `supports` de ≥1 fonte T2;
+   - evidência validada `supports` de ≥2 fontes T3 independentes;
+   - evidência T1 validada que suporta a claim mas não é adequada ao seu estágio (ex.: comunicado de aprovação para uma claim "em vigor");
+   - decisão humana `OVERRIDE_VERIFICATION` que fixa `VERIFIED_EDITORIAL`, com nota obrigatória.
+4. **`UNVERIFIED`** — todos os outros casos, incluindo: uma única fonte T3; fontes T2/T3 inconsistentes entre si; apenas T4.
 
 Regras fixas:
-- Fontes T4 nunca contam como evidência para claims críticas.
-- Um anúncio (`change_type = announcement`) sem diploma não pode ter a claim "a alteração está em vigor" confirmada; o conteúdo terá de o apresentar como anúncio.
-- Override humano (`override_verification`) é permitido, exige motivo e fica auditado.
+- Fontes T4 nunca contam como evidência.
+- Fontes T2 e T3 nunca produzem `VERIFIED_OFFICIAL`, nem com decisão humana.
+- `OVERRIDE_VERIFICATION` só pode baixar o estado ou fixar `VERIFIED_EDITORIAL`. `VERIFIED_OFFICIAL` exige sempre evidência T1 validada e adequada.
+
+### 5.5 Estado de verificação do evento
+Calculado a partir das claims críticas (ou de todas, se não houver críticas; sem claims → `UNVERIFIED`):
+
+| Condição | `event.verification_status` |
+|----------|-----------------------------|
+| Alguma claim crítica `CONTRADICTED` | `CONTRADICTED` |
+| Alguma claim crítica `UNVERIFIED` | `UNVERIFIED` |
+| Todas as claims críticas `VERIFIED_OFFICIAL` | `VERIFIED_OFFICIAL` |
+| Restantes casos (todas verificadas, pelo menos uma só `VERIFIED_EDITORIAL`) | `VERIFIED_EDITORIAL` |
+
+O `legal_stage` do evento passa a ser o estágio mais avançado entre as suas claims críticas `VERIFIED_OFFICIAL`; sem nenhuma, mantém o estágio menos avançado proposto.
+
+### 5.6 Notas de verificação
+Lista legível do que falta confirmar (ex.: "Valor anunciado pelo Governo; diploma ainda não publicado em Diário da República").
 
 ## Etapa 6 — SCORE
 
-Calcula a pontuação de cada evento `candidate`/`watchlist` e decide `selected` / `watchlist` / `rejected`. Detalhe em [SCORING.md](SCORING.md).
+Calcula o `editorial_score` de cada evento `CANDIDATE`/`WATCHLIST` e propõe o estado editorial. Detalhe em [SCORING.md](SCORING.md).
 
-Gates obrigatórios antes de `selected`:
-- `verification_status ∈ {verified, partially_verified, not_applicable}`;
-- nenhuma claim crítica `contradicted`;
-- pontuação ≥ limiar de selecção.
+**O score ordena; não verifica.** O estado editorial resulta de duas condições independentes:
 
-Eventos relevantes mas não verificados podem ficar em `watchlist` e ser reavaliados nas execuções seguintes (ex.: à espera de publicação oficial).
+| Gate | Condição para `EDITORIAL_REVIEW` |
+|------|----------------------------------|
+| Verificação | `verification_status = VERIFIED_OFFICIAL`; ou `VERIFIED_EDITORIAL` **sem claims críticas**. |
+| Prioridade | `editorial_score ≥ SELECT_THRESHOLD` e dentro do máximo por execução. |
+| Política | Nenhum critério de rejeição de [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#8-critérios-para-rejeitar-reject). |
+
+- `CONTRADICTED` → `REJECT`.
+- Score elevado mas verificação insuficiente → `WATCHLIST` (`awaiting_verification` ou `awaiting_official_confirmation`). Um score alto **nunca** desbloqueia a verificação.
+- Um evento `VERIFIED_EDITORIAL` com claims críticas só chega a `EDITORIAL_REVIEW` por decisão humana (`PROMOTE_TO_EDITORIAL_REVIEW`, nota obrigatória) e com as restrições de redacção da [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#5-níveis-de-verificação).
+- `UNVERIFIED` e `CONTRADICTED` nunca chegam a `EDITORIAL_REVIEW`, nem por decisão humana.
 
 ## Etapa 7 — GENERATE
 
-**Objectivo:** produzir formatos a partir de um evento seleccionado (princípio P10).
+**Objectivo:** produzir formatos a partir de um evento em `EDITORIAL_REVIEW`. Todos os formatos derivam do mesmo evento.
 
-- Entrada: `VerifiedEventBundle` (evento + claims + evidências + fontes).
-- Um gerador por formato. Formatos v1: `whatsapp`, `article`, `seo_meta`. Futuros: `newsletter`, `social_post`.
-- O texto só pode conter factos presentes nas claims com estado `confirmed_official` ou `supported`; claims `supported` (sem T1) têm de ser apresentadas com linguagem de cautela ("segundo [fonte]...").
-- `partially_verified` → o conteúdo tem de indicar explicitamente o que ainda não está confirmado.
-- Cada conteúdo guarda `claim_refs` e `source_refs`; o artigo inclui secção de fontes.
-- Validações automáticas pós-geração (ver [AI_RULES.md](AI_RULES.md#6-validações-automáticas-pós-geração)); falhas → conteúdo fica `draft` com `checks` a indicar o problema.
+- Entrada: `VerifiedEventBundle` (evento + claims + evidências + fontes + estado de verificação).
+- Um gerador por formato. Formatos V1: `whatsapp`, `article`, `seo_meta`. Futuros: `newsletter`, `social_post`.
+- Uso de claims no texto:
 
-Especificação inicial dos formatos:
+| Estado da claim | Pode ser usada? | Como |
+|-----------------|-----------------|------|
+| `VERIFIED_OFFICIAL` | Sim | Como facto, **no seu estágio** (um anúncio confirmado oficialmente continua a ser um anúncio). |
+| `VERIFIED_EDITORIAL` | Sim, com restrições | Com atribuição à fonte e indicação explícita de que não há confirmação oficial. Nunca como alteração legal confirmada. |
+| `UNVERIFIED` | Não | — |
+| `CONTRADICTED` | Não | — |
 
-| Formato | Objectivo | Limites / estrutura |
-|---------|-----------|---------------------|
-| `whatsapp` | Alerta curto para canal/grupo | ≤ 700 caracteres; o quê, quem é abrangido, prazo/valor, acção a tomar, link para artigo. Sem markdown complexo. |
-| `article` | Artigo para TensDireito.com | Título; lead; "O que muda"; "Quem tem direito"; "Prazos e valores"; "Como pedir/o que fazer"; "Fontes"; data de actualização; nota de estado de verificação quando aplicável. |
-| `seo_meta` | Metadados SEO do artigo | `title` ≤ 60 car., `meta_description` ≤ 155 car., `slug`, palavras-chave principais, sugestões de FAQ apenas com base nas claims. |
+- Cada conteúdo guarda `claim_refs` e `source_refs`; o artigo inclui secção de fontes e, quando aplicável, "O que ainda não se sabe".
+- Regras de escrita, estrutura por formato e orientações de extensão: [STYLE_GUIDE.md](STYLE_GUIDE.md). **Não existe limite rígido de caracteres para WhatsApp.**
 
-## Etapa 8 — REVIEW
+## Etapa 8 — CHECK (validações automáticas)
 
-- `tde review list` mostra conteúdos `draft`/`in_review` com estado de verificação, claims, fontes e resultado das validações.
-- `approve` → `ready_to_publish`; `reject` exige motivo. Ambos geram `editorial_decision`.
-- Edições humanas ao texto incrementam `version` com `generated_by = human`.
+Validações pós-geração (ver [AI_RULES.md](AI_RULES.md#6-validações-automáticas-pós-geração)). Se todas as validações bloqueantes passam, o conteúdo passa a `HUMAN_REVIEW_REQUIRED` e o evento a `READY_FOR_APPROVAL`; caso contrário fica `DRAFT` com o problema em `checks`. Passar nas validações **não** é aprovação.
 
-## Etapa 9 — EXPORT
+## Etapa 9 — REVIEW (revisão humana)
 
-Exporta conteúdos `ready_to_publish` para `data/exports/<data>/<event_id>/<formato>.md` + `.json` (com metadados, claims e fontes). O `content_piece` passa a `exported`. A publicação nos canais é feita fora do sistema na v1.
+**Na V1, a IA não substitui a aprovação humana.**
+
+- `tde review list` mostra conteúdos em `HUMAN_REVIEW_REQUIRED` com estado de verificação de cada claim, `legal_stage`, fontes e resultado das validações.
+- Decisões: `APPROVED`, `REJECTED`, `NEEDS_REVISION`. Cada uma regista em `editorial_decision`: quem (`actor`), quando (`decided_at`), decisão e nota opcional.
+- `APPROVED` → o evento passa a `APPROVED`. `NEEDS_REVISION` → nova versão em `DRAFT`; o evento volta a `EDITORIAL_REVIEW`. Todos os conteúdos `REJECTED` → o evento volta a `EDITORIAL_REVIEW`, a menos que a pessoa decida `REJECT` ou `MOVE_TO_WATCHLIST`.
+- Edições humanas ao texto criam nova versão (`generated_by = human`), que volta às validações automáticas e à revisão.
+- O sistema recusa decisões de revisão sem `actor` ou com `actor` do tipo `llm:*`.
+
+## Etapa 10 — EXPORT
+
+Exporta conteúdos `APPROVED` ainda não exportados para `data/exports/<data>/<event_id>/<formato>.md` + `.json` (metadados, claims com estado de verificação, fontes, decisão de revisão). Preenche `exported_at`.
+
+**Exportar não é publicar.** A publicação nos canais é feita fora do sistema na V1; o estado `PUBLISHED` não é atribuído pelo sistema.
 
 ## REPORT — relatório da execução
 
 Gerado no fim de `tde run` (Markdown em `data/reports/` + resumo na consola). Contém:
 
-1. Resumo: fontes recolhidas/falhadas, itens novos, documentos relevantes, eventos novos/actualizados.
-2. **Eventos seleccionados** — título, pontuação, estado de verificação, fontes principais.
-3. **Watchlist** — eventos relevantes à espera de confirmação, com o que falta.
+1. Resumo: endpoints recolhidos/falhados, itens novos, documentos relevantes, eventos novos/actualizados (com actualizações materiais assinaladas).
+2. **Eventos em `EDITORIAL_REVIEW`** — título, score, estado de verificação, `legal_stage`, fontes principais.
+3. **Watchlist** — motivo e o que falta (ex.: "aguarda publicação oficial").
 4. **Rejeitados** — top N com motivo principal (para afinação).
-5. Custos de IA (tokens por tarefa).
-6. **Conclusão explícita** — uma de:
-   - "N acontecimentos seleccionados para produção editorial."
-   - "**Nada a publicar nesta execução.** Nenhum acontecimento atingiu o limiar de relevância e verificação." (princípio P5)
+5. Possíveis duplicados por confirmar.
+6. Custos de IA (tokens por tarefa).
+7. **Conclusão explícita** — uma de:
+   - "N acontecimentos seleccionados para revisão editorial."
+   - "**Nada suficientemente importante para publicar nesta execução.**"
 
 "Nada a publicar" é um resultado de sucesso (código de saída `0`), não um erro.
