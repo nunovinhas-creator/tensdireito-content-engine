@@ -111,6 +111,18 @@ class DocumentKind(StrEnum):
     OTHER = "other"
 
 
+class DocumentStatus(StrEnum):
+    """Estado de um `source_document` (DATA_MODEL.md §2.1).
+
+    O M2.11 só atribui `normalized` e `ignored` (DEC-041 (7)).
+    """
+
+    NORMALIZED = "normalized"
+    CLASSIFIED = "classified"
+    CLUSTERED = "clustered"
+    IGNORED = "ignored"
+
+
 class EvidenceStance(StrEnum):
     SUPPORTS = "supports"
     CONTRADICTS = "contradicts"

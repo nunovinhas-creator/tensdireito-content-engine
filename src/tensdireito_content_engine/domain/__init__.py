@@ -2,6 +2,7 @@
 
 from tensdireito_content_engine.domain.enums import (
     DocumentKind,
+    DocumentStatus,
     EditorialStatus,
     EndpointStatus,
     EndpointType,
@@ -25,6 +26,7 @@ from tensdireito_content_engine.domain.validation import DomainValidationError
 
 __all__ = [
     "DocumentKind",
+    "DocumentStatus",
     "DomainValidationError",
     "EditorialStatus",
     "EndpointStatus",

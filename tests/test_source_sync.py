@@ -220,9 +220,10 @@ def test_empty_file_without_schema_fails_and_applies_nothing(tmp_path, config, c
     db = tmp_path / "tde.sqlite3"
     db.write_bytes(b"")
     assert run_cli(config, db) == 1
-    assert "esquema não conforme: migrações pendentes: 0001_init; execute `tde init`" in (
-        capsys.readouterr().err
-    )
+    assert (
+        "esquema não conforme: migrações pendentes: 0001_init, 0002_source_document; "
+        "execute `tde init`"
+    ) in capsys.readouterr().err
     assert db.read_bytes() == b""
 
 
@@ -241,7 +242,9 @@ def test_pending_migration_fails_without_migrating(db, config, capsys):
         conn.execute("DELETE FROM schema_migration")
     before = snapshot(db)
     assert run_cli(config, db) == 1
-    assert "migrações pendentes: 0001_init; execute `tde init`" in capsys.readouterr().err
+    assert "migrações pendentes: 0001_init, 0002_source_document; execute `tde init`" in (
+        capsys.readouterr().err
+    )
     assert snapshot(db) == before
 
 

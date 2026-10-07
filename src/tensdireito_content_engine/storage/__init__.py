@@ -5,8 +5,9 @@ Todo o SQL e todo o uso de `sqlite3` vivem neste pacote. `domain/`, `normalize/`
 ligação, o executor de migrações e `tde init`; o M2.7 acrescenta a sincronização de
 `source_registry` e `source_endpoint` (`tde sources sync`); o M2.8 acrescenta os
 repositórios de `run`, de `raw_item` e do estado operacional de `source_endpoint`
-(`tde collect`). Os restantes repositórios por entidade chegam com as unidades que os
-consomem.
+(`tde collect`); o M2.11 acrescenta a migração `0002`, o repositório de
+`source_document` e a leitura dos `raw_item` pendentes (`tde normalize`). Os restantes
+repositórios por entidade chegam com as unidades que os consomem.
 """
 
 from tensdireito_content_engine.storage.database import (
@@ -29,6 +30,11 @@ from tensdireito_content_engine.storage.migrator import Migration, load_migratio
 from tensdireito_content_engine.storage.raw_items import SavedItems, save_endpoint_items
 from tensdireito_content_engine.storage.runs import RUN_STATUSES, finish_run, start_run
 from tensdireito_content_engine.storage.schema import open_existing_database
+from tensdireito_content_engine.storage.source_documents import (
+    PendingRawItem,
+    insert_source_document,
+    pending_raw_items,
+)
 from tensdireito_content_engine.storage.source_sync import (
     SourceSyncError,
     SyncCounts,
@@ -43,6 +49,7 @@ __all__ = [
     "Connection",
     "InitResult",
     "Migration",
+    "PendingRawItem",
     "SavedItems",
     "SourceSyncError",
     "StorageError",
@@ -52,9 +59,11 @@ __all__ = [
     "connect",
     "finish_run",
     "init_database",
+    "insert_source_document",
     "load_migrations",
     "migrate",
     "open_existing_database",
+    "pending_raw_items",
     "record_endpoint_failure",
     "resolve_db_path",
     "save_endpoint_items",

@@ -1,7 +1,7 @@
 """Pré-condições de base existente e esquema conforme (ROADMAP.md M2.7 e M2.8; DEC-028).
 
-Partilhadas pelos comandos que exigem uma base criada por `tde init` (`tde sources sync`
-e `tde collect`): nenhum deles cria a base de dados nem aplica migrações.
+Partilhadas pelos comandos que exigem uma base criada por `tde init` (`tde sources sync`,
+`tde collect` e `tde normalize`): nenhum deles cria a base de dados nem aplica migrações.
 """
 
 import sqlite3

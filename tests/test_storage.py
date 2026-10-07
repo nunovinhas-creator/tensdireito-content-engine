@@ -26,7 +26,7 @@ from tensdireito_content_engine.storage.migrator import default_migrations_dir, 
 
 FIXED_NOW = datetime(2026, 10, 7, 12, 0, 0, tzinfo=UTC)
 MIGRATIONS_DIR = Path(str(default_migrations_dir()))
-BUSINESS_TABLES = {"run", "source_registry", "source_endpoint", "raw_item"}
+BUSINESS_TABLES = {"run", "source_registry", "source_endpoint", "raw_item", "source_document"}
 ALL_TABLES = {"schema_migration", *BUSINESS_TABLES}
 
 
@@ -137,19 +137,30 @@ def test_cli_init_creates_database_and_reports(tmp_path, capsys):
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
         f"init: OK — {db}",
-        "migrações aplicadas: 0001_init",
+        "migrações aplicadas: 0001_init, 0002_source_document",
     ]
     assert captured.err == ""
     assert db.is_file()
     assert tables(db) == ALL_TABLES
 
 
-def test_init_registers_first_migration_with_checksum(tmp_path):
+def test_init_registers_migrations_with_checksum(tmp_path):
     db = tmp_path / "tde.sqlite3"
     result = init_database(db, now=fixed_now)
-    assert result.applied == ("0001_init",)
-    expected = hashlib.sha256((MIGRATIONS_DIR / "0001_init.sql").read_bytes()).hexdigest()
-    assert migration_rows(db) == [(1, expected, "2026-10-07T12:00:00.000000+00:00")]
+    assert result.applied == ("0001_init", "0002_source_document")
+    applied_at = "2026-10-07T12:00:00.000000+00:00"
+    assert migration_rows(db) == [
+        (
+            1,
+            hashlib.sha256((MIGRATIONS_DIR / "0001_init.sql").read_bytes()).hexdigest(),
+            applied_at,
+        ),
+        (
+            2,
+            hashlib.sha256((MIGRATIONS_DIR / "0002_source_document.sql").read_bytes()).hexdigest(),
+            applied_at,
+        ),
+    ]
 
 
 def test_business_tables_are_empty_after_init(tmp_path):
@@ -160,10 +171,10 @@ def test_business_tables_are_empty_after_init(tmp_path):
             assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone() == (0,)
 
 
-def test_source_document_is_not_created(tmp_path):
+def test_source_document_is_created_by_0002(tmp_path):
     db = tmp_path / "tde.sqlite3"
     init_database(db)
-    assert "source_document" not in tables(db)
+    assert "source_document" in tables(db)
 
 
 def test_second_init_is_idempotent(tmp_path, capsys):
@@ -186,10 +197,10 @@ def test_second_init_is_idempotent(tmp_path, capsys):
 def test_init_accepts_existing_empty_file(tmp_path):
     db = tmp_path / "tde.sqlite3"
     db.touch()
-    assert init_database(db).applied == ("0001_init",)
+    assert init_database(db).applied == ("0001_init", "0002_source_document")
 
 
-# --- Esquema da 0001 ----------------------------------------------------------
+# --- Esquema da 0001 e da 0002 ------------------------------------------------
 
 
 EXPECTED_COLUMNS = {
@@ -253,6 +264,24 @@ EXPECTED_COLUMNS = {
         "created_at": ("TEXT", True, 0),
         "updated_at": ("TEXT", True, 0),
     },
+    "source_document": {
+        "id": ("INTEGER", True, 1),
+        "raw_item_id": ("INTEGER", True, 0),
+        "source_id": ("TEXT", False, 0),
+        "canonical_url": ("TEXT", False, 0),
+        "title": ("TEXT", True, 0),
+        "text": ("TEXT", False, 0),
+        "language": ("TEXT", False, 0),
+        "published_at": ("TEXT", False, 0),
+        "source_tier": ("TEXT", True, 0),
+        "document_kind": ("TEXT", False, 0),
+        "text_hash": ("TEXT", False, 0),
+        "duplicate_of": ("INTEGER", False, 0),
+        "status": ("TEXT", True, 0),
+        "created_in_run": ("INTEGER", True, 0),
+        "created_at": ("TEXT", True, 0),
+        "updated_at": ("TEXT", True, 0),
+    },
 }
 
 
@@ -272,12 +301,12 @@ def test_only_expected_tables_exist(db):
     assert tables(db) == ALL_TABLES
 
 
-def test_no_indexes_beyond_pk_and_unique(db):
+def test_no_indexes_beyond_pk_unique_and_text_hash(db):
     with sqlite3.connect(db) as conn:
         explicit = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
+            "SELECT tbl_name, name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
         ).fetchall()
-    assert explicit == []
+    assert explicit == [("source_document", "source_document_text_hash")]
 
 
 def test_foreign_keys_declared(db):
@@ -359,8 +388,8 @@ def test_text_primary_keys_reject_null(db):
 
 def test_load_migrations_reads_package_resource():
     migrations = load_migrations()
-    assert [m.name for m in migrations] == ["0001_init"]
-    assert migrations[0].version == 1
+    assert [m.name for m in migrations] == ["0001_init", "0002_source_document"]
+    assert [m.version for m in migrations] == [1, 2]
 
 
 def test_migration_filenames_follow_convention():
@@ -424,12 +453,12 @@ def test_database_newer_than_code_fails(tmp_path, capsys):
     with sqlite3.connect(db) as conn:
         conn.execute(
             "INSERT INTO schema_migration (version, checksum, applied_at) "
-            "VALUES (2, 'abc', '2026-10-07T12:00:00.000000+00:00')"
+            "VALUES (3, 'abc', '2026-10-07T12:00:00.000000+00:00')"
         )
     assert main(["--db", str(db), "init"]) == 1
     assert capsys.readouterr().err.splitlines() == [
         f"init: ERRO — {db}",
-        "- a base de dados tem a migração 0002, desconhecida desta versão do código "
+        "- a base de dados tem a migração 0003, desconhecida desta versão do código "
         "(base de dados mais recente que o código)",
     ]
 
