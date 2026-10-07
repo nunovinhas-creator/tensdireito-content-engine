@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) concluído e integrado (PR #12); M2.8 (recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`) implementado, a integrar. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) concluído e integrado (PR #12); M2.8 (recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`) concluído e integrado (PR #14); M2.9 (primeiro collector concreto: `rss`, com transporte HTTPS restrito) definido, por implementar. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)); M2.8 recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`, sem collectors concretos nem rede (DEC-031; ver [M2.8](#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)). | **Em curso** — M2.1 a M2.7 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10, M2.7 no PR #12); M2.8 implementado, a integrar |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)); M2.8 recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`, sem collectors concretos nem rede (DEC-031; ver [M2.8](#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)); M2.9 primeiro collector concreto, `rss` (RSS 2.0), com transporte HTTPS restrito, sem endpoints reais (DEC-032, DEC-033; ver [M2.9](#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito)). A validação manual das primeiras fontes (D1) é uma unidade separada, com protocolo definido em DEC-034. | **Em curso** — M2.1 a M2.8 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10, M2.7 no PR #12, M2.8 no PR #14); M2.9 definido, por implementar |
 
 ### M2.5 — registo de fontes e validação de fontes
 
@@ -190,7 +190,7 @@ Regras do esquema:
 
 ### M2.8 — recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`
 
-**Estado:** implementado, a integrar. Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. Decisão: DEC-031 (contrato de `tde collect` e ciclo de vida de `run`). Respeita DEC-013, DEC-021, DEC-026, DEC-027, DEC-028, DEC-029 e DEC-030.
+**Estado:** concluído e integrado (PR #14). Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. Decisão: DEC-031 (contrato de `tde collect` e ciclo de vida de `run`). Respeita DEC-013, DEC-021, DEC-026, DEC-027, DEC-028, DEC-029 e DEC-030.
 
 **Objectivo:** implementar a infra-estrutura e a orquestração da etapa COLLECT ([CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-1--collect), etapa 1) sem rede: abrir e fechar um `run`, seleccionar os endpoints `ACTIVE` do espelho SQLite, chamar o `Collector` registado para o `endpoint_type` de cada um, persistir de forma idempotente os `RawItem` devolvidos, com `created_in_run`, e actualizar o estado operacional do endpoint (`last_success_at`, `last_error`). O M2.8 **não** implementa nenhum collector concreto nem transporte de rede: em produção, o registo de collectors fica vazio; os testes usam collectors falsos.
 
@@ -275,6 +275,107 @@ Regras do esquema:
 
 **Implementação:** contrato e registo em `src/tensdireito_content_engine/collectors/base.py` (`Collector`, `CollectorRegistry`, `default_registry()` vazio); orquestração em `src/tensdireito_content_engine/collect.py` (`run_collect`), sem SQL; `tde [--config DIR] [--db PATH] collect [--source ID]` em `cli.py`. Em `storage`: `schema.py` (verificação de base existente e de esquema, partilhada com `tde sources sync`, mensagens inalteradas), `runs.py` (`start_run`, `finish_run`), `endpoints.py` (`source_exists`, `active_endpoints`, `mark_endpoint_success`, `record_endpoint_failure`), `raw_items.py` (`save_endpoint_items`) e `transaction` em `database.py` (`BEGIN` … `COMMIT`; erro SQLite → `ROLLBACK` e `StorageError` encadeado com a excepção original). Os itens de cada endpoint são materializados e validados (instância de `RawItem` e `source_endpoint_id` igual ao endpoint) antes de qualquer escrita; depois, numa transacção, `SELECT` por identidade antes de cada `INSERT` e `last_success_at`/`last_error = NULL`. Uma falha de endpoint regista `last_error` numa transacção própria. O motivo de uma excepção do collector é `o collector falhou: <tipo>: <mensagem>`; o de um item inválido indica a posição do item (a partir de 1). Um ficheiro que não é SQLite é reportado como `esquema não conforme`, pedindo `tde init`. Sem migrações, sem alterações ao esquema e sem dependências novas.
 
+### M2.9 — primeiro collector concreto: `rss`, com transporte HTTPS restrito
+
+**Estado:** definido, por implementar. Esta secção é o contrato da unidade. Decisões: DEC-032 (contrato do collector `rss`) e DEC-033 (transporte HTTPS restrito dos collectors de produção). Respeita DEC-013, DEC-021, DEC-027, DEC-028, DEC-029, DEC-030 e DEC-031, sem as alterar. DEC-034 (protocolo de validação de fontes) é registada em conjunto, mas aplica-se numa unidade separada (ver *Âmbito: porquê `rss` e porquê sem validação de fontes*).
+
+**Objectivo:** dar ao `tde collect` do M2.8 o primeiro `Collector` concreto, para `endpoint_type = rss` (RSS 2.0), e a primeira — e única — camada de rede do sistema: um transporte HTTPS restrito, que só obtém o URL de endpoints `ACTIVE` já validados e revistos por pull request. O M2.9 **não** acrescenta endpoints reais: com `config/sources.yaml` vazio (`[]`, por D1), `tde collect` continua a não fazer nenhum pedido de rede em produção. O comportamento verifica-se com fixtures sintéticas e transporte falso, offline.
+
+**Âmbito: porquê `rss` e porquê sem validação de fontes.**
+- **Verificação do estado actual.** O repositório não contém evidência de que alguma fonte candidata publique RSS: nenhuma fonte foi validada, `config/sources.yaml` está vazio e SOURCES.md §6 não assume RSS, feeds nem APIs. A escolha de `rss` **não** se apoia na existência de feeds nas fontes prioritárias; apoia-se na arquitectura actual:
+  1. É o único tipo de endpoint que não precisa de `fetch`. `html_page` precisa de `fetch.selectors`, que DEC-028 mantém fora do domínio; transportá-lo alargaria a unidade ao domínio, ao M2.5 e ao M2.7.
+  2. `manual` não tem semântica definida (relação com `tde add-manual`; limitação do `NULL` em `UNIQUE`, M2.6) e não exige rede, pelo que não estabelece o transporte.
+  3. RSS é estruturado: o mapeamento para `RawItem` dispensa extracção de HTML e selectores — não é scraping.
+  4. [SECURITY.md](SECURITY.md#2-recolha-responsável) §2 prefere feeds a páginas.
+  5. O transporte HTTPS restrito (DEC-033) é reutilizável por um futuro `html_page`.
+- **Risco assumido:** se a validação (D1) mostrar que nenhuma fonte prioritária publica RSS 2.0 — por exemplo, só Atom —, o collector fica sem endpoints; o transporte mantém o valor. Atom fica fora do M2.9 (questão aberta Q2).
+- **Validação de fontes em unidade separada.** Validar uma fonte é trabalho humano: `validated_by` tem de ser uma pessoa (DEC-014; invariante do domínio), e a evidência obtém-se nas fontes oficiais, não por inferência do modelo. Juntá-la ao M2.9 faria depender os critérios de aceitação do código de trabalho manual, e o código de endpoints reais. O M2.9 entrega o collector sem endpoints reais; a validação das primeiras fontes segue o protocolo de [SOURCES.md](SOURCES.md#8-protocolo-de-validação-de-fontes) §8 (DEC-034), numa unidade própria, que pode correr em paralelo. Nenhum endpoint real entra em `config/sources.yaml` no M2.9.
+
+**Entregáveis da implementação:**
+1. **Transporte HTTPS** em `src/tensdireito_content_engine/collectors/http.py` (DEC-033): a única responsabilidade de rede do sistema. Faz um `GET` a um URL, aplica a política de DEC-033 e devolve a resposta (código HTTP, `Content-Type`, corpo em bytes) ou falha com um motivo. Não interpreta o conteúdo. É injectável no collector (os testes usam um transporte falso), e a resolução de nomes e a abertura da ligação são injectáveis no próprio transporte.
+2. **Collector `rss`** em `src/tensdireito_content_engine/collectors/rss.py` (DEC-032): `endpoint_type = EndpointType.RSS`; `fetch(endpoint, since)` obtém o corpo de `endpoint.url` através do transporte e passa-o a uma função de parsing pura, `bytes` → `list[RawItem]`, sem rede. `since` continua a ser sempre `None` e é ignorado.
+3. **`robots.txt`** verificado em execução, antes do pedido do feed, pelo mesmo transporte e com `urllib.robotparser` (DEC-033).
+4. **Registo de produção:** `default_registry()` passa a conter o collector `rss` com o transporte real. Sem endpoints `ACTIVE` (D1), nenhum pedido é feito.
+5. **Sem outras alterações:** CLI (`tde collect [--source ID]`, saídas e códigos do M2.8), orquestração (`collect.py`), `storage`, esquema, domínio e formato do YAML ficam como estão.
+
+**Camadas:**
+
+| Módulo | Responsabilidade | Pode importar | Não pode |
+|--------|------------------|---------------|----------|
+| `collectors/http.py` | Rede: política de URL e destino, pedido, limites, `robots.txt` (DEC-033). | `domain`, biblioteca padrão (`urllib.request`, `urllib.robotparser`, `http.client`, `ssl`, `socket`, `ipaddress`). | XML, `storage`, `sqlite3`. |
+| `collectors/rss.py` | Parsing de RSS 2.0 e mapeamento para `RawItem` (DEC-032). | `domain`, `collectors/http.py` (só a interface do transporte), biblioteca padrão XML. | Módulos de rede directamente, `storage`, `sqlite3`. |
+| `collect.py` (M2.8) | Orquestração; trata excepções do collector como falha do endpoint (DEC-031). | Inalterado. | — |
+| `storage` | Inalterado. | — | `collectors`. |
+
+Só `collectors/http.py` importa módulos de rede da biblioteca padrão; um teste verifica-o, como o M2.6 verifica `sqlite3`.
+
+**Mapeamento RSS 2.0 → `RawItem`** (DEC-032; campos do M2.3, sem campos novos):
+
+| Campo de `RawItem` | Origem | Ausente ou vazio |
+|--------------------|--------|------------------|
+| `source_endpoint_id` | `endpoint.id` | — |
+| `url` | Texto de `<link>` do `<item>`, sem espaço exterior; mais nada é alterado (parâmetros, fragmento, maiúsculas). Tem de ser URL absoluto `http`/`https`. | Item inválido → falha do endpoint. |
+| `title` | Texto de `<title>` do `<item>`, sem alteração (a normalização do título é do NORMALIZE, DEC-021). | Item inválido → falha do endpoint. |
+| `raw_content` | Serialização determinística, em texto, do elemento `<item>` completo, tal como lido pelo parser (inclui `description`, `content:encoded`, categorias, `enclosure` e extensões). Não é texto extraído; o collector não escolhe entre `description` e `content:encoded`. | Nunca vazio (o elemento existe). |
+| `fetched_at` | Instante UTC da resposta do feed, igual para todos os itens dessa resposta; relógio injectável. | — |
+| `external_id` | Texto de `<guid>`, sem espaço exterior. `isPermaLink` não é interpretado; o `guid` nunca substitui `<link>`. | Nulo. |
+| `published_at_raw` | Texto de `<pubDate>`, sem espaço exterior e sem interpretação (D13). | Nulo. |
+| `manual_note` | — | Nulo. |
+
+- **URL canónico:** não é calculado nem guardado; `RawItem` não tem esse campo e D12 continua OPEN. O `url` é preservado tal como obtido (DEC-021).
+- **Feed:** a raiz tem de ser `<rss>` com exactamente um `<channel>`; o atributo `version` não é condição. Atom (`<feed>`), RSS 1.0/RDF ou outra raiz → falha do endpoint, `formato não suportado`.
+- **Sem itens:** um `<channel>` válido sem `<item>` é sucesso com zero itens, não falha.
+- **Ordem e duplicados:** itens pela ordem do documento. Itens repetidos no mesmo feed ou já gravados contam como `existing` (identidade `(source_endpoint_id, url, content_hash)` do M2.8); o collector não deduplica. O mesmo `<link>` com conteúdo diferente gera outro `raw_item`, como no M2.8.
+- **Item inválido:** nenhum valor é inventado e nenhum item é descartado em silêncio. Um item sem `<title>` ou `<link>` utilizáveis faz falhar o endpoint, com a posição do item (a partir de 1); pela atomicidade do M2.8, nenhum item desse endpoint é gravado nessa execução.
+- **XML:** XML malformado → falha. Qualquer declaração `DOCTYPE` → falha, antes de processar entidades (DEC-033). A codificação é a do próprio documento (BOM ou declaração XML; UTF-8 por omissão); o `charset` do `Content-Type` não é usado. Codificação não suportada pelo parser ou bytes inválidos → falha.
+- **Links dos itens:** nunca são seguidos. Documentos oficiais associados (CONTENT_PIPELINE.md, etapa 1) não são recolhidos no M2.9.
+
+**Transporte HTTPS restrito** (DEC-033): só `https`, sem credenciais no URL, porta omitida ou `443`, anfitrião por nome; todos os endereços resolvidos têm de ser públicos; redirects não são seguidos; só `200` é sucesso; `Content-Type` do feed em `application/rss+xml`, `application/xml` ou `text/xml`; sem compressão (`Content-Encoding` diferente de `identity` → falha); corpo até 5 MiB (feed) e 512 KiB (`robots.txt`); 20 s por operação de rede e 60 s no total por pedido; verificação TLS nunca desactivada; uma tentativa, sem repetições; `User-Agent` identificável com contacto (Q1); pedidos sequenciais, com intervalo mínimo de 5 s entre pedidos ao mesmo anfitrião na mesma execução; `robots.txt` uma vez por anfitrião e por execução. `fetch` do YAML continua fora da projecção (DEC-028): `frequency`, `rate_limit_seconds` e `max_items` não têm efeito no M2.9. Pormenor em DEC-033.
+
+**Erros:** todos os erros de transporte e de conteúdo são excepções do collector, com tipos próprios em `collectors/` (um para transporte, outro para o conteúdo do feed) e mensagens deterministas que não incluem o corpo da resposta. O M2.8 já os trata como falha do endpoint (`o collector falhou: <tipo>: <mensagem>` em `last_error` e `stats`; DEC-031); `last_success_at` é preservado e os restantes endpoints continuam. Exemplos de motivo: `HTTP 404`; `redirect não seguido: 301`; `Content-Type não aceite: text/html`; `resposta excede 5 MiB`; `tempo esgotado`; `destino não público`; `XML malformado: <mensagem do parser>`; `DOCTYPE não permitido`; `formato não suportado: <raiz>`; `item 3: sem link`; `robots.txt não permite`. Um erro da `storage` continua a terminar com código `1` e `run` por concluir (M2.8).
+
+**Persistência:** `raw_item` continua a ser a unidade persistida. Os campos de `RawItem` (M2.3) chegam para RSS 2.0: `url` ← `<link>`, `title` ← `<title>`, `raw_content` ← elemento `<item>`, `external_id` ← `<guid>`, `published_at_raw` ← `<pubDate>`, `fetched_at` ← resposta. Não há redirects, por isso o URL obtido é sempre o URL validado do endpoint e não precisa de registo próprio; metadados HTTP (código, `ETag`, `Content-Type`) não são guardados. Sem `source_document`, sem migrações, sem colunas novas e sem alterações ao domínio.
+
+**Dependências criadas para unidades futuras (registadas, não resolvidas):**
+- **NORMALIZE:** para itens `rss`, `raw_content` é XML do `<item>`; a unidade que persistir NORMALIZE terá de definir como extrai o texto (`description` / `content:encoded`) desse XML. Não depende de D12.
+- **D12:** o `url` de cada item é o `<link>` sem alterações (pode conter parâmetros de tracking); `canonical_url` será calculado a partir dele quando D12 for decidida. O M2.9 não restringe D12.
+- **D13:** `pubDate` de RSS 2.0 usa o formato RFC 822, que DEC-021 não converte; até D13, a normalização deixa `published_at` nulo nesses itens. O M2.9 não interpreta datas.
+- **Retenção e crescimento:** como `raw_content` inclui todo o `<item>`, qualquer alteração de um elemento no feed produz um novo `raw_item` (identidade do M2.8). A estabilidade do feed entre pedidos é verificada na validação técnica (SOURCES.md §8).
+
+**Dependências externas:** nenhuma nova. Biblioteca padrão: `urllib.request`, `http.client`, `ssl`, `socket`, `ipaddress`, `urllib.robotparser`, `xml.etree.ElementTree`/`pyexpat`. Ver DEC-033 para as alternativas rejeitadas (`feedparser`, `httpx`/`requests`, `defusedxml`).
+
+**D1, D8, D12 e D13:** continuam OPEN. O M2.9 não acrescenta fontes, endpoints, URLs nem `domains`; não agenda execuções nem resolve persistência durável (`tde collect` continua manual e local); não calcula `canonical_url`; não interpreta `published_at_raw`.
+
+**Exclusões:** Atom; RSS 1.0/RDF; `html_page`; `manual`; `tde add-manual`; seguir links dos itens ou recolher documentos associados; scraping; endpoints ou fontes reais em `config/sources.yaml`; validação manual de fontes (unidade separada, DEC-034); transporte de `fetch` para o domínio; `--since`; pedidos condicionais (`ETag`, `If-Modified-Since`); repetições; pedidos paralelos; cache HTTP; cookies e autenticação; proxies configurados pelo projecto; comando ou função pública para obter um URL arbitrário; NORMALIZE; `source_document`; migrações; scheduler, cron, daemon, jobs, GitHub Actions; D8; publicação; IA; alterações a `tde sources validate` (incluindo a regra "endpoint `ACTIVE` só em fonte `VALIDATED`" — Q4). Não altera `tde doctor`, `tde init`, `tde sources validate`, `tde sources sync`, `tde collect`, o domínio nem o formato do YAML.
+
+**Critérios de aceitação (verificáveis na implementação):**
+1. **Registo:** `default_registry()` devolve um registo com exactamente um collector, para `rss`; endpoints `html_page` e `manual` continuam a falhar como `sem collector para endpoint_type <tipo>` (DEC-031).
+2. **Produção sem endpoints reais:** `config/sources.yaml` continua `[]`; `tde collect` numa base sem endpoints `ACTIVE` termina com código `0`, sem nenhum pedido de rede.
+3. **Feed válido:** um feed RSS 2.0 sintético produz um `RawItem` por `<item>`, pela ordem do documento, com os campos do mapeamento; `raw_content` é igual em duas leituras do mesmo corpo (determinismo do `content_hash`).
+4. **Campos opcionais:** itens sem `<guid>` ou sem `<pubDate>` produzem `external_id` / `published_at_raw` nulos; `published_at_raw` é o texto original sem interpretação; nenhum outro campo é afectado.
+5. **Item inválido:** um item sem `<title>` ou sem `<link>` absoluto `http`/`https` faz falhar o endpoint com a posição do item; nenhum item desse endpoint é gravado; os `raw_item` anteriores e `last_success_at` mantêm-se.
+6. **Feed vazio:** um `<channel>` sem itens → endpoint com sucesso, zero itens, `last_success_at` actualizado.
+7. **Formato e XML:** Atom, RSS 1.0, raiz desconhecida, XML malformado, documento com `DOCTYPE` (incluindo entidades internas e externas) e bytes numa codificação inválida → falha do endpoint, sem expansão de entidades nem acesso a recursos externos.
+8. **Codificação:** feeds sintéticos em UTF-8 (com e sem BOM) e em ISO-8859-1 declarado são lidos correctamente, com caracteres portugueses preservados; o `charset` do `Content-Type` é ignorado.
+9. **HTTP:** respostas `3xx`, `4xx` e `5xx`, `Content-Type` não aceite ou ausente, `Content-Encoding` comprimido, `Content-Length` acima do limite, corpo que excede o limite durante a leitura e tempo esgotado → falha do endpoint, com motivo determinista e sem processar corpo parcial.
+10. **URL e destino:** `http`, credenciais no URL, porta diferente de `443`, IP literal e nome que resolve para um endereço não público (loopback, privado, link-local, reservado, multicast) → falha antes de qualquer ligação.
+11. **`robots.txt`:** `200` que proíbe o URL → falha; `200` que permite, `404`/`410` (ou outro `4xx`) → pedido do feed feito; `5xx`, `3xx`, tempo esgotado ou erro → falha, sem pedir o feed; um pedido de `robots.txt` por anfitrião e por execução.
+12. **Ritmo:** pedidos sequenciais; entre dois pedidos ao mesmo anfitrião na mesma execução decorre pelo menos o intervalo mínimo, verificado com relógio e espera injectados (sem espera real nos testes); nenhuma repetição após falha.
+13. **`User-Agent`:** todos os pedidos levam o `User-Agent` definido (Q1); sem cookies nem cabeçalhos de autenticação.
+14. **Idempotência (M2.8):** duas execuções com o mesmo feed criam dois `run`, `raw_item` só na primeira, e `existing` igual ao número de itens na segunda.
+15. **Estado operacional (M2.8):** sucesso → `last_success_at` actualizado e `last_error` nulo; falha de transporte ou de conteúdo → `last_error` com o motivo e `last_success_at` preservado; `updated_at` e campos projectados de `source_endpoint` inalterados; códigos `0`/`2`/`1` como em DEC-031.
+16. **Isolamento:** só `collectors/http.py` importa módulos de rede; `collectors/` não importa `storage` nem `sqlite3`; `storage` não importa `collectors`; `rss.py` não abre ligações (recebe o transporte).
+17. **Esquema e domínio:** nenhuma migração, tabela, coluna, campo de domínio ou dependência nova; `uv.lock` inalterado.
+18. **Testes offline:** fixtures sintéticas com domínios reservados (`example.org`, `.test`; RFC 2606), sem fontes nem URLs reais; uma salvaguarda nos testes faz falhar qualquer tentativa de abrir ligação de rede; a versão do Expat usada é ≥ 2.4.1 (verificada por teste); nenhum teste escreve em `data/`.
+19. **Comportamento existente preservado:** `tde doctor`, `tde init`, `tde sources validate`, `tde sources sync` e `tde collect` mantêm a interface e as saídas; os testes existentes continuam a passar.
+20. **Validação do repositório:** `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .` e `uv run tde doctor` passam.
+
+**Questões abertas antes da implementação:**
+- **Q1 — contacto do `User-Agent` (bloqueante para a implementação).** SECURITY.md §2 exige um `User-Agent` identificável com contacto. O contacto (URL do projecto ou endereço de correio) tem de ser indicado pelo responsável do projecto; não é inferido. Formato proposto: `tensdireito-content-engine/<versão> (+<contacto>)`, com o token `tensdireito-content-engine` usado na avaliação de `robots.txt`.
+- **Q2 — Atom (não bloqueante).** Fora do M2.9. Se a validação (DEC-034) mostrar que fontes prioritárias só publicam Atom, decide-se então se Atom entra como variante de `rss` ou como novo `endpoint_type` (que exige decisão registada — DATA_MODEL.md §2.1).
+- **Q3 — valores dos limites (não bloqueante).** 5 MiB / 512 KiB, 20 s / 60 s e 5 s ficam fixados por DEC-033, sem evidência de fontes reais. Se a validação técnica das primeiras fontes (DEC-034, V3) mostrar que não servem, ajustam-se por pull request, com actualização de DEC-033.
+- **Q4 — `ACTIVE` só em fonte `VALIDATED` (não bloqueante).** O protocolo de DEC-034 exige-o, mas `tde sources validate` não o verifica hoje. A regra é procedimental no M2.9; passá-la a validação automática é decisão da unidade de validação de fontes.
+
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
 - [x] Documentação técnica inicial em `docs/`.
@@ -289,9 +390,9 @@ Regras do esquema:
 - Projecto Python gerido com `uv` (`pyproject.toml`, `uv.lock`), pacote `tensdireito_content_engine`, CLI `tde`, `ruff`, `pytest`.
 - Camada `storage` com SQLite e migrações numeradas para `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run`: a migração inicial (M2.6) cobre `run`, `source_registry`, `source_endpoint` e `raw_item`; `source_document` entra numa migração seguinte, com a persistência da etapa NORMALIZE (DEC-026).
 - Registo de fontes + `tde sources validate` (M2.5) + `tde sources sync`, sincronização explícita YAML → SQLite dos campos projectados (M2.7).
-- Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados. A orquestração de `tde collect`, o ciclo de vida de `run`, a persistência de `raw_item` e o contrato `Collector` são o M2.8 (DEC-031); os collectors concretos, o transporte de rede e `fetch` ficam para unidades posteriores.
+- Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados. A orquestração de `tde collect`, o ciclo de vida de `run`, a persistência de `raw_item` e o contrato `Collector` são o M2.8 (DEC-031). O collector `rss` (RSS 2.0) e o transporte HTTPS restrito são o M2.9 (DEC-032, DEC-033); `html_page`, `manual` e o transporte de `fetch` ficam para unidades posteriores.
 - NORMALIZE com deduplicação exacta.
-- Validação manual de 5–10 fontes (prioridade T1), registando endpoints reais só após confirmação.
+- Validação manual de 5–10 fontes (prioridade T1), registando endpoints reais só após confirmação, segundo o protocolo de [SOURCES.md](SOURCES.md#8-protocolo-de-validação-de-fontes) §8 (DEC-034). Unidade separada do M2.9: é trabalho humano, documentado e revisto por pull request; o modelo não infere URLs, feeds nem endpoints.
 - Relatório mínimo da execução.
 
 **Critério de saída:** `tde collect && tde normalize` corre localmente, de forma idempotente, sobre as fontes validadas; testes offline com fixtures.
@@ -349,7 +450,7 @@ Regras do esquema:
 
 | # | Decisão | Fase | Estado / notas |
 |---|---------|------|----------------|
-| D1 | Fontes T1 prioritárias e confirmação de endpoints reais de cada uma | 1 | **Pendente (OPEN).** Lista candidata em [SOURCES.md](SOURCES.md). Só será fechada quando as fontes prioritárias e os respectivos endpoints forem validados manualmente; nenhum URL, feed, RSS ou API é assumido até lá. |
+| D1 | Fontes T1 prioritárias e confirmação de endpoints reais de cada uma | 1 | **Pendente (OPEN).** Lista candidata em [SOURCES.md](SOURCES.md). Só será fechada quando as fontes prioritárias e os respectivos endpoints forem validados manualmente; nenhum URL, feed, RSS ou API é assumido até lá. Protocolo de validação em [SOURCES.md](SOURCES.md#8-protocolo-de-validação-de-fontes) §8 (DEC-034). O M2.9 não a resolve nem a pressupõe. |
 | D2 | Selecção de fontes T2/T3 (imprensa) | 1–2 | **Pendente.** Decisão editorial. |
 | D3 | Fornecedor(es) de IA inicial(is) e orçamento mensal | 2 | **Pendente.** Interface agnóstica já definida. |
 | D4 | Âmbito temático (taxonomia) | 2 | **Fechada no M1** — taxonomia V1 extensível (DEC-006). |
@@ -361,4 +462,4 @@ Regras do esquema:
 | D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
 | D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |
 | D12 | Regra de `canonical_url`: que parâmetros são "de tracking" e se se normalizam esquema, domínio, barra final ou fragmento | 1 | **Pendente (OPEN).** DATA_MODEL.md exige `canonical_url` "sem parâmetros de tracking" sem os enumerar. Não se inventa nem assume nenhuma lista de parâmetros. Até decisão, o M2.3 não calcula `canonical_url` e preserva o URL tal como obtido (DEC-021). |
-| D13 | Formatos aceites em `published_at_raw` e tratamento de data sem hora ou data/hora sem fuso | 1 | **Pendente (OPEN).** Nenhum fuso (incluindo `Europe/Lisbon`) é assumido silenciosamente. Até decisão, só ISO 8601 com fuso explícito é convertido para UTC; os restantes casos ficam nulos, com o original preservado (DEC-021). |
+| D13 | Formatos aceites em `published_at_raw` e tratamento de data sem hora ou data/hora sem fuso | 1 | **Pendente (OPEN).** Nenhum fuso (incluindo `Europe/Lisbon`) é assumido silenciosamente. Até decisão, só ISO 8601 com fuso explícito é convertido para UTC; os restantes casos ficam nulos, com o original preservado (DEC-021). Com o M2.9, `published_at_raw` de itens RSS virá do `pubDate` (formato RFC 822 em RSS 2.0), que DEC-021 não converte: até D13, esses itens terão `published_at` nulo na normalização. |
