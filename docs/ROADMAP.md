@@ -7,7 +7,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
 - [x] Documentação técnica inicial em `docs/`.
-- [ ] Revisão e aprovação da arquitectura.
+- [x] Revisão e aprovação da arquitectura.
 - [ ] Decisões pendentes da secção "Decisões pendentes" resolvidas ou explicitamente adiadas.
 
 **Critério de saída:** documentação aprovada; lista de fontes T1 prioritárias acordada.

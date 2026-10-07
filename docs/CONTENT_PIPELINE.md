@@ -129,7 +129,7 @@ Especificação inicial dos formatos:
 
 ## Etapa 9 — EXPORT
 
-Exporta conteúdos `ready_to_publish` para `data/exports/<data>/<event_id>/<formato>.md` + `.json` (com metadados, claims e fontes). A publicação nos canais é feita fora do sistema na v1.
+Exporta conteúdos `ready_to_publish` para `data/exports/<data>/<event_id>/<formato>.md` + `.json` (com metadados, claims e fontes). O `content_piece` passa a `exported`. A publicação nos canais é feita fora do sistema na v1.
 
 ## REPORT — relatório da execução
 

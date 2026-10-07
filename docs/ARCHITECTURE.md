@@ -44,10 +44,10 @@ O sistema **não é** um agregador de notícias nem um gerador automático de ar
                     └────────────────┘   └──────────────┘   └──────┬───────┘
                                                                    │
  ┌──────────────┐   ┌────────────────┐   ┌──────────────┐   ┌──────▼───────┐
- │ 8. PUBLISH   │◀──│ 7. REVIEW      │◀──│ 6. GENERATE  │◀──│ 5. VERIFY    │
- │ (fora do     │   │ revisão humana │   │ formatos a   │   │ claims +     │
- │ âmbito v1:   │   │ ready_to_      │   │ partir do    │   │ evidência T1 │
- │ exportação)  │   │ publish        │   │ Event        │   │ + SCORE      │
+ │ 9. EXPORT    │◀──│ 8. REVIEW      │◀──│ 7. GENERATE  │◀──│ 5. VERIFY    │
+ │ (publicação  │   │ revisão humana │   │ formatos a   │   │ claims +     │
+ │ fora do      │   │ ready_to_      │   │ partir do    │   │ evidência T1 │
+ │ âmbito v1)   │   │ publish        │   │ Event        │   │ 6. SCORE     │
  └──────────────┘   └────────────────┘   └──────────────┘   └──────────────┘
                                                                    │
                                               ┌────────────────────▼───────┐
@@ -68,7 +68,7 @@ O sistema distingue seis níveis. Cada nível corresponde a uma entidade ou a um
 | 1 | Informação descoberta | `RawItem` | Algo foi encontrado numa fonte. Guardado tal como foi obtido. Nenhuma garantia de veracidade. |
 | 2 | Informação normalizada | `Document` | Texto limpo, metadados extraídos (datas, URL canónico, língua), duplicados exactos removidos, classificação temática. |
 | 3 | Candidato editorial | `Event.status = candidate` | Um ou mais documentos agrupados num acontecimento potencialmente relevante. Ainda não verificado. |
-| 4 | Acontecimento verificado | `Event.status = verified` (ou `partially_verified`) | As afirmações críticas (`Claim`) têm evidência suficiente segundo as regras de verificação. |
+| 4 | Acontecimento verificado | `Event.verification_status = verified` (ou `partially_verified`) | As afirmações críticas (`Claim`) têm evidência suficiente segundo as regras de verificação. |
 | 5 | Conteúdo editorial | `ContentPiece.status = draft` / `in_review` | Texto produzido para um formato concreto, com referências às claims e fontes. |
 | 6 | Pronto para publicação | `ContentPiece.status = ready_to_publish` | Aprovado por um humano. Pode ser exportado/publicado. |
 
