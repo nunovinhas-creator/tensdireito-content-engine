@@ -199,6 +199,14 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Aceite
 - **Data:** 2026-10-07
 
+### DEC-022 — Deduplicação exacta por `text_hash` e regra técnica do representante
+- **Decisão:** A deduplicação exacta (M2.4) agrupa `NormalizedItem` pelo fingerprint de DEC-021 (`text_hash`): dois itens são duplicados exactos se e só se têm o mesmo `text_hash`. Em cada grupo, o **representante é o primeiro item na ordem da sequência de entrada**; cada um dos restantes é registado como duplicado desse representante (`duplicate_of`). A regra é exclusivamente técnica e não tem significado editorial: o representante não é "o melhor", "o mais oficial" nem "o original", e a escolha não transfere tier, verificação nem estado para outros itens. A operação não altera, funde nem descarta itens: todos aparecem no resultado, como representante ou como duplicado. Não há deduplicação aproximada, similaridade nem agrupamento em `Event` (CLUSTER).
+- **Razão:** DATA_MODEL.md §2.1 prevê `text_hash` e `duplicate_of` e CONTENT_PIPELINE.md (etapa 2) "duplicados exactos → `duplicate_of`", mas nenhum documento diz qual item é preservado. A primeira ocorrência é determinista para a mesma entrada e não exige informação inexistente; quando houver persistência, corresponde a manter o item já registado e a marcar os seguintes como duplicados.
+- **Alternativas consideradas:** Preferir por tier, tipo de documento ou fonte (critério editorial não decidido; tier e `document_kind` ainda não são calculados); preferir por `published_at` ou `fetched_at` (atribui significado à data, `published_at` pode ser nulo por D13 e exige desempate adicional); ordenar por URL ou hash do conteúdo bruto (arbitrário e sem vantagem sobre a ordem de entrada).
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md) M2.4, [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md) etapa 2. Implementado em `normalize/dedup.py`. Não altera DEC-021 nem depende de D12/D13.
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
