@@ -100,7 +100,8 @@ Formato do ficheiro:
 - **Datas:** `validated_at` em ISO 8601 com fuso explícito; nenhum fuso é assumido.
 
 Regras:
-- Um endpoint só é recolhido em `ACTIVE`, e só passa a `VALIDATED`/`ACTIVE` após validação manual registada (URL confirmado, mecanismo, termos de utilização, `robots.txt`), com `validated_at` e decisão `VALIDATE_SOURCE` em `editorial_decision`.
+- Um endpoint só é recolhido em `ACTIVE`, e só passa a `VALIDATED`/`ACTIVE` após validação manual (URL confirmado, mecanismo, termos de utilização, `robots.txt`), registada no próprio registo com `validated_at` e `validated_by` e revista por pull request.
+- **Estado de validação operacional vs. decisão editorial (DEC-030):** nesta fase, `validated_at` e `validated_by` do registo constituem o estado de validação operacional de uma fonte ou endpoint `VALIDATED`/`ACTIVE`. A decisão editorial `VALIDATE_SOURCE` em `editorial_decision` ([DATA_MODEL.md](DATA_MODEL.md#37-editorial_decisiondecision) §3.7) não é requisito actual, porque essa entidade ainda não existe; fica para a unidade futura que a introduzir, que pode rever esta regra.
 - Uma fonte pode estar `VALIDATED` sem nenhum endpoint activo (útil para reconhecer o tier de pistas manuais pelo domínio).
 - `tde sources validate` verifica o esquema, IDs únicos, tiers válidos e campos obrigatórios; recusa endpoints `ACTIVE` sem `url` e sem `validated_at`.
 
@@ -157,4 +158,4 @@ Apenas entrada manual na V1.
 
 - Rever o registo mensalmente: endpoints com erros repetidos ou sem itens relevantes em 60 dias são candidatos a `INACTIVE`.
 - Alterações de estrutura em endpoints `html_page` devem ser detectadas por testes com fixtures e por alerta quando um endpoint devolve 0 itens em N execuções consecutivas.
-- Desactivar ou alterar o tier de uma fonte é uma decisão registada.
+- Desactivar ou alterar o tier de uma fonte é uma decisão registada: nesta fase, por pull request no registo; a decisão `DEACTIVATE_SOURCE` em `editorial_decision` aplica-se quando essa entidade existir (DEC-030).

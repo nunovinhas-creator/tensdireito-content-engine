@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) implementado, a integrar. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) definido, por implementar. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)). | **Em curso** — M2.1 a M2.5 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8); M2.6 implementado, a integrar |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)). | **Em curso** — M2.1 a M2.6 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10); M2.7 definido, por implementar |
 
 ### M2.5 — registo de fontes e validação de fontes
 
@@ -32,7 +32,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 
 ### M2.6 — storage SQLite e migração inicial
 
-**Estado:** implementado, a integrar. Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção.
+**Estado:** concluído e integrado (PR #10). Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção.
 
 **Objectivo:** criar a camada `storage` ([ARCHITECTURE.md](ARCHITECTURE.md) §5; [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#2-estrutura-de-código-proposta) §2) e a primeira migração SQLite, aplicada por `tde init`, preparando a persistência de `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run` para as unidades que a vão usar (sincronização do registo, collectors, NORMALIZE). O M2.6 cria a base de dados e o esquema; não escreve dados de negócio. Decisões: DEC-026 (migrações e âmbito da migração inicial) e DEC-027 (relação entre `config/sources.yaml` e SQLite).
 
@@ -66,7 +66,7 @@ Regras do esquema:
 - Nulidade: `NOT NULL` só onde DATA_MODEL.md ou os invariantes dos modelos de domínio do M2.2/M2.3 já tornam o campo obrigatório (ex.: `url`, `title`, `raw_content`, `fetched_at`, `content_hash` em `raw_item`; `source_id`, `endpoint_type`, `endpoint_status` em `source_endpoint`); campos que a documentação marca como nulos ficam nulos. O esquema não enfraquece nem acrescenta invariantes.
 - Os valores das enumerações são guardados no valor interno em minúsculas (DATA_MODEL.md, convenção de nomes; DEC-024) e validados pelos modelos de domínio antes de qualquer escrita. A `0001` não duplica as enumerações em `CHECK`.
 - Índices além dos implicados por PK/UNIQUE não fazem parte da `0001`; entram com a unidade que os justifique.
-- `created_in_run` aparece onde DATA_MODEL.md o lista explicitamente (`raw_item`). Em `source_registry`/`source_endpoint`, a sua aplicabilidade é decidida com a sincronização do registo.
+- `created_in_run` aparece onde DATA_MODEL.md o lista explicitamente (`raw_item`). Em `source_registry`/`source_endpoint`, a sua aplicabilidade é decidida com a sincronização do registo. (Decidido no M2.7: não se aplica — DEC-028.)
 - `published_at_raw` é guardado tal como obtido; o M2.6 não o interpreta (D13).
 - Limitação conhecida, a tratar com `tde add-manual`: em SQLite e PostgreSQL, `NULL` em `source_endpoint_id` não colide numa restrição `UNIQUE`, pelo que a unicidade de `raw_item` não impede, sozinha, pistas manuais repetidas. O M2.6 cria a restrição como documentada e não resolve este caso.
 
@@ -75,7 +75,7 @@ Regras do esquema:
 **YAML vs SQLite (DEC-027):**
 - `config/sources.yaml` continua a ser a **fonte de verdade** de `source_registry` e `source_endpoint` (DATA_MODEL.md §2.1; DEC-023). O M2.6 não altera essa decisão.
 - As tabelas `source_registry` e `source_endpoint` são um **espelho operacional**: existem para que `raw_item.source_endpoint_id` e, depois, `source_document.source_id` tenham chaves estrangeiras, e para guardar o estado de execução que não pertence ao ficheiro versionado (`last_success_at`, `last_error`; DEC-023).
-- Sincronização futura (fora do M2.6): **unidireccional YAML → SQLite**, por comando explícito e local, só depois de o registo passar as regras de `tde sources validate`; actualiza os campos do YAML pelo `id`; preserva os campos operacionais; nunca escreve no YAML. O tratamento de fontes/endpoints retirados do YAML é decidido nessa unidade, sem apagar linhas referenciadas por `raw_item` (DATA_MODEL.md §4: nada usado como evidência é apagado).
+- Sincronização futura (fora do M2.6): **unidireccional YAML → SQLite**, por comando explícito e local, só depois de o registo passar as regras de `tde sources validate`; actualiza os campos do YAML pelo `id`; preserva os campos operacionais; nunca escreve no YAML. O tratamento de fontes/endpoints retirados do YAML é decidido nessa unidade, sem apagar linhas referenciadas por `raw_item` (DATA_MODEL.md §4: nada usado como evidência é apagado). Decidido no M2.7 (DEC-029).
 - Uma alteração a uma fonte faz-se no YAML, por pull request; nunca directamente na base de dados.
 - No M2.6, `source_registry` e `source_endpoint` ficam vazias: `tde init` não as preenche e nenhuma fonte é inserida.
 
@@ -103,6 +103,89 @@ Regras do esquema:
 
 **Implementação:** `src/tensdireito_content_engine/storage/` — `database.py` (resolução do caminho `--db` → `TDE_DB_PATH` → `data/tde.sqlite3`, com valor vazio tratado como ausente; ligação com `PRAGMA foreign_keys = ON` e transacções explícitas; recusa de directório ou ficheiro sem cabeçalho SQLite; datas UTC ISO 8601 com `+00:00`), `migrator.py` (leitura de `migrations/NNNN_<nome>.sql` como recursos do pacote, checksum SHA-256 dos bytes do ficheiro, verificação das migrações aplicadas e aplicação de cada pendente numa transacção com o seu registo em `schema_migration`), `init.py` (`init_database`) e `migrations/0001_init.sql`. `tde [--db PATH] init` em `cli.py` escreve `init: OK — <caminho>` e `migrações aplicadas: <nomes>` (ou `nenhuma`), código `0`; em erro, `init: ERRO — <caminho>` e `- <motivo>` em stderr, código `1`. Além dos erros do contrato, também terminam em erro: nome de ficheiro de migração fora do formato e versão repetida. Nulidade na `0001`: `NOT NULL` nos campos obrigatórios do domínio (M2.2/M2.3) e em `created_at`/`updated_at`, sempre preenchidos pela camada `storage`; `run.*` (sem modelo de domínio) e `raw_item.created_in_run` ficam nulos. Sem dependências novas.
 
+### M2.7 — sincronização explícita de `sources.yaml` para SQLite
+
+**Estado:** definido, por implementar. Esta secção é o contrato da unidade. Decisões: DEC-027 (fonte de verdade e sentido da sincronização), DEC-028 (contrato da sincronização), DEC-029 (identidade e reconciliação) e DEC-030 (estado de validação operacional sem `editorial_decision`).
+
+**Objectivo:** projectar o registo de fontes validado de `config/sources.yaml` nas tabelas `source_registry` e `source_endpoint` criadas pela `0001` (M2.6), através de um comando explícito e local. O SQLite é o **espelho operacional dos campos do registo actualmente projectados pelo domínio/storage** — não é um espelho completo do YAML (ver *Campos*). As tabelas existem para as chaves estrangeiras de `raw_item` e para o estado de execução (DEC-027).
+
+**Fonte de verdade (DEC-027):**
+- `config/sources.yaml` continua a ser a fonte de verdade de fontes e endpoints.
+- A sincronização é **unidireccional YAML → SQLite** e nunca escreve no YAML. Alterações manuais no SQLite não chegam ao YAML; nos campos projectados, são sobrescritas na sincronização seguinte.
+- A sincronização só opera sobre um registo que passe as regras de `tde sources validate`, usando a mesma leitura e validação do M2.5, sem regras paralelas.
+
+**Âmbito (entregáveis da implementação):**
+
+1. **Comando `tde [--config DIR] [--db PATH] sources sync`** (DEC-028). É a única operação que escreve fontes e endpoints na base de dados. `tde init` continua a não sincronizar fontes (M2.6). Local, sem rede.
+2. **Pré-condições, verificadas antes de qualquer escrita** (DEC-028):
+   - YAML inválido → `sources sync: ERRO`, com os mesmos erros de `tde sources validate`, código `1`; a base de dados não é alterada.
+   - Base de dados inexistente no caminho resolvido (`--db`, depois `TDE_DB_PATH`, depois `data/tde.sqlite3`) → erro, código `1`, pedindo `tde init`. O sync **não cria** a base de dados nem o directório pai. Nota para a implementação: `storage.connect()` cria hoje o ficheiro se não existir; a existência tem de ser verificada antes de abrir qualquer ligação.
+   - Esquema não conforme (ficheiro que não é SQLite, migrações pendentes, migração registada desconhecida do código, checksum diferente) → erro, código `1`, pedindo `tde init`. O sync **não aplica** migrações.
+3. **Reconciliação pelo `id`** (ver *Identidade e reconciliação*): insere, actualiza, mantém inalteradas ou remove linhas, sem duplicados.
+4. **Transacção única** (DEC-028): toda a sincronização corre numa transacção explícita. Qualquer erro ou conflito de reconciliação → rollback integral; nunca fica estado parcialmente sincronizado. Os conflitos são detectados antes de escrever e listados todos.
+5. **Saída determinística** (DEC-028): `sources sync: OK — <caminho>` e as contagens de inseridos, actualizados, inalterados e removidos, código `0`; em erro, `sources sync: ERRO — <caminho>` e `- <motivo>` (todos os motivos) em stderr, código `1`. O código `2` (sucesso parcial) não se aplica.
+6. **Repositório em `storage`**: as leituras e escritas de `source_registry` e `source_endpoint` vivem em `src/tensdireito_content_engine/storage/` (M2.6, regra 5). `storage` recebe objectos de `domain` (`SourceRegistry`, `SourceEndpoint`) e não importa `sources`; a CLI lê o registo com `sources` e chama `storage`, sem SQL.
+
+**Identidade e reconciliação (DEC-029):**
+
+| Situação | Regra |
+|----------|-------|
+| Correspondência de fonte | `source_registry.id` = `id` da fonte no YAML. |
+| Correspondência de endpoint | `source_endpoint.id` = `id` do endpoint no YAML (único em todo o registo, M2.5). |
+| IDs | Não há identificadores substitutos: o PK é o `id` do YAML e é preservado. Mudar um `id` no YAML equivale a remover a entrada antiga e inserir uma nova (sujeito às regras de remoção). |
+| Duplicados | Impossíveis: o PK impede-os e o M2.5 já recusa IDs repetidos. |
+| Entrada nova no YAML | Inserida. |
+| Campo projectado alterado | Actualizado pelo `id`; os campos operacionais são preservados. |
+| Fonte ou endpoint removido do YAML, **sem** `raw_item` a referenciá-lo | Removido do SQLite. Uma fonte removida arrasta a avaliação de cada um dos seus endpoints removidos. |
+| Fonte ou endpoint removido do YAML, **com** `raw_item` a referenciá-lo (directamente ou por um endpoint da fonte) | A sincronização falha e nada é removido (rollback integral). Não se força `INACTIVE` no SQLite nem se acrescenta uma coluna de "removido": para retirar uma entrada já usada, mantém-se no YAML (por exemplo, como `INACTIVE`). Nada usado como evidência é apagado (DATA_MODEL.md §4). |
+| Endpoint existente muda `source_id` ou `endpoint_type`, **sem** `raw_item` a referenciá-lo | A alteração é aplicada. |
+| Endpoint existente muda `source_id` ou `endpoint_type`, **com** `raw_item` a referenciá-lo | A sincronização falha; exige-se um endpoint novo, com `id` novo. A proveniência histórica de `raw_item` nunca é reinterpretada retroactivamente. |
+| Ordem das escritas | Inserir/actualizar fontes → inserir/actualizar endpoints → remover endpoints → remover fontes (compatível com a FK `source_endpoint.source_id`, sem `ON DELETE`). |
+
+**Campos:**
+
+| Tabela | Projectados do YAML (sobrescritos) | Operacionais (nunca tocados pelo sync) | Geridos pela `storage` | Fora da projecção do M2.7 |
+|--------|------------------------------------|----------------------------------------|------------------------|---------------------------|
+| `source_registry` | `id`, `name`, `entity_type`, `tier`, `categories`, `domains`, `registry_status`, `validated_at`, `validated_by`, `notes` | — | `created_at` (só na inserção); `updated_at` | — |
+| `source_endpoint` | `id`, `source_id`, `endpoint_type`, `url`, `endpoint_status`, `validated_at`, `validated_by` | `last_success_at`, `last_error` | `created_at` (só na inserção); `updated_at` | `fetch` |
+
+- Valores guardados como no M2.6: estados no valor interno em minúsculas (DEC-024), datas em UTC ISO 8601 com fuso explícito, listas em JSON (`TEXT`).
+- `updated_at` só muda quando um campo projectado muda efectivamente (comparação na forma guardada). Uma sincronização sem alterações não escreve nada nem altera timestamps (DEC-028).
+- `last_success_at` e `last_error` mantêm-se em qualquer actualização, incluindo mudança de `url` ou de estado (DEC-023, DEC-027).
+- **`fetch` — limitação deliberada** (DEC-028): o M2.5 não transporta `fetch` para o domínio e o M2.7 não altera o domínio nem reabre o M2.5 para o transportar. A coluna `source_endpoint.fetch` fica nula; uma alteração apenas em `fetch` no YAML não é detectada nem conta como actualização. Uma unidade futura que precise de `fetch` (ex.: collectors) define primeiro o seu transporte no domínio.
+
+**Rastreabilidade por `run`** (DEC-028): o M2.7 não cria `run`, não acrescenta `created_in_run` e não altera o esquema. `source_registry` e `source_endpoint` não têm relação com `run` no modelo actual (TECHNICAL_SPEC.md §6, Rastreabilidade).
+
+**Validação de fontes e `editorial_decision`** (DEC-030): nesta fase, `validated_at` e `validated_by` do registo constituem o estado de validação operacional de uma fonte ou endpoint `VALIDATED`/`ACTIVE`. O sync espelha esses campos tal como passam em `tde sources validate`; não cria nem exige `editorial_decision`. A decisão `VALIDATE_SOURCE` fica para a unidade futura que introduzir `editorial_decision`, que pode rever esta regra.
+
+**Portabilidade (DEC-013):** todo o SQL em `storage/`; sem ORM; só `SELECT`, `INSERT`, `UPDATE` e `DELETE` simples, com equivalente directo em PostgreSQL; sem `INSERT OR REPLACE` (apagar e reinserir destruiria os campos operacionais e violaria as FK), sem `PRAGMA` fora da configuração da ligação e sem construções exclusivas de SQLite. Sem migrações novas.
+
+**Dependências:** M2.5 (`load_sources`, regras de validação, IDs únicos); M2.6 (`0001`, `schema_migration`, verificação de migrações, resolução do caminho da base de dados). Nenhuma dependência externa nova.
+
+**D1, D8, D12 e D13:** continuam OPEN e não são afectados. Com `config/sources.yaml` vazio (`[]`, por D1), o sync não tem efeito real até D1; o comportamento verifica-se com fixtures. O sync não insere fontes por suposição.
+
+**Exclusões:** collectors; RSS, HTTP e HTML; qualquer acesso à rede; conteúdo do registo (D1); `source_document`; NORMALIZE; D12; D13; IA; publicação; execução agendada e GitHub Actions; persistência durável/distribuída (D8); PostgreSQL; sincronização SQLite → YAML; criação da base de dados ou aplicação de migrações pelo sync; migrações, tabelas ou colunas novas; `fetch`; `run` e `created_in_run`; `editorial_decision`; `--dry-run`; escrita de `raw_item`. Não altera `tde sources validate`, o domínio, o formato do YAML, `tde init` nem `tde doctor`.
+
+**Critérios de aceitação (verificáveis na implementação):**
+1. **Sincronização inicial:** um YAML válido (fixture) sincroniza para uma base criada por `tde init`; os campos projectados correspondem aos objectos de domínio (estados em minúsculas, datas UTC com `+00:00`, listas em JSON); `fetch` fica nulo.
+2. **Idempotência:** uma segunda execução termina com código `0`, contagens `0` inseridos, `0` actualizados, `N` inalterados, `0` removidos, sem escrita; `created_at` e `updated_at` mantêm-se.
+3. **Actualização:** alterar um campo projectado no YAML reflecte-se pelo `id`; `updated_at` muda só nessa linha; `created_at` mantém-se.
+4. **`fetch`:** uma alteração apenas em `fetch` não gera actualização e a coluna continua nula.
+5. **Estado operacional:** `last_success_at` e `last_error` preenchidos por fixture mantêm-se após qualquer sincronização, incluindo mudança de `url` ou de estado.
+6. **Remoção sem referências:** fonte ou endpoint retirado do YAML é apagado e contado em removidos.
+7. **Remoção com referências:** entrada referenciada por `raw_item` (fixture) → código `1`, nada removido, base inalterada.
+8. **Mudança estrutural:** mudar `source_id` ou `endpoint_type` de um endpoint referenciado → código `1`, base inalterada; sem referências, a alteração é aplicada.
+9. **YAML inválido:** código `1`, com os mesmos erros de `tde sources validate`; base inalterada.
+10. **Atomicidade:** uma falha injectada a meio da escrita deixa a base igual ao estado anterior.
+11. **Base inexistente:** código `1`, pedindo `tde init`; nenhum ficheiro nem directório criado.
+12. **Esquema não conforme:** migrações pendentes, desconhecidas ou com checksum diferente → código `1`, pedindo `tde init`; nenhuma migração aplicada.
+13. **Fonte de verdade:** o YAML não é modificado (checksum antes e depois); uma edição manual de um campo projectado no SQLite é revertida pela sincronização seguinte.
+14. **Sem `run`:** o sync não cria linhas em `run` nem altera o esquema.
+15. **Isolamento e portabilidade:** `sqlite3` só em `storage/`; `storage` não importa `sources`; sem `INSERT OR REPLACE` nem construções exclusivas de SQLite nas consultas novas.
+16. **CLI:** `tde sources sync` aparece em `tde sources --help`; `tde doctor`, `tde init` e `tde sources validate` mantêm o comportamento.
+17. **Testes offline:** bases de dados em directórios temporários, sem rede, sem fornecedor de IA e sem fontes nem URLs reais; nenhum teste escreve em `data/`.
+18. **Validação do repositório:** `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .` e `uv run tde doctor` passam.
+
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
 - [x] Documentação técnica inicial em `docs/`.
@@ -116,7 +199,7 @@ Regras do esquema:
 
 - Projecto Python gerido com `uv` (`pyproject.toml`, `uv.lock`), pacote `tensdireito_content_engine`, CLI `tde`, `ruff`, `pytest`.
 - Camada `storage` com SQLite e migrações numeradas para `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run`: a migração inicial (M2.6) cobre `run`, `source_registry`, `source_endpoint` e `raw_item`; `source_document` entra numa migração seguinte, com a persistência da etapa NORMALIZE (DEC-026).
-- Registo de fontes + `tde sources validate`.
+- Registo de fontes + `tde sources validate` (M2.5) + `tde sources sync`, sincronização explícita YAML → SQLite dos campos projectados (M2.7).
 - Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados.
 - NORMALIZE com deduplicação exacta.
 - Validação manual de 5–10 fontes (prioridade T1), registando endpoints reais só após confirmação.
