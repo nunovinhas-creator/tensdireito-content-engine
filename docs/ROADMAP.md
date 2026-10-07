@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) concluído e integrado (PR #12); M2.8 (recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`) concluído e integrado (PR #14); M2.9 (primeiro collector concreto: `rss`, com transporte HTTPS restrito) implementado, a integrar. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) concluído e integrado (PR #12); M2.8 (recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`) concluído e integrado (PR #14); M2.9 (primeiro collector concreto: `rss`, com transporte HTTPS restrito) concluído e integrado (PR #16); M2.10 (validação de fontes) definido, por implementar. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)); M2.8 recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`, sem collectors concretos nem rede (DEC-031; ver [M2.8](#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)); M2.9 primeiro collector concreto, `rss` (RSS 2.0), com transporte HTTPS restrito, sem endpoints reais (DEC-032, DEC-033; ver [M2.9](#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito)). A validação manual das primeiras fontes (D1) é uma unidade separada, com protocolo definido em DEC-034. | **Em curso** — M2.1 a M2.8 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10, M2.7 no PR #12, M2.8 no PR #14); M2.9 implementado, a integrar |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)); M2.8 recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`, sem collectors concretos nem rede (DEC-031; ver [M2.8](#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)); M2.9 primeiro collector concreto, `rss` (RSS 2.0), com transporte HTTPS restrito, sem endpoints reais (DEC-032, DEC-033; ver [M2.9](#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito)). M2.10 validação de fontes: processo, registo de evidência e regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`", sem validar fontes reais (DEC-035, DEC-036; ver [M2.10](#m210--validação-de-fontes)). A validação manual das primeiras fontes (D1) é actividade posterior ao M2.10, segundo DEC-034 e DEC-036. | **Em curso** — M2.1 a M2.9 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10, M2.7 no PR #12, M2.8 no PR #14, M2.9 no PR #16); M2.10 definido, por implementar |
 
 ### M2.5 — registo de fontes e validação de fontes
 
@@ -277,7 +277,7 @@ Regras do esquema:
 
 ### M2.9 — primeiro collector concreto: `rss`, com transporte HTTPS restrito
 
-**Estado:** implementado, a integrar. Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. Decisões: DEC-032 (contrato do collector `rss`) e DEC-033 (transporte HTTPS restrito dos collectors de produção). Respeita DEC-013, DEC-021, DEC-027, DEC-028, DEC-029, DEC-030 e DEC-031, sem as alterar. DEC-034 (protocolo de validação de fontes) é registada em conjunto, mas aplica-se numa unidade separada (ver *Âmbito: porquê `rss` e porquê sem validação de fontes*).
+**Estado:** concluído e integrado (PR #16). Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. Decisões: DEC-032 (contrato do collector `rss`) e DEC-033 (transporte HTTPS restrito dos collectors de produção). Respeita DEC-013, DEC-021, DEC-027, DEC-028, DEC-029, DEC-030 e DEC-031, sem as alterar. DEC-034 (protocolo de validação de fontes) é registada em conjunto, mas aplica-se numa unidade separada (ver *Âmbito: porquê `rss` e porquê sem validação de fontes*).
 
 **Objectivo:** dar ao `tde collect` do M2.8 o primeiro `Collector` concreto, para `endpoint_type = rss` (RSS 2.0), e a primeira — e única — camada de rede do sistema: um transporte HTTPS restrito, que só obtém o URL de endpoints `ACTIVE` já validados e revistos por pull request. O M2.9 **não** acrescenta endpoints reais: com `config/sources.yaml` vazio (`[]`, por D1), `tde collect` continua a não fazer nenhum pedido de rede em produção. O comportamento verifica-se com fixtures sintéticas e transporte falso, offline.
 
@@ -376,7 +376,91 @@ Só `collectors/http.py` importa módulos de rede da biblioteca padrão; um test
 - **Q1 — contacto do `User-Agent` (fechada na implementação).** SECURITY.md §2 exige um `User-Agent` identificável com contacto. O responsável do projecto indicou como contacto o URL público do repositório, `https://github.com/nunovinhas-creator/tensdireito-content-engine` (sem endereço de correio). `User-Agent`: `tensdireito-content-engine/<versão> (+https://github.com/nunovinhas-creator/tensdireito-content-engine)`, fixo no código e não configurável em `sources.yaml`; o token `tensdireito-content-engine` é o usado na avaliação de `robots.txt`.
 - **Q2 — Atom (não bloqueante).** Fora do M2.9. Se a validação (DEC-034) mostrar que fontes prioritárias só publicam Atom, decide-se então se Atom entra como variante de `rss` ou como novo `endpoint_type` (que exige decisão registada — DATA_MODEL.md §2.1).
 - **Q3 — valores dos limites (não bloqueante).** 5 MiB / 512 KiB, 20 s / 60 s e 5 s ficam fixados por DEC-033, sem evidência de fontes reais. Se a validação técnica das primeiras fontes (DEC-034, V3) mostrar que não servem, ajustam-se por pull request, com actualização de DEC-033.
-- **Q4 — `ACTIVE` só em fonte `VALIDATED` (não bloqueante).** O protocolo de DEC-034 exige-o, mas `tde sources validate` não o verifica hoje. A regra é procedimental no M2.9; passá-la a validação automática é decisão da unidade de validação de fontes.
+- **Q4 — `ACTIVE` só em fonte `VALIDATED` (não bloqueante).** O protocolo de DEC-034 exige-o, mas `tde sources validate` não o verifica hoje. A regra é procedimental no M2.9; passá-la a validação automática é decisão da unidade de validação de fontes. **Resolvida no M2.10 por DEC-035:** passa a regra automática de `tde sources validate`.
+
+### M2.10 — validação de fontes
+
+**Estado:** definido, por implementar. Esta secção é o contrato da unidade. Decisões: DEC-035 (regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`", Q4) e DEC-036 (validador, resultados e registo de evidência). Aplica DEC-034 (cinco verificações e correspondência com os estados) e respeita DEC-014, DEC-023, DEC-024, DEC-027 a DEC-033, sem as alterar.
+
+**Objectivo:** validar documentalmente fontes e endpoints candidatos antes de serem considerados activáveis pelo sistema. O M2.10 fixa o processo — quem valida, que evidência é necessária, como se regista, que resultados permitem cada passagem de estado — e torna automática a única regra entre estados verificável a partir do YAML. **Não valida nenhuma fonte real:** a validação das fontes T1 prioritárias (D1) é actividade posterior, feita por pessoas, um pull request por passagem de estado, segundo este contrato. Mantém-se a regra central: descobrir não é verificar; verificar não é aprovar; aprovar não é publicar (DEC-002).
+
+**O que é validado (DEC-034; SOURCES.md §8.1–§8.2):**
+
+| Entidade | Estado pedido | Verificações exigidas com `ok` | Outras condições |
+|----------|---------------|--------------------------------|------------------|
+| Fonte | `VALIDATED` | V1 (existência da fonte), V4 da fonte (adequação editorial, tier confirmado) | `domains` confirmados; `validated_at`/`validated_by`. |
+| Endpoint | `VALIDATED` | V2 (existência do endpoint), V3 (validade técnica), V5 (autorização de recolha) | `url` = URL confirmado, final, sem redirects; `validated_at`/`validated_by`. |
+| Endpoint | `ACTIVE` | V4 do endpoint | Endpoint já `VALIDATED` (pull request anterior); fonte `VALIDATED`; collector registado para o `endpoint_type`; o próprio pull request é a decisão explícita de activar. |
+
+As perguntas e a natureza da evidência de cada verificação são as de SOURCES.md §8.1, sem alterações. Para V3, o contrato é o do collector do tipo: hoje só existe para `rss` (DEC-032, DEC-033), pelo que endpoints `html_page` e `manual` não podem obter V3 `ok` nem passar a `VALIDATED` enquanto não houver collector e contrato para esses tipos.
+
+**Quem valida (DEC-036; DEC-014):**
+- `checked_by` (cada verificação) e `validated_by` (cada passagem de estado) identificam uma **pessoa**, de forma declarativa, sem autenticação na V1. Nunca um modelo de IA — `llm:*` ou qualquer outro identificador de modelo —, uma conta de automação ou um bot. O domínio já recusa `validated_by` com prefixo `llm:` (M2.2); o resto verifica-se na revisão.
+- O `validated_by` de uma passagem consta como `checked_by` de pelo menos uma das verificações exigidas para esse estado.
+- A passagem produz efeito com o merge do pull request por uma pessoa com permissão de merge. Na V1 não se exige revisor diferente do validador. A lista nominal de validadores não é fixada (D7 — pessoas concretas — continua em aberto); nenhum nome é inventado.
+- **Papel do modelo:** pode ajudar a preparar o registo, rever a sua forma ou resumir observações fornecidas por uma pessoa. Não fornece nem completa URLs, feeds ou endpoints (SOURCES.md §8.3), não executa as verificações, não decide o resultado e nunca é `checked_by` nem `validated_by`.
+
+**Evidência (DEC-036):**
+- **Onde:** `docs/source_validation/<source_id>.md`, um ficheiro Markdown versionado por fonte, cobrindo a fonte e os seus endpoints, criado ou alterado no mesmo pull request que muda o estado em `config/sources.yaml`. A descrição do pull request remete para o ficheiro.
+- **Conteúdo:** (a) identificação — `source_id` e os `endpoint_id` abrangidos; (b) registos de verificação com os campos de SOURCES.md §8.4, sem alterações: `source_id`/`endpoint_id`, `check` (V1–V5), `checked_at` (ISO 8601 com fuso explícito), `checked_by`, `method`, `observation`, `result` (`ok` · `falha` · `não aplicável`, com motivo quando não é `ok`); (c) secção de limitações; (d) lista das passagens de estado pedidas (entidade, estado anterior → estado novo, `validated_at`, `validated_by`).
+- **Histórico:** o ficheiro é só acrescentado. Registos anteriores, incluindo verificações falhadas, nunca são apagados nem reescritos; uma revalidação acrescenta registos novos. O histórico do git liga cada registo ao pull request que o introduziu.
+- **Auditoria:** fonte, endpoint, data da validação, pessoa, evidência V1–V5, resultado e limitações ficam no ficheiro; o estado resultante fica em `config/sources.yaml`; ambos são revistos no mesmo pull request.
+- **Sem persistência nova:** o ficheiro não é lido pelo sistema; nenhuma tabela, campo do YAML, comando ou verificação automática da evidência é criado.
+
+**Resultados e limitações (DEC-036):**
+- Uma passagem de estado exige `ok` em **todas** as verificações exigidas para o estado pedido (tabela acima). `falha`, ausência de registo ou `não aplicável` numa verificação exigida impedem a passagem; a entrada mantém o estado anterior e os registos ficam no ficheiro.
+- `não aplicável` só regista que uma verificação não se aplica à entidade (por exemplo, V3 numa fonte); nunca substitui `ok` numa verificação exigida.
+- Nenhuma verificação é inferida de outra: V3 `ok` não implica V5 nem V4; V1 não implica V2 (DEC-034).
+- Limitações registam-se na secção própria, com a verificação e a questão aberta a que se referem. Uma limitação que torne negativa ou desconhecida a resposta à pergunta da verificação obriga a `falha`, não a `ok` com reserva. Exemplos: um feed só em Atom falha V3 (`formato não suportado`, DEC-032) e regista a limitação Q2; um feed acima dos limites de DEC-033 falha V3 e regista a limitação Q3.
+- Formatos de `<pubDate>` ou parâmetros de tracking observados nos itens podem ser registados como observação; não são critério de V3 e não decidem D12 nem D13.
+
+**Passagens de estado (DEC-036; SOURCES.md §8.2):**
+- Cada passagem é um pull request que altera `config/sources.yaml` e o ficheiro de evidência.
+- Uma entrada não avança dois estados no mesmo pull request: um endpoint passa a `VALIDATED` num pull request e a `ACTIVE` noutro, posterior, que é a decisão explícita de activar. A fonte e os seus endpoints podem mudar de estado no mesmo pull request, cada um uma vez.
+- `url` continua nulo em `CANDIDATE`, mesmo com V2 registada; só é preenchido na passagem a `VALIDATED`.
+- `INACTIVE` continua a seguir SOURCES.md §7 (decisão registada por pull request); o M2.10 não define revalidação periódica.
+
+**Q4 — regra automática (DEC-035):** `tde sources validate` passa a recusar um endpoint `ACTIVE` cuja fonte não esteja `VALIDATED` (`CANDIDATE` ou `INACTIVE`), com a mensagem `um endpoint ACTIVE exige fonte VALIDATED (fonte <id>: <ESTADO>)`, reportada por endpoint, ao lado dos restantes erros. Se o estado da própria fonte for inválido, só esse erro é reportado. Por DEC-028 (3), `tde sources sync` deixa de sincronizar esse registo, sem verificação própria. Nenhuma outra regra entre estados é acrescentada (um endpoint `VALIDATED` numa fonte `CANDIDATE` continua válido).
+
+**Entregáveis da implementação:**
+1. **Regra de DEC-035** em `src/tensdireito_content_engine/sources/registry.py`, na leitura do registo, com testes offline sintéticos em `tests/test_sources_registry.py` (e no teste de `tde sources sync`, para o registo recusado).
+2. **Formato do registo de evidência** em `docs/source_validation/README.md`: estrutura do ficheiro por fonte, campos de SOURCES.md §8.4, secção de limitações, lista de passagens de estado, regras de resultado e de validador, e um modelo apenas com marcadores (`<source_id>`, `<pessoa>`, …) — sem fontes, URLs, pessoas nem resultados reais.
+3. **Documentação actualizada com a implementação:** TECHNICAL_SPEC.md §3 (regra de `tde sources validate`), SOURCES.md §4 (lista de verificações de `tde sources validate`) e §8.2 (a regra deixa de ser procedimental), e o estado desta secção.
+4. **Sem outras alterações:** domínio, esquema, migrações, formato do YAML, `tde collect`, `tde init`, `tde doctor`, collectors e transporte ficam como estão; `config/sources.yaml` continua `[]`.
+
+**Dependências:** DEC-034 (verificações e estados); DEC-030 (`validated_at`/`validated_by` como estado de validação operacional); DEC-023/DEC-024 (formato do YAML, inalterado); DEC-028 (3) (o sync só aceita registo válido); DEC-032/DEC-033 (contrato de V3 para `rss`); M2.5 (`tde sources validate`) e M2.2 (`validated_by` humano no domínio). A actividade de validação real depende do M2.10 integrado e de D1 (que fontes T1 são prioritárias).
+
+**Questões e decisões que continuam OPEN:**
+- **D1** — que fontes T1 são prioritárias e os seus endpoints. O M2.10 define como se valida, não quais; D1 fecha quando as fontes prioritárias tiverem passado por este processo.
+- **D7** (parcial) — pessoas concretas que revêem e validam.
+- **D12** (`canonical_url`, parâmetros de tracking) e **D13** (formatos de `published_at_raw`, datas sem hora, datas/horas sem fuso, fuso horário) — não são critério de validação e não são decididas.
+- **Q2** (Atom) e **Q3** (valores dos limites de DEC-033) — dependem de evidência V3 real. Até serem decididas, um endpoint afectado falha V3 e não passa a `VALIDATED`; a limitação fica registada.
+- **Q5 — V5 sem termos de utilização publicados (bloqueante só para o caso).** SOURCES.md §8.1 pergunta se os termos e o `robots.txt` permitem a recolha, mas não diz o que fazer quando a entidade não publica termos de utilização ou eles são omissos sobre recolha automática. Não se infere permissão: até decisão registada, esse caso não pode ter V5 `ok` e o endpoint não passa a `VALIDATED`.
+- **Q6 — critério de estabilidade de V3 (não bloqueante).** SOURCES.md §8.1 exige "dois pedidos espaçados com itens estáveis" sem fixar o intervalo nem o critério de estabilidade. Até decisão, o registo de V3 indica o intervalo usado, o número de itens e o conjunto de `<link>`/`<guid>` de cada pedido, e o que foi comparado; o juízo é da pessoa e fica revisto no pull request.
+- **Q7 — prazo de validade e revalidação (não bloqueante).** Não está definido quanto tempo uma verificação continua válida antes de uma passagem de estado, nem se `VALIDATED`/`ACTIVE` exigem revalidação periódica. Até decisão, aplica-se a revisão mensal de SOURCES.md §7, e cada registo mostra o seu `checked_at`.
+
+**Exclusões:** fontes, URLs, feeds, `domains` ou endpoints reais em `config/sources.yaml`; validação real de fontes ou endpoints e qualquer evidência real; ficheiros de evidência de fontes reais; pedidos de rede a endpoints reais; novos collectors (`html_page`, `manual`); Atom e outros formatos RSS; novos transportes, alterações a DEC-033, proxies; comando para obter um URL arbitrário ou para executar verificações; verificação automática do ficheiro de evidência; campos novos no YAML, no domínio ou no esquema; SQLite (tabelas, colunas, migrações); `editorial_decision`; scheduler, cron, GitHub Actions; publicação; WhatsApp; IA como validador ou como origem de URLs; NORMALIZE, D12 e D13; qualquer unidade posterior.
+
+**Critérios de conclusão da definição (este documento):**
+1. Objectivo, entidades validadas e verificações exigidas por estado definidos (tabela acima), com V1–V5 de SOURCES.md §8.1 sem alterações.
+2. Validador humano definido, incluindo a proibição de `llm:*`, de modelos, contas de automação e bots em `checked_by`/`validated_by`, e o papel limitado do modelo (DEC-036).
+3. Localização, conteúdo e regra de histórico da evidência definidos (DEC-036), sem persistência nova.
+4. Resultados que permitem e que impedem cada passagem de estado, e forma de registar limitações, definidos.
+5. Relação entre `VALIDATED` e `ACTIVE` definida, incluindo pull requests distintos e a decisão explícita de activar.
+6. Q4 resolvida por decisão registada (DEC-035).
+7. Exclusões e dependências explícitas; D1, D7, D12, D13, Q2 e Q3 mantidas em aberto; lacunas de V1–V5 identificadas como Q5–Q7, sem resposta inferida.
+8. Sem alterações a `src/`, `tests/`, `config/`, `pyproject.toml` nem `uv.lock`.
+
+**Critérios de aceitação da implementação:**
+1. **Q4:** um registo com endpoint `ACTIVE` em fonte `CANDIDATE` ou `INACTIVE` falha `tde sources validate` (código `1`) com a mensagem de DEC-035 para cada endpoint afectado, ao lado dos restantes erros; com a fonte `VALIDATED`, o mesmo registo é válido.
+2. **Sem regras novas além de Q4:** um endpoint `VALIDATED` (ou `CANDIDATE`/`INACTIVE`) numa fonte `CANDIDATE` continua válido; as mensagens e regras existentes do M2.5 mantêm-se.
+3. **Estado da fonte inválido:** se o `registry_status` da fonte for inválido, só esse erro é reportado para a relação com os endpoints.
+4. **Sync:** `tde sources sync` com o registo do critério 1 termina com código `1` e não altera a base de dados (DEC-028).
+5. **Collect inalterado:** `tde collect` e DEC-031 não mudam.
+6. **Registo de evidência:** `docs/source_validation/README.md` existe, descreve o formato de DEC-036 e contém só marcadores; não existe nenhum ficheiro de evidência de fonte real.
+7. **Sem dados reais:** `config/sources.yaml` continua `[]`; testes e fixtures usam só dados sintéticos e domínios reservados (RFC 2606), sem rede.
+8. **Sem alterações estruturais:** domínio, esquema, migrações, formato do YAML, dependências e `uv.lock` inalterados.
+9. **Validação do repositório:** `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run tde doctor` e `uv lock --check` passam.
 
 ## Fase 0 — Arquitectura e documentação *(actual)*
 

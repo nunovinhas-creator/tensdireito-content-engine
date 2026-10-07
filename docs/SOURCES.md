@@ -164,7 +164,7 @@ Apenas entrada manual na V1.
 
 ## 8. Protocolo de validação de fontes
 
-> Decisão: DEC-034. Este protocolo é executado por uma pessoa, numa unidade própria, separada do código dos collectors. Nenhuma fonte foi ainda validada (D1 OPEN).
+> Decisões: DEC-034 (verificações e estados), DEC-035 (regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`") e DEC-036 (validador, resultados e registo de evidência). O processo é definido pelo M2.10 ([ROADMAP.md](ROADMAP.md#m210--validação-de-fontes)) e executado por uma pessoa, separado do código dos collectors. Nenhuma fonte foi ainda validada (D1 OPEN).
 
 ### 8.1 Cinco verificações distintas
 
@@ -186,10 +186,10 @@ Uma fonte não passa a ser válida por existir tecnicamente. Cada verificação 
 | Fonte `VALIDATED` | V1 e V4 (da fonte) | `domains` confirmados; `validated_at`/`validated_by` (DEC-030). |
 | Endpoint `CANDIDATE` | — | `url` nulo, mesmo que V2 já esteja registada. |
 | Endpoint `VALIDATED` | V2, V3, V5 | `url` = URL confirmado (o final, sem redirects); `validated_at`/`validated_by`. |
-| Endpoint `ACTIVE` | Endpoint `VALIDATED`, fonte `VALIDATED`, V4 do endpoint, collector registado no código para o `endpoint_type`, decisão explícita de activar | A exigência de fonte `VALIDATED` é procedimental: `tde sources validate` ainda não a verifica. |
+| Endpoint `ACTIVE` | Endpoint `VALIDATED`, fonte `VALIDATED`, V4 do endpoint, collector registado no código para o `endpoint_type`, decisão explícita de activar | A exigência de fonte `VALIDATED` passa a ser verificada por `tde sources validate` com a implementação do M2.10 (DEC-035); até lá é procedimental. A decisão de activar é um pull request próprio, posterior ao que torna o endpoint `VALIDATED` (DEC-036). |
 | `INACTIVE` | Decisão registada por pull request | Ver secção 7. |
 
-Cada passagem de estado é um pull request no registo, revisto por uma pessoa.
+Cada passagem de estado é um pull request no registo, revisto por uma pessoa. Uma entrada não avança dois estados no mesmo pull request (DEC-036).
 
 ### 8.3 Origem dos dados
 
@@ -199,7 +199,7 @@ Cada passagem de estado é um pull request no registo, revisto por uma pessoa.
 
 ### 8.4 Registo de evidência
 
-Cada verificação fica registada de forma reproduzível, no pull request que altera o estado (descrição do PR ou ficheiro de registo indicado pela unidade de validação), com os campos:
+Cada verificação fica registada de forma reproduzível no ficheiro versionado `docs/source_validation/<source_id>.md` (um por fonte, cobrindo a fonte e os seus endpoints), criado ou alterado no pull request que altera o estado; a descrição do pull request remete para ele (DEC-036). O ficheiro é só acrescentado: nenhum registo, incluindo os de verificações falhadas, é apagado ou reescrito. Campos de cada registo:
 
 | Campo | Conteúdo |
 |-------|----------|
@@ -212,3 +212,9 @@ Cada verificação fica registada de forma reproduzível, no pull request que al
 | `result` | `ok` · `falha` · `não aplicável`, com motivo. |
 
 Amostras reais de feeds não entram em `tests/fixtures/`: os testes usam fixtures sintéticas, sem fontes nem URLs reais.
+
+### 8.5 Resultados, limitações e validador
+
+- **Resultados (DEC-036):** uma passagem de estado exige `ok` em todas as verificações que a secção 8.2 exige para o estado pedido. `falha`, ausência de registo ou `não aplicável` numa verificação exigida impedem a passagem. `não aplicável` só regista que uma verificação não se aplica à entidade. Para V3, `ok` só é possível para um `endpoint_type` com collector e contrato definidos — hoje apenas `rss`.
+- **Limitações:** registadas na secção de limitações do ficheiro de evidência, com a verificação e a questão aberta a que se referem (ex.: Q2, Q3, D12, D13). Uma limitação que torne negativa ou desconhecida a resposta à pergunta da verificação é `falha`, não `ok` com reserva.
+- **Validador:** `checked_by` e `validated_by` identificam uma pessoa (DEC-014), nunca um modelo (`llm:*` ou outro), conta de automação ou bot. O `validated_by` de uma passagem consta como `checked_by` de pelo menos uma das verificações exigidas. A passagem produz efeito com o merge do pull request. Um modelo pode ajudar a redigir ou rever o registo, mas não fornece URLs, não executa as verificações e não decide o resultado.
