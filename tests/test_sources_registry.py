@@ -480,3 +480,27 @@ def test_dec_025_other_encodings_are_an_error(tmp_path, encoding):
     with pytest.raises(SourceRegistryError) as exc:
         load_sources(path)
     assert exc.value.errors == (f"ficheiro não está em UTF-8: {path}",)
+
+
+def test_dec_025_merge_key_in_source_is_an_error(tmp_path):
+    text = (
+        "- &base\n"
+        "  id: fonte_a\n"
+        "  name: Fonte A\n"
+        "  entity_type: public_body\n"
+        "  tier: T1\n"
+        "- <<: *base\n"
+        "  id: fonte_b\n"
+    )
+    (error,) = errors_for(tmp_path, text)
+    assert error.startswith("YAML inválido em")
+    assert "'<<'" in error
+
+
+def test_dec_025_merge_key_in_endpoint_is_an_error(tmp_path):
+    text = MINIMAL_SOURCE + (
+        "  endpoints:\n    - <<: {endpoint_type: html_page}\n      id: fonte_a_pagina\n"
+    )
+    (error,) = errors_for(tmp_path, text)
+    assert error.startswith("YAML inválido em")
+    assert "'<<'" in error

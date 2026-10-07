@@ -6,7 +6,8 @@ duas restrições (DEC-025):
 - as datas não são convertidas implicitamente: ficam texto e são interpretadas por quem
   as consome, para que o fuso nunca seja assumido pelo parser;
 - uma chave repetida no mesmo mapeamento é um erro (o YAML não as permite e o
-  `SafeLoader` guardaria em silêncio só a última).
+  `SafeLoader` guardaria em silêncio só a última);
+- a merge key `<<` não faz parte do formato: é um erro, e nenhum mapeamento é fundido.
 """
 
 from pathlib import Path
@@ -28,7 +29,12 @@ class _StrictSafeLoader(yaml.SafeLoader):
             seen: set[object] = set()
             for key_node, _ in node.value:
                 if key_node.tag == _MERGE_TAG:
-                    continue
+                    raise ConstructorError(
+                        "ao construir um mapeamento",
+                        node.start_mark,
+                        "merge key '<<' não suportada",
+                        key_node.start_mark,
+                    )
                 key = self.construct_object(key_node, deep=deep)
                 try:
                     repeated = key in seen
