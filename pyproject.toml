@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Editorial Intelligence Engine para o TensDireito.com."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pyyaml>=6",
+]
 
 [project.scripts]
 tde = "tensdireito_content_engine.cli:main"

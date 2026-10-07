@@ -1,17 +1,21 @@
 """Configuração interna mínima da aplicação.
 
-Nesta fase contém apenas valores necessários à fundação: não lê ficheiros,
-variáveis de ambiente, segredos nem serviços externos. A configuração versionada
-(`config/*.yaml`) e os segredos (variáveis de ambiente) descritos em
-TECHNICAL_SPEC.md §5 serão introduzidos quando tiverem consumidor.
+Contém apenas valores necessários à fundação e a localização da configuração
+versionada (`config/*.yaml`, TECHNICAL_SPEC.md §2, §5): por defeito o directório
+`config/` relativo ao directório de trabalho, ou o indicado em `--config DIR`
+(TECHNICAL_SPEC.md §3). Não lê variáveis de ambiente, segredos nem serviços externos;
+os segredos serão introduzidos quando tiverem consumidor.
 """
 
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 
 from tensdireito_content_engine import __version__
 
 APP_NAME = "TensDireito Content Engine"
+DEFAULT_CONFIG_DIR = Path("config")
+SOURCES_FILENAME = "sources.yaml"
 
 
 class Environment(StrEnum):
@@ -37,3 +41,8 @@ class AppConfig:
 def load_config(environment: Environment = Environment.DEVELOPMENT) -> AppConfig:
     """Devolve a configuração da aplicação. Determinista; sem efeitos externos."""
     return AppConfig(environment=environment)
+
+
+def sources_path(config_dir: Path = DEFAULT_CONFIG_DIR) -> Path:
+    """Caminho do registo de fontes dentro do directório de configuração."""
+    return Path(config_dir) / SOURCES_FILENAME

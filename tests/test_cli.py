@@ -1,5 +1,6 @@
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -52,3 +53,94 @@ def test_module_entry_point_runs_doctor():
     )
     assert result.returncode == 0
     assert "status: OK" in result.stdout
+
+
+FIXTURES = Path(__file__).parent / "fixtures" / "sources"
+
+
+def write_config(tmp_path: Path, text: str) -> Path:
+    (tmp_path / "sources.yaml").write_text(text, encoding="utf-8")
+    return tmp_path
+
+
+def test_sources_validate_valid_config(capsys):
+    assert main(["--config", str(FIXTURES), "sources", "validate"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out.splitlines() == [
+        f"sources: OK — {FIXTURES / 'sources.yaml'}",
+        "fontes: 3",
+        "endpoints: 3",
+    ]
+    assert captured.err == ""
+
+
+def test_sources_validate_invalid_config_exits_one(tmp_path, capsys):
+    config = write_config(tmp_path, "- id: fonte_a\n  name: A\n  entity_type: public_body\n")
+    assert main(["--config", str(config), "sources", "validate"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.splitlines() == [
+        f"sources: ERRO — {config / 'sources.yaml'}",
+        "- sources[0] (id=fonte_a): campo obrigatório em falta: tier",
+    ]
+
+
+def test_sources_validate_missing_file_exits_one(tmp_path, capsys):
+    assert main(["--config", str(tmp_path), "sources", "validate"]) == 1
+    assert "ficheiro não encontrado" in capsys.readouterr().err
+
+
+def test_sources_validate_does_not_modify_config(tmp_path):
+    text = (FIXTURES / "sources.yaml").read_text(encoding="utf-8")
+    config = write_config(tmp_path, text)
+    before = sorted((p.name, p.read_bytes(), p.stat().st_mtime_ns) for p in tmp_path.iterdir())
+    assert main(["--config", str(config), "sources", "validate"]) == 0
+    after = sorted((p.name, p.read_bytes(), p.stat().st_mtime_ns) for p in tmp_path.iterdir())
+    assert after == before
+
+
+def test_sources_validate_is_deterministic(capsys):
+    main(["--config", str(FIXTURES), "sources", "validate"])
+    first = capsys.readouterr()
+    main(["--config", str(FIXTURES), "sources", "validate"])
+    assert capsys.readouterr() == first
+
+
+def test_sources_without_action_exits_with_error():
+    with pytest.raises(SystemExit) as exc:
+        main(["sources"])
+    assert exc.value.code == 2
+
+
+def test_default_config_dir_is_relative_to_working_directory(tmp_path, monkeypatch, capsys):
+    (tmp_path / "config").mkdir()
+    write_config(tmp_path / "config", "[]\n")
+    monkeypatch.chdir(tmp_path)
+    assert main(["sources", "validate"]) == 0
+    assert capsys.readouterr().out.splitlines()[0] == "sources: OK — config/sources.yaml"
+
+
+def test_repository_sources_registry_is_valid():
+    root = Path(__file__).parent.parent
+    result = subprocess.run(
+        [sys.executable, "-m", "tensdireito_content_engine.cli", "sources", "validate"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=root,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("sources: OK — config/sources.yaml")
+
+
+def test_sources_validate_invalid_config_exit_code_via_process(tmp_path):
+    config = write_config(tmp_path, "- [\n")
+    result = subprocess.run(
+        [sys.executable, "-m", "tensdireito_content_engine.cli", "--config", str(config)]
+        + ["sources", "validate"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 1
+    assert "YAML inválido" in result.stderr

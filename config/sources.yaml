@@ -1,0 +1,8 @@
+# Registo de fontes — formato em docs/SOURCES.md §4 (fonte de verdade: este ficheiro).
+#
+# Vazio de propósito: a lista de fontes T1 prioritárias e os respectivos endpoints
+# dependem de D1 (OPEN). Nenhuma fonte, URL, feed ou domínio é acrescentado por
+# suposição; cada entrada entra por pull request depois de validada manualmente.
+#
+# Validar com: uv run tde sources validate
+[]
