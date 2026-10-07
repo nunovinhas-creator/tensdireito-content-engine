@@ -302,6 +302,28 @@ def test_invalid_yaml_reports_validate_errors_and_leaves_db_untouched(synced, co
     assert snapshot(synced) == before
 
 
+@pytest.mark.parametrize("status", ["CANDIDATE", "INACTIVE"])
+def test_dec_035_active_endpoint_in_non_validated_source_fails_and_leaves_db_untouched(
+    synced, config, capsys, status
+):
+    # DEC-035 vive na validação do registo; o sync recusa-o por DEC-028 (3), sem regra própria.
+    data = registry()
+    data[1]["registry_status"] = status
+    data[1]["domains"] = []  # uma fonte CANDIDATE não pode ter domains (M2.2): isola DEC-035
+    write_registry(config, data)
+    before = snapshot(synced)
+
+    assert run_cli(config, synced) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.splitlines() == [
+        f"sources sync: ERRO — {config / 'sources.yaml'}",
+        "- sources[1].endpoints[0] (id=fonte_b_feed): "
+        f"um endpoint ACTIVE exige fonte VALIDATED (fonte fonte_b: {status})",
+    ]
+    assert snapshot(synced) == before
+
+
 def test_invalid_yaml_does_not_require_database(tmp_path, config):
     write_registry(config, [{"id": "x"}])
     db = tmp_path / "tde.sqlite3"

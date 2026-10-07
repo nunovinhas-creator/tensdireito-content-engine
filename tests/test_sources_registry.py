@@ -311,23 +311,27 @@ def test_validated_endpoint_without_validated_at():
     assert error.endswith("validação manual exige validated_at e validated_by")
 
 
+def validated_source(**fields) -> dict:
+    return source(registry_status="VALIDATED", **VALIDATION, **fields)
+
+
 def test_active_endpoint_without_validated_at():
     data = endpoint(
         endpoint_status="ACTIVE", url="https://exemplo.invalid/", validated_by="editor_ficticio"
     )
-    error = single_error([source(endpoints=[data])])
+    error = single_error([validated_source(endpoints=[data])])
     assert error.endswith("um endpoint ACTIVE exige validated_at")
 
 
 def test_active_endpoint_without_url():
     data = endpoint(endpoint_status="ACTIVE", **VALIDATION)
-    error = single_error([source(endpoints=[data])])
+    error = single_error([validated_source(endpoints=[data])])
     assert error.endswith("um endpoint ACTIVE exige url")
 
 
 def test_active_endpoint_without_url_nor_validated_at_reports_both():
     with pytest.raises(SourceRegistryError) as exc:
-        parse_sources([source(endpoints=[endpoint(endpoint_status="ACTIVE")])])
+        parse_sources([validated_source(endpoints=[endpoint(endpoint_status="ACTIVE")])])
     assert [e.split(": ", 1)[1] for e in exc.value.errors] == [
         "um endpoint ACTIVE exige url",
         "um endpoint ACTIVE exige validated_at",
@@ -367,6 +371,80 @@ def test_validated_at_must_be_iso_8601(value):
 def test_endpoint_belongs_to_parent_source():
     loaded = parse_sources([source(id="fonte_x", endpoints=[endpoint()])])
     assert loaded.endpoints[0].source_id == "fonte_x"
+
+
+# DEC-035: endpoint ACTIVE só em fonte VALIDATED
+
+
+ACTIVE_ENDPOINT = {"endpoint_status": "ACTIVE", "url": "https://exemplo.invalid/", **VALIDATION}
+
+
+def test_dec_035_active_endpoint_in_validated_source_is_valid():
+    loaded = parse_sources([validated_source(endpoints=[endpoint(**ACTIVE_ENDPOINT)])])
+    assert loaded.sources[0].registry_status is RegistryStatus.VALIDATED
+    assert loaded.endpoints[0].endpoint_status is EndpointStatus.ACTIVE
+
+
+@pytest.mark.parametrize("status", ["CANDIDATE", "INACTIVE"])
+def test_dec_035_active_endpoint_in_non_validated_source_is_an_error(status):
+    data = [source(registry_status=status, endpoints=[endpoint(**ACTIVE_ENDPOINT)])]
+    assert single_error(data) == (
+        "sources[0].endpoints[0] (id=fonte_a_pagina): "
+        f"um endpoint ACTIVE exige fonte VALIDATED (fonte fonte_a: {status})"
+    )
+
+
+def test_dec_035_source_without_registry_status_is_candidate():
+    error = single_error([source(endpoints=[endpoint(**ACTIVE_ENDPOINT)])])
+    assert error.endswith("um endpoint ACTIVE exige fonte VALIDATED (fonte fonte_a: CANDIDATE)")
+
+
+def test_dec_035_is_reported_for_each_affected_endpoint():
+    endpoints = [
+        endpoint(id="fonte_a_1", **ACTIVE_ENDPOINT),
+        endpoint(id="fonte_a_2", endpoint_status="VALIDATED", **VALIDATION),
+        endpoint(id="fonte_a_3", **ACTIVE_ENDPOINT),
+    ]
+    with pytest.raises(SourceRegistryError) as exc:
+        parse_sources([source(registry_status="INACTIVE", endpoints=endpoints)])
+    assert exc.value.errors == (
+        "sources[0].endpoints[0] (id=fonte_a_1): "
+        "um endpoint ACTIVE exige fonte VALIDATED (fonte fonte_a: INACTIVE)",
+        "sources[0].endpoints[2] (id=fonte_a_3): "
+        "um endpoint ACTIVE exige fonte VALIDATED (fonte fonte_a: INACTIVE)",
+    )
+
+
+def test_dec_035_is_reported_alongside_other_errors():
+    with pytest.raises(SourceRegistryError) as exc:
+        parse_sources([source(tier="T9", endpoints=[endpoint(endpoint_status="ACTIVE")])])
+    assert exc.value.errors == (
+        "sources[0] (id=fonte_a): tier inválido: 'T9' (aceites: T1 | T2 | T3 | T4)",
+        "sources[0].endpoints[0] (id=fonte_a_pagina): um endpoint ACTIVE exige url",
+        "sources[0].endpoints[0] (id=fonte_a_pagina): um endpoint ACTIVE exige validated_at",
+        "sources[0].endpoints[0] (id=fonte_a_pagina): "
+        "um endpoint ACTIVE exige fonte VALIDATED (fonte fonte_a: CANDIDATE)",
+    )
+
+
+@pytest.mark.parametrize("value", ["validated", "BOGUS", None, 1])
+def test_dec_035_invalid_source_status_reports_only_that_error(value):
+    error = single_error([source(registry_status=value, endpoints=[endpoint(**ACTIVE_ENDPOINT)])])
+    assert error.startswith("sources[0] (id=fonte_a): registry_status inválido:")
+
+
+@pytest.mark.parametrize("source_status", ["CANDIDATE", "INACTIVE"])
+@pytest.mark.parametrize("endpoint_status", ["CANDIDATE", "VALIDATED", "INACTIVE"])
+def test_dec_035_no_rule_for_non_active_endpoints(source_status, endpoint_status):
+    data = endpoint(endpoint_status=endpoint_status, **VALIDATION)
+    loaded = parse_sources([source(registry_status=source_status, endpoints=[data])])
+    assert loaded.endpoints[0].endpoint_status is EndpointStatus[endpoint_status]
+
+
+def test_dec_035_adds_no_other_check_on_the_validated_source():
+    # Domains, evidência e identidade de validated_by (além de llm:) ficam para a revisão humana.
+    data = validated_source(domains=[], endpoints=[endpoint(**ACTIVE_ENDPOINT)])
+    assert parse_sources([data]).endpoints[0].endpoint_status is EndpointStatus.ACTIVE
 
 
 # Decisões de formato (DEC-023, DEC-024, DEC-025)
@@ -435,7 +513,7 @@ def test_dec_024_registry_status_uppercase_is_accepted(value, expected):
 def test_dec_024_endpoint_status_uppercase_is_accepted(value, expected):
     fields = {**VALIDATION, "url": "https://exemplo.invalid/"}
     data = endpoint(endpoint_status=value, **fields)
-    (parsed,) = parse_sources([source(endpoints=[data])]).endpoints
+    (parsed,) = parse_sources([validated_source(endpoints=[data])]).endpoints
     assert parsed.endpoint_status is expected
 
 
