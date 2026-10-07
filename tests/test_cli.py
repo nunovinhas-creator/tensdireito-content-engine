@@ -40,7 +40,7 @@ def test_help_exits_zero(capsys):
 
 def test_unknown_command_exits_with_error():
     with pytest.raises(SystemExit) as exc:
-        main(["collect"])
+        main(["comando-inexistente"])
     assert exc.value.code == 2
 
 

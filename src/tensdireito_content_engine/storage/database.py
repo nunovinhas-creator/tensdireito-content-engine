@@ -6,7 +6,8 @@ explícita (`isolation_level=None`), para que cada migração seja uma transacç
 """
 
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,6 +15,9 @@ from tensdireito_content_engine.storage.errors import StorageError
 
 DEFAULT_DB_PATH = Path("data") / "tde.sqlite3"
 DB_PATH_ENV = "TDE_DB_PATH"
+
+# Tipo da ligação, para quem a recebe de `storage` sem importar `sqlite3`.
+Connection = sqlite3.Connection
 
 _SQLITE_HEADER = b"SQLite format 3\x00"
 
@@ -57,6 +61,28 @@ def connect(path: Path) -> sqlite3.Connection:
         conn.close()
         raise StorageError("o ficheiro não é uma base de dados SQLite") from exc
     return conn
+
+
+@contextmanager
+def transaction(conn: sqlite3.Connection, failure: str) -> Iterator[None]:
+    """Transacção explícita (`BEGIN` … `COMMIT`); qualquer erro → `ROLLBACK`.
+
+    Um erro SQLite é relançado como `StorageError` com o prefixo `failure`, encadeado
+    com a excepção original.
+    """
+    try:
+        conn.execute("BEGIN")
+    except sqlite3.Error as exc:
+        raise StorageError(f"{failure}: {exc}") from exc
+    try:
+        yield
+        conn.execute("COMMIT")
+    except sqlite3.Error as exc:
+        conn.execute("ROLLBACK")
+        raise StorageError(f"{failure}: {exc}") from exc
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def to_utc_iso(value: datetime) -> str:
