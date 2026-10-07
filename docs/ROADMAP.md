@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) definido, por implementar. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) implementado, a integrar. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)). | **Em curso** — M2.1 a M2.5 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8); M2.6 definido, por implementar |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)). | **Em curso** — M2.1 a M2.5 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8); M2.6 implementado, a integrar |
 
 ### M2.5 — registo de fontes e validação de fontes
 
@@ -32,7 +32,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 
 ### M2.6 — storage SQLite e migração inicial
 
-**Estado:** definido, por implementar. Esta secção é o contrato da unidade; nada dela está implementado.
+**Estado:** implementado, a integrar. Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção.
 
 **Objectivo:** criar a camada `storage` ([ARCHITECTURE.md](ARCHITECTURE.md) §5; [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#2-estrutura-de-código-proposta) §2) e a primeira migração SQLite, aplicada por `tde init`, preparando a persistência de `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run` para as unidades que a vão usar (sincronização do registo, collectors, NORMALIZE). O M2.6 cria a base de dados e o esquema; não escreve dados de negócio. Decisões: DEC-026 (migrações e âmbito da migração inicial) e DEC-027 (relação entre `config/sources.yaml` e SQLite).
 
@@ -43,7 +43,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
    - base de dados inexistente → cria-a e aplica todas as migrações por ordem;
    - base existente → aplica apenas as migrações pendentes; sem pendentes, não altera nada (idempotente);
    - saída: `init: OK`, o caminho da base de dados e as migrações aplicadas nesta execução (eventualmente nenhuma), código `0`; em erro, `init: ERRO` e o motivo em stderr, código `1`, sem migração parcial;
-   - erros: ficheiro que não é uma base SQLite; migração registada na base que o código não conhece (base mais recente que o código); migração aplicada cujo conteúdo foi alterado (checksum diferente).
+   - erros: ficheiro que não é uma base SQLite; migração registada na base que o código não conhece (base mais recente que o código); migração aplicada cujo conteúdo foi alterado (checksum diferente); migração pendente com versão inferior à mais elevada já aplicada (quebraria a ordem só para a frente).
    - Não cria nenhum `run` nem nenhum registo de negócio. Não sincroniza `config/sources.yaml` (ver *YAML vs SQLite*). Não acede à rede.
    - `--dry-run`, `--verbose` e `--no-llm` não fazem parte do M2.6. `tde doctor` mantém-se sem acesso a base de dados nem a variáveis de ambiente.
 3. **Estratégia de migrações (DEC-026).** Ficheiros SQL numerados, `storage/migrations/NNNN_<nome>.sql` (DATA_MODEL.md §4), começando em `0001_init.sql`, incluídos no pacote e lidos como recursos do pacote. Só para a frente: sem migrações de reversão; uma migração aplicada nunca é editada — qualquer alteração é uma migração nova. Cada migração é aplicada numa transacção, juntamente com o seu registo numa tabela de controlo `schema_migration` (`version` PK, `checksum` SHA-256 do ficheiro, `applied_at` em UTC); falha → rollback completo. Sem `PRAGMA user_version` (específico de SQLite).
@@ -88,7 +88,7 @@ Regras do esquema:
 **Critérios de aceitação (verificáveis na implementação):**
 1. **Criação inicial:** `tde init` sem base de dados cria o ficheiro no caminho resolvido (`--db`, depois `TDE_DB_PATH`, depois `data/tde.sqlite3`), cria o directório pai se faltar, aplica a `0001` e termina com código `0`.
 2. **Idempotência:** uma segunda execução de `tde init` termina com código `0`, não aplica nenhuma migração e não altera o esquema nem `schema_migration`.
-3. **Migrações:** com migrações fictícias em teste, só as pendentes são aplicadas, por ordem numérica; uma migração que falha não deixa alterações nem registo em `schema_migration`; uma migração aplicada com checksum diferente e uma versão registada desconhecida do código terminam com código `1`; um ficheiro que não é SQLite termina com código `1`.
+3. **Migrações:** com migrações fictícias em teste, só as pendentes são aplicadas, por ordem numérica; uma migração que falha não deixa alterações nem registo em `schema_migration`; uma migração aplicada com checksum diferente, uma versão registada desconhecida do código e uma migração pendente com versão inferior à mais elevada já aplicada terminam com código `1`; um ficheiro que não é SQLite termina com código `1`.
 4. **Esquema esperado:** após `0001`, existem exactamente `schema_migration`, `run`, `source_registry`, `source_endpoint` e `raw_item`, com as colunas, PK, FK, `UNIQUE` e `NOT NULL` desta secção; `source_document` não existe; as FK são aplicadas (inserir `raw_item` com `source_endpoint_id` inexistente falha); todas as tabelas de negócio ficam vazias.
 5. **Isolamento SQL:** um teste confirma que `sqlite3` só é importado em `storage/` e que `domain/`, `normalize/` e `sources/` não importam `storage`.
 6. **Portabilidade:** um teste confirma que os ficheiros de migração não contêm `AUTOINCREMENT`, `WITHOUT ROWID`, `STRICT`, `INSERT OR REPLACE`, `PRAGMA` nem `CURRENT_TIMESTAMP`; colunas json e datas são `TEXT`.
@@ -100,6 +100,8 @@ Regras do esquema:
 **Testes:** offline, com fixtures (bases de dados temporárias e migrações fictícias para os casos de erro), sem rede e sem fornecedor de IA, conforme TECHNICAL_SPEC.md §6.
 
 **Dependências:** nenhuma prevista — `sqlite3` faz parte da biblioteca padrão (TECHNICAL_SPEC.md §1). Se a implementação vier a exigir alguma, tem de ser justificada no PR de implementação e registada em TECHNICAL_SPEC.md §7; nenhuma é adicionada nesta definição.
+
+**Implementação:** `src/tensdireito_content_engine/storage/` — `database.py` (resolução do caminho `--db` → `TDE_DB_PATH` → `data/tde.sqlite3`, com valor vazio tratado como ausente; ligação com `PRAGMA foreign_keys = ON` e transacções explícitas; recusa de directório ou ficheiro sem cabeçalho SQLite; datas UTC ISO 8601 com `+00:00`), `migrator.py` (leitura de `migrations/NNNN_<nome>.sql` como recursos do pacote, checksum SHA-256 dos bytes do ficheiro, verificação das migrações aplicadas e aplicação de cada pendente numa transacção com o seu registo em `schema_migration`), `init.py` (`init_database`) e `migrations/0001_init.sql`. `tde [--db PATH] init` em `cli.py` escreve `init: OK — <caminho>` e `migrações aplicadas: <nomes>` (ou `nenhuma`), código `0`; em erro, `init: ERRO — <caminho>` e `- <motivo>` em stderr, código `1`. Além dos erros do contrato, também terminam em erro: nome de ficheiro de migração fora do formato e versão repetida. Nulidade na `0001`: `NOT NULL` nos campos obrigatórios do domínio (M2.2/M2.3) e em `created_at`/`updated_at`, sempre preenchidos pela camada `storage`; `run.*` (sem modelo de domínio) e `raw_item.created_in_run` ficam nulos. Sem dependências novas.
 
 ## Fase 0 — Arquitectura e documentação *(actual)*
 

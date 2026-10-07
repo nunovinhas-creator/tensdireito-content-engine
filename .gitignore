@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Base de dados SQLite local, exports e relatórios (TECHNICAL_SPEC.md §2; M2.6)
+data/

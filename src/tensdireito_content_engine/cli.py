@@ -5,6 +5,7 @@ introduzir dependências externas.
 """
 
 import argparse
+import os
 import platform
 import sys
 from collections.abc import Sequence
@@ -13,6 +14,13 @@ from pathlib import Path
 from tensdireito_content_engine import __version__
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
 from tensdireito_content_engine.sources import SourceRegistryError, load_sources
+from tensdireito_content_engine.storage import (
+    DB_PATH_ENV,
+    DEFAULT_DB_PATH,
+    StorageError,
+    init_database,
+    resolve_db_path,
+)
 
 PROG = "tde"
 
@@ -46,6 +54,19 @@ def sources_validate(path: Path) -> tuple[bool, list[str]]:
     ]
 
 
+def init(path: Path) -> tuple[bool, list[str]]:
+    """Cria a base de dados e aplica as migrações pendentes (ROADMAP.md M2.6).
+
+    Escreve só o esquema; não cria registos de negócio nem acede à rede.
+    """
+    try:
+        result = init_database(path)
+    except StorageError as exc:
+        return False, [f"init: ERRO — {path}", f"- {exc}"]
+    applied = ", ".join(result.applied) if result.applied else "nenhuma"
+    return True, [f"init: OK — {result.path}", f"migrações aplicadas: {applied}"]
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=PROG,
@@ -59,11 +80,24 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_CONFIG_DIR,
         help=f"directório da configuração versionada (por defeito: {DEFAULT_CONFIG_DIR})",
     )
+    parser.add_argument(
+        "--db",
+        metavar="PATH",
+        type=Path,
+        default=None,
+        help=f"base de dados SQLite (por defeito: ${DB_PATH_ENV}, senão {DEFAULT_DB_PATH})",
+    )
     subparsers = parser.add_subparsers(dest="command", metavar="<comando>")
     subparsers.add_parser(
         "doctor",
         help="confirma que a aplicação está instalada e executável",
         description="Confirma que a aplicação está instalada e executável.",
+    )
+    subparsers.add_parser(
+        "init",
+        help="cria a base de dados e aplica as migrações pendentes",
+        description="Cria a base de dados SQLite, se não existir, e aplica as migrações "
+        "pendentes. Idempotente; escreve só o esquema, sem dados de negócio.",
     )
     sources = subparsers.add_parser(
         "sources",
@@ -90,6 +124,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in doctor():
             print(line)
         return 0
+
+    if args.command == "init":
+        ok, lines = init(resolve_db_path(args.db, os.environ))
+        stream = sys.stdout if ok else sys.stderr
+        for line in lines:
+            print(line, file=stream)
+        return 0 if ok else 1
 
     if args.command == "sources" and args.sources_command == "validate":
         ok, lines = sources_validate(sources_path(args.config))
