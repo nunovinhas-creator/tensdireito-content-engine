@@ -18,6 +18,7 @@ import tensdireito_content_engine
 from tensdireito_content_engine import cli
 from tensdireito_content_engine.collect import CollectError, run_collect
 from tensdireito_content_engine.collectors import Collector, CollectorRegistry, default_registry
+from tensdireito_content_engine.collectors.rss import RssCollector
 from tensdireito_content_engine.domain import (
     EndpointStatus,
     EndpointType,
@@ -202,9 +203,12 @@ def run_cli(monkeypatch, db: Path, *args: str, registry: CollectorRegistry | Non
 # --- Contrato Collector e registo ------------------------------------------------
 
 
-def test_production_registry_is_empty():
+def test_production_registry_has_only_the_rss_collector():
+    # M2.9 (DEC-032): `rss` é o primeiro e único collector concreto de produção.
     registry = default_registry()
-    assert all(registry.get(endpoint_type) is None for endpoint_type in EndpointType)
+    assert isinstance(registry.get(EndpointType.RSS), RssCollector)
+    assert registry.get(EndpointType.HTML_PAGE) is None
+    assert registry.get(EndpointType.MANUAL) is None
 
 
 def test_registry_rejects_two_collectors_for_the_same_type():
@@ -212,9 +216,9 @@ def test_registry_rejects_two_collectors_for_the_same_type():
         registry_of(FakeCollector(EndpointType.RSS), FakeCollector(EndpointType.RSS))
 
 
-def test_collectors_package_has_no_concrete_collectors():
+def test_collectors_package_has_only_the_rss_collector_and_its_transport():
     names = sorted(path.name for path in (PACKAGE_DIR / "collectors").glob("*.py"))
-    assert names == ["__init__.py", "base.py"]
+    assert names == ["__init__.py", "base.py", "http.py", "rss.py"]
 
 
 # --- Zero endpoints e sucesso ---------------------------------------------------
@@ -395,10 +399,15 @@ def test_endpoint_without_collector_is_endpoint_failure(db):
     assert (by_id["a_feed"].new, by_id["b_feed"].new) == (2, 2)
 
 
-def test_production_registry_fails_every_active_endpoint(db):
+def test_production_registry_fails_endpoints_without_collector(db):
+    # Os endpoints `rss` do registo fictício (`.invalid`) chegam ao transporte real, que
+    # esbarra na salvaguarda de rede dos testes (conftest.py); `html_page` não tem collector.
     result = run_collect(db, default_registry(), now=Clock())
     assert result.status == "failed"
-    assert result.failed == 3
+    errors = {outcome.id: outcome.error for outcome in result.endpoints}
+    assert errors["a_pagina"] == "sem collector para endpoint_type html_page"
+    assert "NetworkAccessError" in errors["a_feed"]
+    assert "NetworkAccessError" in errors["b_feed"]
 
 
 @pytest.mark.parametrize(

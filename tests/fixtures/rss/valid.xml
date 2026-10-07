@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Feed sintético</title>
+    <link>https://feed.example.org/</link>
+    <description>Fixture sintética para testes offline (RFC 2606).</description>
+    <item>
+      <title>Primeira notícia</title>
+      <link>https://feed.example.org/noticias/1?utm_source=rss#topo</link>
+      <description>Resumo da primeira notícia.</description>
+      <guid isPermaLink="false">id-0001</guid>
+      <pubDate>Wed, 07 Oct 2026 10:00:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Segunda notícia</title>
+      <link>https://feed.example.org/noticias/2</link>
+      <description><![CDATA[<p>Texto com <strong>HTML</strong> &amp; entidades.</p>]]></description>
+      <content:encoded><![CDATA[<p>Corpo completo.</p>]]></content:encoded>
+      <category>Trabalho</category>
+      <guid>https://feed.example.org/noticias/2</guid>
+      <pubDate>Tue, 06 Oct 2026 09:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Terceira notícia</title>
+      <link>http://feed.example.org/noticias/3</link>
+    </item>
+  </channel>
+</rss>

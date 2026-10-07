@@ -1,13 +1,15 @@
 """Contrato `Collector` e registo por `endpoint_type` (ROADMAP.md M2.8; DEC-031).
 
 `fetch(endpoint, since)` recebe o `SourceEndpoint` de domínio e devolve `RawItem` de
-domínio (o `RawItemIn` de TECHNICAL_SPEC.md §4.1). No M2.8, `since` é sempre `None`.
+domínio (o `RawItemIn` de TECHNICAL_SPEC.md §4.1). `since` é sempre `None` (DEC-031).
 """
 
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Protocol
 
+from tensdireito_content_engine.collectors.http import HttpsTransport
+from tensdireito_content_engine.collectors.rss import RssCollector
 from tensdireito_content_engine.domain import EndpointType, RawItem, SourceEndpoint
 
 
@@ -33,5 +35,9 @@ class CollectorRegistry:
 
 
 def default_registry() -> CollectorRegistry:
-    """Registo de produção: vazio no M2.8 (sem collectors concretos)."""
-    return CollectorRegistry()
+    """Registo de produção: só o collector `rss`, com o transporte real (M2.9).
+
+    Cada chamada cria um transporte novo: `robots.txt` e o intervalo por anfitrião valem
+    para uma execução de `tde collect`.
+    """
+    return CollectorRegistry([RssCollector(HttpsTransport())])

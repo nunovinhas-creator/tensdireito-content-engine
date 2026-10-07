@@ -1,8 +1,8 @@
 """Collectors: obtenção de `RawItem` por `endpoint_type` (TECHNICAL_SPEC.md §4.1; DEC-031).
 
-Dependem só de `domain`: não importam `storage` nem `sqlite3`. No M2.8 existe apenas o
-contrato e o registo; nenhum collector concreto (`rss`, `html_page`, `manual`) está
-implementado e o registo de produção fica vazio.
+Dependem só de `domain`: não importam `storage` nem `sqlite3`. Desde o M2.9, o registo de
+produção tem um collector concreto, `rss` (RSS 2.0; DEC-032), sobre o único transporte de
+rede do sistema, `collectors/http.py` (DEC-033). `html_page` e `manual` não existem.
 """
 
 from tensdireito_content_engine.collectors.base import (
