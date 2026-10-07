@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio) e M2.3 (normalização e identidade) concluídos e integrados (M2.3 no PR #5); M2.4 (deduplicação exacta por `text_hash`) implementado, em revisão. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) definido, não iniciado. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,23 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada. | **Em curso** — M2.1, M2.2 e M2.3 concluídos e integrados; M2.4 implementado, em revisão |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)). | **Em curso** — M2.1 a M2.4 concluídos e integrados (M2.4 no PR #6); M2.5 definido, não iniciado |
+
+### M2.5 — registo de fontes e validação de fontes
+
+**Estado:** definido, não iniciado.
+
+**Objectivo:** preparar a camada de fontes para os futuros collectors, sem os implementar: ler o registo versionado `config/sources.yaml` ([SOURCES.md](SOURCES.md#4-registo-configsourcesyaml) §4) para os modelos de domínio `SourceRegistry` e `SourceEndpoint` do M2.2 e validá-lo com `tde sources validate` ([TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos) §3).
+
+**Entregáveis previstos:**
+- Leitura de `config/sources.yaml`, no formato de SOURCES.md §4, para `SourceRegistry` e `SourceEndpoint`, respeitando os enums e invariantes do M2.2 sem os enfraquecer (ex.: fonte `CANDIDATE` sem `domains`; `VALIDATED`/`ACTIVE` com `validated_at` e `validated_by`). `validated_at` só é aceite com fuso explícito; nenhum fuso é assumido.
+- Comando `tde sources validate`, local, determinista e sem escrita, que aplica as regras de SOURCES.md §4: esquema, IDs únicos, tiers válidos e campos obrigatórios; recusa endpoints `ACTIVE` sem `url` e sem `validated_at`. Regras que a documentação não define não são inventadas.
+- Testes offline com registos fictícios (fixtures), sem fontes nem URLs reais.
+- O parser YAML, se introduzido, segue a política de dependências de [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#1-stack) §1 (justificado no PR de implementação).
+
+**Dependência de D1:** as regras de validação já estão definidas e não dependem de D1. O **conteúdo** do registo depende de D1 e fica fora do M2.5: o M2.5 não acrescenta fontes concretas, URLs, feeds, endpoints nem `domains`, e não marca nenhuma fonte ou endpoint como `VALIDATED`/`ACTIVE`. A validação manual de uma fonte (URL, termos de utilização, `robots.txt`) e a decisão `VALIDATE_SOURCE` em `editorial_decision` (que exige persistência) não são feitas por `tde sources validate`.
+
+**Exclusões:** collectors; RSS; HTML; HTTP; scraping; qualquer acesso à rede (incluindo verificar se um URL responde); descoberta automática de fontes; SQLite, migrações e ORM; deduplicação; clustering; `SourceDocument`; `SourceEvidence`; claims; verificação; scoring; IA; scheduler; WhatsApp; publicação. Não altera D12 (não calcula `canonical_url`) nem D13 (não interpreta `published_at_raw`); ambas continuam OPEN.
 
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
