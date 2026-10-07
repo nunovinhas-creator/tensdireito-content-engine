@@ -1,0 +1,50 @@
+# Registo fictício para testes offline (M2.5). Nenhuma fonte, URL ou domínio é real:
+# os domínios usam o TLD reservado `.invalid` (RFC 2606).
+- id: exemplo_fonte_oficial
+  name: "Fonte oficial fictícia"
+  entity_type: public_body
+  tier: T1
+  categories: [seguranca_social]
+  domains: []
+  registry_status: CANDIDATE
+  validated_at: null
+  notes: "Por validar: endpoints, termos de utilização, robots.txt."
+  endpoints:
+    - id: exemplo_fonte_oficial_noticias
+      endpoint_type: html_page
+      url: null
+      endpoint_status: CANDIDATE
+      fetch:
+        frequency: daily
+        rate_limit_seconds: 5
+        max_items: 50
+        selectors: {}
+      validated_at: null
+    - id: exemplo_fonte_oficial_manual
+      endpoint_type: manual
+      endpoint_status: CANDIDATE
+
+- id: exemplo_fonte_validada
+  name: "Fonte especializada fictícia"
+  entity_type: specialised
+  tier: T2
+  categories: [consumo, energia_agua]
+  domains: [exemplo.invalid]
+  registry_status: VALIDATED
+  validated_at: "2026-10-01T09:00:00Z"
+  validated_by: editor_ficticio
+  endpoints:
+    - id: exemplo_fonte_validada_feed
+      endpoint_type: rss
+      url: "https://exemplo.invalid/feed"
+      endpoint_status: ACTIVE
+      fetch:
+        frequency: daily
+      validated_at: "2026-10-01T10:00:00+01:00"
+      validated_by: editor_ficticio
+
+- id: exemplo_fonte_sem_endpoints
+  name: "Imprensa fictícia"
+  entity_type: press
+  tier: T3
+  registry_status: INACTIVE

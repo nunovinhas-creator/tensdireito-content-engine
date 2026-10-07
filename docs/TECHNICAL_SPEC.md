@@ -158,7 +158,8 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 - Segredos (chaves de API) — exclusivamente em variáveis de ambiente (ex.: `TDE_LLM_API_KEY_<FORNECEDOR>`); em GitHub Actions via *repository secrets*. Ver [SECURITY.md](SECURITY.md).
 - `TDE_DB_PATH` — caminho da base de dados (por defeito `data/tde.sqlite3`).
 - Fuso horário de referência: `Europe/Lisbon` para apresentação; armazenamento em UTC (ISO 8601).
-- Implementado (M2.2): `config.py` contém apenas nome, versão (a do pacote) e ambiente (`development` por defeito, `test`). Não lê ficheiros nem variáveis de ambiente; os ficheiros YAML e os segredos acima entram quando tiverem consumidor.
+- Implementado (M2.2): `config.py` contém apenas nome, versão (a do pacote) e ambiente (`development` por defeito, `test`). Não lê variáveis de ambiente; os segredos acima entram quando tiverem consumidor.
+- Implementado (M2.5): `config/sources.yaml` é localizado no directório de configuração — por defeito `config/`, relativo ao directório de trabalho, ou o indicado pela opção global `--config DIR` (secção 3). É lido por `sources/` e validado por `tde sources validate` (local, sem rede, sem escrita).
 
 ## 6. Requisitos não funcionais
 
@@ -176,13 +177,14 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 
 ## 7. Registo de dependências
 
-Dependências de execução: nenhuma (a CLI usa `argparse` da biblioteca padrão).
+Dependências de execução: `pyyaml` (a CLI usa `argparse` da biblioteca padrão).
 
 | Pacote | Motivo | Fase |
 |--------|--------|------|
 | `pytest` (grupo `dev`) | Testes (secção 1). Apenas desenvolvimento. | M2 — fundação |
 | `ruff` (grupo `dev`) | Lint e formatação (secção 1). Apenas desenvolvimento. | M2 — fundação |
 | `uv_build` (build backend) | Construção do pacote e entry point `tde`; backend nativo do `uv` (DEC-015). Apenas build. | M2 — fundação |
+| `pyyaml` | Parser YAML para `config/sources.yaml` (secção 1: configuração em YAML; parser YAML previsto na política de dependências). A biblioteca padrão não lê YAML. Usado só com `SafeLoader`, sem conversão implícita de datas e com chaves repetidas recusadas. | M2.5 |
 
 ## 8. Execução
 
