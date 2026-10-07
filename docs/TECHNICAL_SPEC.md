@@ -48,7 +48,7 @@ tensdireito-content-engine/
 │   ├── storage/              # repositórios + esquema SQL + migrações
 │   ├── sources/
 │   ├── collectors/           # base.py (interface Collector), rss.py, html_page.py, manual.py
-│   ├── normalize/            # normalização mecânica + fingerprint (M2.3; DEC-021)
+│   ├── normalize/            # normalização mecânica + fingerprint (M2.3; DEC-021) + deduplicação exacta (M2.4; DEC-022)
 │   ├── classify/
 │   ├── cluster/
 │   ├── verify/

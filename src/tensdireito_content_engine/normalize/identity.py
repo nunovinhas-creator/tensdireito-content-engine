@@ -1,8 +1,8 @@
 """Identidade de conteúdo de um `NormalizedItem` (DATA_MODEL.md §2.1 `text_hash`, DEC-021).
 
-O fingerprint é o SHA-256 (hex) do texto normalizado: base para a futura deduplicação
-exacta. Identifica a representação normalizada, não o acontecimento: não é um `event_id`
-e não decide se dois itens pertencem ao mesmo `Event` (etapa CLUSTER).
+O fingerprint é o SHA-256 (hex) do texto normalizado: base da deduplicação exacta
+(`dedup.py`, DEC-022). Identifica a representação normalizada, não o acontecimento: não
+é um `event_id` e não decide se dois itens pertencem ao mesmo `Event` (etapa CLUSTER).
 """
 
 import hashlib
