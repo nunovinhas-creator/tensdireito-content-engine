@@ -175,11 +175,13 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 
 ## 7. Registo de dependências
 
-Nenhuma dependência adicionada nesta fase (apenas documentação). Esta tabela será preenchida na Fase 1.
+Dependências de execução: nenhuma (a CLI usa `argparse` da biblioteca padrão).
 
 | Pacote | Motivo | Fase |
 |--------|--------|------|
-| — | — | — |
+| `pytest` (grupo `dev`) | Testes (secção 1). Apenas desenvolvimento. | M2 — fundação |
+| `ruff` (grupo `dev`) | Lint e formatação (secção 1). Apenas desenvolvimento. | M2 — fundação |
+| `uv_build` (build backend) | Construção do pacote e entry point `tde`; backend nativo do `uv` (DEC-015). Apenas build. | M2 — fundação |
 
 ## 8. Execução
 
