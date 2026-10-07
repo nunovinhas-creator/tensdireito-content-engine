@@ -14,6 +14,7 @@ from tensdireito_content_engine.domain.enums import (
     VerificationStatus,
 )
 from tensdireito_content_engine.domain.event import Event
+from tensdireito_content_engine.domain.raw_item import RawItem
 from tensdireito_content_engine.domain.sources import (
     SourceDocument,
     SourceEndpoint,
@@ -33,6 +34,7 @@ __all__ = [
     "EvidenceStance",
     "ImpactType",
     "LegalStage",
+    "RawItem",
     "RegistryStatus",
     "SourceDocument",
     "SourceEndpoint",

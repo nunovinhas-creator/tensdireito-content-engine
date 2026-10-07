@@ -97,3 +97,5 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 | D9 | Frequência das execuções agendadas | 5 | **Pendente.** |
 | D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
 | D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |
+| D12 | Regra de `canonical_url`: que parâmetros são "de tracking" e se se normalizam esquema, domínio, barra final ou fragmento | 1 | **Pendente (OPEN).** DATA_MODEL.md exige `canonical_url` "sem parâmetros de tracking" sem os enumerar. Até decisão, o M2.3 não calcula `canonical_url` e preserva o URL tal como obtido (DEC-021). |
+| D13 | Formatos aceites em `published_at_raw` e tratamento de data sem hora ou data/hora sem fuso (ex.: assumir `Europe/Lisbon` para fontes nacionais) | 1 | **Pendente (OPEN).** Até decisão, só ISO 8601 com fuso explícito é convertido para UTC; os restantes casos ficam nulos, com o original preservado (DEC-021). |
