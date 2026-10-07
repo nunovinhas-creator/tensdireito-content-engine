@@ -2,8 +2,8 @@
 
 Editorial Intelligence Engine para o [TensDireito.com](https://tensdireito.com) — descobre, verifica, classifica, pontua e transforma informação sobre apoios e direitos sociais em conteúdo editorial publicável.
 
-> **Estado actual: Architecture / Documentation phase — decisões fundamentais fechadas no M1.**
-> Ainda não existe código de aplicação. Este repositório contém, nesta fase, apenas a documentação técnica e editorial que servirá de especificação para a implementação.
+> **Estado actual: M2 — fundação executável.** As decisões fundamentais foram fechadas no M1.
+> Existe apenas a fundação mínima do projecto Python (pacote, CLI `tde` com `doctor`, testes). Ainda não há recolha, verificação, pontuação, geração nem exportação; a documentação em `docs/` continua a ser a especificação da implementação.
 
 ## Propósito
 
@@ -78,6 +78,20 @@ Detalhe em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | 6 | Evolução (PostgreSQL, novos formatos, publicação, redes sociais) | A avaliar |
 
 Detalhe e decisões pendentes em [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Desenvolvimento
+
+Requer [`uv`](https://docs.astral.sh/uv/) e Python 3.12+.
+
+```bash
+uv sync              # cria o ambiente virtual e instala o projecto e as dependências de desenvolvimento
+uv run pytest        # executa os testes (offline)
+uv run ruff check .  # lint
+uv run tde --help    # ajuda da CLI
+uv run tde doctor    # diagnóstico: confirma que a aplicação está instalada e executável
+```
+
+`tde doctor` é determinístico: não acede à Internet, a APIs externas, a variáveis de ambiente nem a base de dados.
 
 ## Documentação
 
