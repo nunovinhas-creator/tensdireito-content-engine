@@ -17,7 +17,7 @@ from tensdireito_content_engine.storage.migrator import default_migrations_dir
 PACKAGE_DIR = Path(tensdireito_content_engine.__file__).parent
 STORAGE_DIR = PACKAGE_DIR / "storage"
 MIGRATIONS_DIR = Path(str(default_migrations_dir()))
-ISOLATED_LAYERS = ("domain", "normalize", "sources")
+ISOLATED_LAYERS = ("domain", "normalize", "sources", "collectors")
 MIGRATION_FILES = sorted(MIGRATIONS_DIR.glob("*.sql"))
 
 

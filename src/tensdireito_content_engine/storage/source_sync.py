@@ -27,11 +27,7 @@ from pathlib import Path
 from tensdireito_content_engine.domain import SourceEndpoint, SourceRegistry
 from tensdireito_content_engine.storage.database import connect, to_utc_iso
 from tensdireito_content_engine.storage.errors import StorageError
-from tensdireito_content_engine.storage.migrator import (
-    applied_migrations,
-    load_migrations,
-    pending_migrations,
-)
+from tensdireito_content_engine.storage.schema import check_schema, require_database
 
 # Campos projectados do YAML (ROADMAP.md M2.7, *Campos*), pela ordem das colunas.
 SOURCE_FIELDS = (
@@ -55,8 +51,6 @@ ENDPOINT_FIELDS = (
     "validated_at",
     "validated_by",
 )
-
-_INIT_HINT = "execute `tde init`"
 
 Row = tuple[object, ...]
 
@@ -152,29 +146,16 @@ def sync_sources(
     `SourceSyncError` com todos os motivos. Em ambos os casos a base fica inalterada.
     """
     path = Path(path)
-    if not path.exists():
-        # Verificado antes de `connect()`, que criaria o ficheiro e o directório pai.
-        raise StorageError(f"a base de dados não existe; {_INIT_HINT} para a criar")
+    require_database(path)
     source_rows = [source_row(source) for source in sources]
     endpoint_rows = [endpoint_row(endpoint) for endpoint in endpoints]
 
     conn = connect(path)
     try:
-        _check_schema(conn)
+        check_schema(conn)
         return _reconcile(conn, path, source_rows, endpoint_rows, to_utc_iso(now()))
     finally:
         conn.close()
-
-
-def _check_schema(conn: sqlite3.Connection) -> None:
-    """O esquema tem de estar conforme às migrações do código; o sync não migra."""
-    try:
-        pending = pending_migrations(applied_migrations(conn), load_migrations())
-    except StorageError as exc:
-        raise StorageError(f"esquema não conforme: {exc}; {_INIT_HINT}") from exc
-    if pending:
-        names = ", ".join(migration.name for migration in pending)
-        raise StorageError(f"esquema não conforme: migrações pendentes: {names}; {_INIT_HINT}")
 
 
 def _reconcile(

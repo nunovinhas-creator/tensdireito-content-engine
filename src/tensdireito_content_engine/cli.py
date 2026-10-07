@@ -12,6 +12,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from tensdireito_content_engine import __version__
+from tensdireito_content_engine.collect import CollectError, run_collect
+from tensdireito_content_engine.collectors import CollectorRegistry, default_registry
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
 from tensdireito_content_engine.sources import SourceRegistryError, load_sources
 from tensdireito_content_engine.storage import (
@@ -98,6 +100,34 @@ def sources_sync(config_path: Path, db_path: Path) -> tuple[bool, list[str]]:
     ]
 
 
+def collect(
+    db_path: Path, registry: CollectorRegistry, source_id: str | None
+) -> tuple[int, list[str], list[str]]:
+    """Recolha local dos endpoints `ACTIVE` do espelho SQLite (ROADMAP.md M2.8; DEC-031).
+
+    Devolve o código de saída e as linhas de stdout e de stderr. Não lê
+    `config/sources.yaml`, não cria a base de dados nem aplica migrações.
+    """
+    try:
+        result = run_collect(db_path, registry, source_id)
+    except (StorageError, CollectError) as exc:
+        return 1, [], [f"collect: ERRO — {db_path}", f"- {exc}"]
+    label, code = {"success": ("OK", 0), "partial": ("PARCIAL", 2), "failed": ("ERRO", 1)}[
+        result.status
+    ]
+    out = [
+        f"collect: {label} — {result.path}",
+        f"run: {result.run_id}",
+        f"endpoints: {len(result.endpoints)}",
+        f"com sucesso: {result.succeeded}",
+        f"com falha: {result.failed}",
+        f"itens novos: {result.new}",
+        f"itens existentes: {result.existing}",
+    ]
+    err = [f"- {outcome.id}: {outcome.error}" for outcome in result.endpoints if outcome.error]
+    return code, out, err
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=PROG,
@@ -152,6 +182,20 @@ def build_parser() -> argparse.ArgumentParser:
         "(nunca escreve no YAML); preserva last_success_at e last_error; não cria a base de "
         "dados nem aplica migrações. Local, sem rede.",
     )
+    collect_parser = subparsers.add_parser(
+        "collect",
+        help="recolhe os endpoints ACTIVE da base de dados (exige tde init)",
+        description="Recolhe os endpoints ACTIVE do espelho SQLite com os collectors "
+        "registados, num run, gravando raw_item sem duplicar. Não lê config/sources.yaml "
+        "nem sincroniza; não cria a base de dados nem aplica migrações. Códigos: 0 sem "
+        "falhas, 2 falhas parciais, 1 erro ou todos os endpoints falharam.",
+    )
+    collect_parser.add_argument(
+        "--source",
+        metavar="ID",
+        default=None,
+        help="recolhe só os endpoints ACTIVE desta fonte",
+    )
     return parser
 
 
@@ -184,6 +228,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in lines:
             print(line, file=stream)
         return 0 if ok else 1
+
+    if args.command == "collect":
+        code, out, err = collect(
+            resolve_db_path(args.db, os.environ), default_registry(), args.source
+        )
+        for line in out:
+            print(line)
+        for line in err:
+            print(line, file=sys.stderr)
+        return code
 
     parser.print_help()
     return 0
