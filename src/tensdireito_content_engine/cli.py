@@ -17,9 +17,11 @@ from tensdireito_content_engine.sources import SourceRegistryError, load_sources
 from tensdireito_content_engine.storage import (
     DB_PATH_ENV,
     DEFAULT_DB_PATH,
+    SourceSyncError,
     StorageError,
     init_database,
     resolve_db_path,
+    sync_sources,
 )
 
 PROG = "tde"
@@ -65,6 +67,35 @@ def init(path: Path) -> tuple[bool, list[str]]:
         return False, [f"init: ERRO — {path}", f"- {exc}"]
     applied = ", ".join(result.applied) if result.applied else "nenhuma"
     return True, [f"init: OK — {result.path}", f"migrações aplicadas: {applied}"]
+
+
+def sources_sync(config_path: Path, db_path: Path) -> tuple[bool, list[str]]:
+    """Sincroniza o registo de fontes validado com SQLite (ROADMAP.md M2.7).
+
+    Unidireccional YAML → SQLite, numa transacção única; não cria a base de dados nem
+    aplica migrações e não acede à rede. Um YAML inválido não toca na base de dados.
+    """
+    try:
+        loaded = load_sources(config_path)
+    except SourceRegistryError as exc:
+        return False, [
+            f"sources sync: ERRO — {config_path}",
+            *(f"- {error}" for error in exc.errors),
+        ]
+    try:
+        result = sync_sources(db_path, loaded.sources, loaded.endpoints)
+    except SourceSyncError as exc:
+        return False, [f"sources sync: ERRO — {db_path}", *(f"- {error}" for error in exc.errors)]
+    except StorageError as exc:
+        return False, [f"sources sync: ERRO — {db_path}", f"- {exc}"]
+    counts = result.total
+    return True, [
+        f"sources sync: OK — {result.path}",
+        f"inseridos: {counts.inserted}",
+        f"actualizados: {counts.updated}",
+        f"inalterados: {counts.unchanged}",
+        f"removidos: {counts.removed}",
+    ]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -113,6 +144,14 @@ def build_parser() -> argparse.ArgumentParser:
         description="Valida config/sources.yaml: esquema, IDs únicos, tiers, campos "
         "obrigatórios e invariantes do domínio. Local, sem rede e sem escrita.",
     )
+    sources_actions.add_parser(
+        "sync",
+        help="sincroniza config/sources.yaml → SQLite (exige tde init)",
+        description="Sincroniza o registo validado de config/sources.yaml com as tabelas "
+        "source_registry e source_endpoint, pelo id, numa transacção única. Unidireccional "
+        "(nunca escreve no YAML); preserva last_success_at e last_error; não cria a base de "
+        "dados nem aplica migrações. Local, sem rede.",
+    )
     return parser
 
 
@@ -134,6 +173,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "sources" and args.sources_command == "validate":
         ok, lines = sources_validate(sources_path(args.config))
+        stream = sys.stdout if ok else sys.stderr
+        for line in lines:
+            print(line, file=stream)
+        return 0 if ok else 1
+
+    if args.command == "sources" and args.sources_command == "sync":
+        ok, lines = sources_sync(sources_path(args.config), resolve_db_path(args.db, os.environ))
         stream = sys.stdout if ok else sys.stderr
         for line in lines:
             print(line, file=stream)
