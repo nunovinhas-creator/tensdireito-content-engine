@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. Nenhum trabalho do M2 foi iniciado.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável) e M2.2 (modelos de domínio) concluídos e integrados; M2.3 (normalização e identidade) concluído, em revisão no PR #5; M2.4 não iniciado. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | A definir. | Não iniciado |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 a definir. | **Em curso** — M2.1 e M2.2 concluídos; M2.3 concluído, em revisão (PR #5); M2.4 não iniciado |
 
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
@@ -97,3 +97,5 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 | D9 | Frequência das execuções agendadas | 5 | **Pendente.** |
 | D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
 | D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |
+| D12 | Regra de `canonical_url`: que parâmetros são "de tracking" e se se normalizam esquema, domínio, barra final ou fragmento | 1 | **Pendente (OPEN).** DATA_MODEL.md exige `canonical_url` "sem parâmetros de tracking" sem os enumerar. Não se inventa nem assume nenhuma lista de parâmetros. Até decisão, o M2.3 não calcula `canonical_url` e preserva o URL tal como obtido (DEC-021). |
+| D13 | Formatos aceites em `published_at_raw` e tratamento de data sem hora ou data/hora sem fuso | 1 | **Pendente (OPEN).** Nenhum fuso (incluindo `Europe/Lisbon`) é assumido silenciosamente. Até decisão, só ISO 8601 com fuso explícito é convertido para UTC; os restantes casos ficam nulos, com o original preservado (DEC-021). |

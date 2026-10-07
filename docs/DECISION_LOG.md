@@ -185,6 +185,20 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Aceite (clarifica DEC-005)
 - **Data:** 2026-10-07
 
+### DEC-021 — Normalização mecânica e identidade de conteúdo
+- **Decisão:** A etapa NORMALIZE separa três representações: `RawItem` (captura bruta, preservada intacta) → `NormalizedItem` (intermédio sem persistência) → fingerprint. O `NormalizedItem` contém só o que se obtém por transformação mecânica:
+  1. **Texto** (`text`): Unicode NFC; `\r\n`/`\r` → `\n`; espaço horizontal consecutivo (incluindo tabulação e NBSP) → um espaço; sem espaços no início/fim das linhas; três ou mais quebras → uma linha em branco; sem espaço exterior. Não muda maiúsculas/minúsculas, pontuação, acentos nem marcação; não usa NFKC.
+  2. **Título** (`title`): NFC e todo o espaço consecutivo (incluindo quebras) → um espaço, sem espaço exterior.
+  3. **`published_at`**: só ISO 8601 com fuso explícito é convertido para UTC; data sem hora, data/hora sem fuso ou outro formato → nulo (D13).
+  4. **URL**: preservado tal como obtido no `RawItem`; `canonical_url` não é calculado até D12.
+  5. **Fingerprint**: SHA-256 (hex) do `text` normalizado em UTF-8 — é o `text_hash` de DATA_MODEL.md (deduplicação exacta). `RawItem.content_hash` é o SHA-256 do conteúdo bruto, sem normalização.
+  O fingerprint identifica a representação normalizada, não o acontecimento: não é `event_id` nem decide pertença a um `Event` (CLUSTER). A normalização não atribui categoria, audiência, `impact_type`, `legal_stage`, verificação, tier, `document_kind` nem língua, e não cria `claim`, `source_evidence` nem `event`.
+- **Razão:** DATA_MODEL.md define `text_hash` como "hash do texto normalizado", mas não as regras de normalização; regras mecânicas e conservadoras tornam a deduplicação exacta determinista sem alterar o significado. NFC junta formas canonicamente equivalentes de caracteres portugueses ("ã" composto e decomposto). A evidência é validada literalmente contra o texto normalizado (DATA_MODEL.md §2.5), por isso o texto normalizado não pode ser reescrito.
+- **Alternativas consideradas:** `casefold`/remoção de acentos no hash (funde textos diferentes, ex.: "pensão"/"pensao"); NFKC (altera "m²", "½"); incluir título ou URL no fingerprint (contraria a definição de `text_hash` e mistura identidade de conteúdo com metadados); normalização agressiva de URL e assunção do fuso local (sem regra documentada — D12, D13).
+- **Documentos subordinados:** [DATA_MODEL.md](DATA_MODEL.md) §2.1, [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md) etapa 2, [ROADMAP.md](ROADMAP.md) D12 e D13. Implementado em `domain/raw_item.py` e `normalize/`.
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
@@ -202,3 +216,5 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D9 — Frequência das execuções agendadas | OPEN |
 | D10 — Destino de publicação | OPEN |
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |
+| D12 — Regra de `canonical_url` | OPEN (ver DEC-021) |
+| D13 — Formatos e fuso de `published_at_raw` | OPEN (ver DEC-021) |

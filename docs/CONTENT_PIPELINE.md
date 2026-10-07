@@ -39,6 +39,8 @@ Regra central (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#2-regra-central)): 
 
 ## Etapa 2 — NORMALIZE
 
+> Implementado (M2.3): apenas a normalização mecânica de título, texto e `published_at` e o `text_hash` (DEC-021). Extracção de HTML, `canonical_url` (D12), deduplicação, tier, `document_kind`, língua e janela temporal ficam para unidades posteriores.
+
 - Extrai texto principal; remove navegação, publicidade, boilerplate.
 - Normaliza `published_at` para UTC; se não for possível, deixa nulo (nunca inventa data).
 - Calcula `canonical_url`, `text_hash`; duplicados exactos → `duplicate_of`, `status = ignored`.
