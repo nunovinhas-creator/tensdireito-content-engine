@@ -24,6 +24,7 @@
 - Preferir a biblioteca padrão.
 - Cada dependência externa tem de ser justificada no PR que a introduz e listada na secção 7.
 - Dependências esperadas na Fase 1 (a confirmar): cliente HTTP, parser de RSS/Atom, extractor de HTML, parser YAML.
+- Definido (M2.9; DEC-033): o cliente HTTP e o parser de RSS 2.0 do collector `rss` usam só a biblioteca padrão (`urllib.request`, `urllib.robotparser`, `xml.etree.ElementTree`); `feedparser`, `httpx`/`requests` e `defusedxml` foram considerados e rejeitados.
 - SDKs de fornecedores de IA só são instalados como *extras* opcionais (ex.: `uv sync --extra <fornecedor>`), nunca como dependência base.
 - Nenhuma dependência é adicionada nas fases de documentação.
 
@@ -47,7 +48,7 @@ tensdireito-content-engine/
 │   ├── domain/               # enums e entidades de domínio, sem persistência (DATA_MODEL.md; M2.2)
 │   ├── storage/              # ligação SQLite + migrações numeradas (M2.6; DEC-026); repositórios por entidade depois
 │   ├── sources/
-│   ├── collectors/           # base.py (interface Collector), rss.py, html_page.py, manual.py
+│   ├── collectors/           # base.py (interface Collector), http.py (único transporte de rede; M2.9), rss.py, html_page.py, manual.py
 │   ├── normalize/            # normalização mecânica + fingerprint (M2.3; DEC-021) + deduplicação exacta (M2.4; DEC-022)
 │   ├── classify/
 │   ├── cluster/
@@ -60,7 +61,7 @@ tensdireito-content-engine/
 │   ├── report/
 │   └── llm/                  # base.py (interface LLMProvider), null.py, <fornecedor>.py
 ├── tests/
-│   └── fixtures/             # HTML/RSS reais guardados para testes offline
+│   └── fixtures/             # HTML/RSS sintéticos para testes offline (sem fontes nem URLs reais; DEC-034)
 └── data/                     # (gitignored) base de dados SQLite, exports, relatórios
 ```
 
@@ -96,7 +97,9 @@ Opções globais: `--db PATH`, `--config DIR`, `--dry-run` (não escreve), `--no
 
 Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5), `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)) e `tde [--config DIR] [--db PATH] sources sync` (M2.7; contrato e saída em [ROADMAP.md](ROADMAP.md#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)) — não cria a base de dados nem aplica migrações (`tde init` continua a não sincronizar fontes), corre numa transacção única, não acede à rede e não tem `--dry-run`.
 
-Implementado (M2.8, a integrar; DEC-031): `tde [--db PATH] collect [--source ID]` — contrato e saída em [ROADMAP.md](ROADMAP.md#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector). Lê os endpoints `ACTIVE` do espelho SQLite, sem sincronização implícita; cria e fecha um `run`; grava `raw_item` com `created_in_run`, com atomicidade por endpoint; actualiza `last_success_at`/`last_error`; códigos `0` (nenhum endpoint falhou, incluindo zero endpoints `ACTIVE`), `2` (falhas parciais) e `1` (falha de pré-condição ou todos os endpoints seleccionados falharam). Sem collectors concretos nem rede. `--since`, que consta da linha de `tde collect` na tabela como interface-alvo, não faz parte do M2.8 e não é aceite pela CLI.
+Implementado (M2.8, integrado no PR #14; DEC-031): `tde [--db PATH] collect [--source ID]` — contrato e saída em [ROADMAP.md](ROADMAP.md#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector). Lê os endpoints `ACTIVE` do espelho SQLite, sem sincronização implícita; cria e fecha um `run`; grava `raw_item` com `created_in_run`, com atomicidade por endpoint; actualiza `last_success_at`/`last_error`; códigos `0` (nenhum endpoint falhou, incluindo zero endpoints `ACTIVE`), `2` (falhas parciais) e `1` (falha de pré-condição ou todos os endpoints seleccionados falharam). Sem collectors concretos nem rede. `--since`, que consta da linha de `tde collect` na tabela como interface-alvo, não faz parte do M2.8 e não é aceite pela CLI.
+
+Definido (M2.9; DEC-032, DEC-033): `tde collect` não muda de interface, saídas nem códigos; o registo de produção passa a ter o collector `rss`. Sem endpoints `ACTIVE` (D1), nenhum pedido de rede é feito. Contrato em [ROADMAP.md](ROADMAP.md#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito).
 
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 
@@ -114,7 +117,9 @@ class Collector(Protocol):
 - Respeita `rate_limit` e `user_agent` definidos na configuração.
 - Falhas numa fonte não interrompem as restantes; ficam registadas no `run`.
 
-Implementado (M2.8, a integrar; DEC-031): `RawItemIn` é o modelo de domínio `RawItem` (M2.3), sem entidade nova; `endpoint` é o `SourceEndpoint` de domínio lido do espelho SQLite; `collectors/` depende só de `domain` (não importa `storage`); os collectors são registados por `endpoint_type`, num registo vazio em produção no M2.8 (os testes usam collectors falsos); no M2.8, `since` é sempre `None`. Um endpoint `ACTIVE` sem collector registado conta como falha desse endpoint. `rate_limit`, `user_agent` e `robots.txt` aplicam-se aos collectors concretos, fora do M2.8.
+Implementado (M2.8, integrado no PR #14; DEC-031): `RawItemIn` é o modelo de domínio `RawItem` (M2.3), sem entidade nova; `endpoint` é o `SourceEndpoint` de domínio lido do espelho SQLite; `collectors/` depende só de `domain` (não importa `storage`); os collectors são registados por `endpoint_type`, num registo vazio em produção no M2.8 (os testes usam collectors falsos); no M2.8, `since` é sempre `None`. Um endpoint `ACTIVE` sem collector registado conta como falha desse endpoint. `rate_limit`, `user_agent` e `robots.txt` aplicam-se aos collectors concretos, fora do M2.8.
+
+Definido (M2.9; DEC-032, DEC-033; contrato em [ROADMAP.md](ROADMAP.md#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito)): primeiro collector concreto, `endpoint_type = "rss"` (só RSS 2.0). A rede fica num único transporte, `collectors/http.py`, injectado no collector; o parsing é uma função pura `bytes` → `RawItem`, testável offline. Política do transporte: só `https`, destino público, sem redirects, só `200`, `Content-Type` XML aceite, sem compressão, limites de tamanho e tempo, uma tentativa, pedidos sequenciais com intervalo mínimo por anfitrião, `User-Agent` com contacto e `robots.txt` verificado em execução; `DOCTYPE` recusado no XML. Até ao transporte de `fetch` (DEC-028), `rate_limit` e `user_agent` são valores fixos no código, não lidos da configuração. Erros de transporte e de conteúdo são falhas do endpoint (DEC-031). Mapeamento: `url` ← `<link>`, `title` ← `<title>`, `raw_content` ← elemento `<item>` serializado, `external_id` ← `<guid>`, `published_at_raw` ← `<pubDate>`; sem `canonical_url` (D12) nem interpretação de datas (D13).
 
 ### 4.2 LLMProvider
 
@@ -178,14 +183,14 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 | Rastreabilidade | As entidades com relação a `run` definida no modelo ([DATA_MODEL.md](DATA_MODEL.md)) guardam o `run` de criação (`created_in_run`); as restantes — por exemplo, `source_registry` e `source_endpoint`, espelho operacional do registo versionado — não têm essa relação (DEC-028). Toda a claim usada em conteúdo aprovado tem ≥1 evidência validada. |
 | Determinismo | Com `--no-llm`, o resultado de uma etapa é determinista para os mesmos dados. |
 | Tolerância a falhas | Falha de uma fonte ou chamada de IA não aborta a execução; fica registada. |
-| Testabilidade | Testes correm offline com fixtures; nenhum teste chama a rede ou um fornecedor de IA. |
+| Testabilidade | Testes correm offline com fixtures; nenhum teste chama a rede ou um fornecedor de IA. Desde o M2.9 (DEC-033), o transporte de rede é injectável e uma salvaguarda nos testes faz falhar qualquer tentativa de abrir ligação. |
 | Observabilidade | Logs estruturados (JSON lines) por execução; relatório legível por humanos. |
 | Língua | Conteúdo publicado em português europeu, segundo o AO1990 (DEC-017). A documentação técnica interna não está sujeita a esta norma. |
 | Custo | Chamadas de IA contabilizadas por execução (tokens); limite configurável por execução. |
 
 ## 7. Registo de dependências
 
-Dependências de execução: `pyyaml` (a CLI usa `argparse` da biblioteca padrão).
+Dependências de execução: `pyyaml` (a CLI usa `argparse` da biblioteca padrão). O M2.9 não acrescenta dependências: o transporte HTTPS e o parser RSS usam a biblioteca padrão (DEC-033).
 
 | Pacote | Motivo | Fase |
 |--------|--------|------|

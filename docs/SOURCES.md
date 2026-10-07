@@ -104,6 +104,8 @@ Regras:
 - **Estado de validação operacional vs. decisão editorial (DEC-030):** nesta fase, `validated_at` e `validated_by` do registo constituem o estado de validação operacional de uma fonte ou endpoint `VALIDATED`/`ACTIVE`. A decisão editorial `VALIDATE_SOURCE` em `editorial_decision` ([DATA_MODEL.md](DATA_MODEL.md#37-editorial_decisiondecision) §3.7) não é requisito actual, porque essa entidade ainda não existe; fica para a unidade futura que a introduzir, que pode rever esta regra.
 - Uma fonte pode estar `VALIDATED` sem nenhum endpoint activo (útil para reconhecer o tier de pistas manuais pelo domínio).
 - `tde sources validate` verifica o esquema, IDs únicos, tiers válidos e campos obrigatórios; recusa endpoints `ACTIVE` sem `url` e sem `validated_at`.
+- **`fetch` no M2.9:** `fetch` continua fora da projecção para o domínio e o SQLite (DEC-028). Os valores de `frequency`, `rate_limit_seconds`, `max_items` e `selectors` **não têm efeito** na recolha; o collector `rss` usa os limites fixos de DEC-033. A execução é sempre manual (`tde collect`); `frequency` não agenda nada (D8, D9).
+- O procedimento de validação manual, a correspondência entre verificações e estados e o formato do registo de evidência estão na secção 8 (DEC-034).
 
 ## 5. Evidência oficial adequada
 
@@ -159,3 +161,54 @@ Apenas entrada manual na V1.
 - Rever o registo mensalmente: endpoints com erros repetidos ou sem itens relevantes em 60 dias são candidatos a `INACTIVE`.
 - Alterações de estrutura em endpoints `html_page` devem ser detectadas por testes com fixtures e por alerta quando um endpoint devolve 0 itens em N execuções consecutivas.
 - Desactivar ou alterar o tier de uma fonte é uma decisão registada: nesta fase, por pull request no registo; a decisão `DEACTIVATE_SOURCE` em `editorial_decision` aplica-se quando essa entidade existir (DEC-030).
+
+## 8. Protocolo de validação de fontes
+
+> Decisão: DEC-034. Este protocolo é executado por uma pessoa, numa unidade própria, separada do código dos collectors. Nenhuma fonte foi ainda validada (D1 OPEN).
+
+### 8.1 Cinco verificações distintas
+
+Uma fonte não passa a ser válida por existir tecnicamente. Cada verificação é registada à parte; nenhuma é inferida de outra.
+
+| # | Verificação | Pergunta | Exemplos de evidência (natureza, sem URLs) |
+|---|-------------|----------|---------------------------------------------|
+| V1 | Existência da fonte | A entidade existe e é quem diz ser? Que tier merece? | Designação oficial e orgânica actual; domínio institucional da entidade. |
+| V2 | Existência do endpoint | O ponto de acesso é publicado pela própria entidade, num domínio seu, e foi encontrado a partir dela? | Página da entidade que anuncia o feed ou a listagem; caminho de navegação desde a página inicial do domínio oficial. |
+| V3 | Validade técnica | O endpoint cumpre o contrato do collector do seu tipo e a política de transporte? | Para `rss` (DEC-032, DEC-033): `https`, sem redirect, `200`, `Content-Type` aceite, sem compressão, dentro dos limites, RSS 2.0 sem `DOCTYPE`, cada item com `<title>` e `<link>` absoluto; dois pedidos espaçados com itens estáveis. |
+| V4 | Adequação editorial | A fonte e o conteúdo do endpoint cabem no âmbito editorial e na taxonomia ([EDITORIAL_POLICY.md](EDITORIAL_POLICY.md)), em português, com o tier confirmado? | Amostra de itens classificada manualmente por categoria; tipo de conteúdo (anúncios, diplomas, procedimentos). |
+| V5 | Autorização de recolha | Os termos de utilização e o `robots.txt` permitem a recolha automática? Há paywall, autenticação ou medidas anti-bot? | Termos de utilização lidos na data; conteúdo relevante do `robots.txt` na data. |
+
+### 8.2 Correspondência com os estados do registo
+
+| Estado | Exige | Notas |
+|--------|-------|-------|
+| Fonte `CANDIDATE` | — | Descoberta. Sem `domains`. |
+| Fonte `VALIDATED` | V1 e V4 (da fonte) | `domains` confirmados; `validated_at`/`validated_by` (DEC-030). |
+| Endpoint `CANDIDATE` | — | `url` nulo, mesmo que V2 já esteja registada. |
+| Endpoint `VALIDATED` | V2, V3, V5 | `url` = URL confirmado (o final, sem redirects); `validated_at`/`validated_by`. |
+| Endpoint `ACTIVE` | Endpoint `VALIDATED`, fonte `VALIDATED`, V4 do endpoint, collector registado no código para o `endpoint_type`, decisão explícita de activar | A exigência de fonte `VALIDATED` é procedimental: `tde sources validate` ainda não a verifica. |
+| `INACTIVE` | Decisão registada por pull request | Ver secção 7. |
+
+Cada passagem de estado é um pull request no registo, revisto por uma pessoa.
+
+### 8.3 Origem dos dados
+
+- URLs, feeds e endpoints obtêm-se **apenas** por navegação ou documentação das fontes oficiais, feitas por uma pessoa.
+- Nunca são inferidos, completados ou sugeridos por um modelo de IA, nem copiados de terceiros (uma notícia que cita um link oficial não valida esse link — secção 1).
+- Um modelo pode ajudar a redigir o registo, mas não fornece URLs e não é `validated_by` (DEC-014).
+
+### 8.4 Registo de evidência
+
+Cada verificação fica registada de forma reproduzível, no pull request que altera o estado (descrição do PR ou ficheiro de registo indicado pela unidade de validação), com os campos:
+
+| Campo | Conteúdo |
+|-------|----------|
+| `source_id` / `endpoint_id` | Identificadores do registo. |
+| `check` | `V1` a `V5`. |
+| `checked_at` | Data e hora ISO 8601 com fuso explícito. |
+| `checked_by` | Pessoa (nunca um modelo). |
+| `method` | Passos para repetir a verificação (ex.: navegação desde a página inicial do domínio oficial; pedido `GET` com a ferramenta indicada e o `User-Agent` do projecto). |
+| `observation` | O que foi observado (ex.: código HTTP, `Content-Type`, tamanho, número de itens, presença de `<title>`/`<link>`, excerto relevante dos termos ou do `robots.txt`). |
+| `result` | `ok` · `falha` · `não aplicável`, com motivo. |
+
+Amostras reais de feeds não entram em `tests/fixtures/`: os testes usam fixtures sintéticas, sem fontes nem URLs reais.
