@@ -103,6 +103,8 @@ Implementado (M2.9; DEC-032, DEC-033): `tde collect` não muda de interface, sa�
 
 Implementado (M2.10; DEC-035): `tde sources validate` recusa um endpoint `ACTIVE` cuja fonte não esteja `VALIDATED` (`CANDIDATE` ou `INACTIVE`), com o erro `um endpoint ACTIVE exige fonte VALIDATED (fonte <id>: <ESTADO>)`, reportado por endpoint ao lado dos restantes erros (código `1`); se o `registry_status` da própria fonte for inválido, só esse erro é reportado. A regra vive na leitura do registo (`sources/registry.py`), pelo que `tde sources sync` recusa o mesmo registo, sem verificação própria (DEC-028 (3)). Interface, saídas dos casos válidos e códigos de saída não mudam; `tde collect` não muda. Nenhuma outra regra entre estados é verificada: `domains`, evidência (DEC-036), verificações V1–V5 e identidade de `validated_by` (além do prefixo `llm:`) ficam para a revisão humana do pull request. Contrato em [ROADMAP.md](ROADMAP.md#m210--validação-de-fontes).
 
+Definido (M2.11, por implementar; DEC-041): `tde [--db PATH] normalize` — normaliza os `raw_item` sem `source_document`, por ordem de `id`, e escreve `source_document` (migração `0002`), com `run` (`command = "normalize"`) no padrão de DEC-031; sem opções próprias, sem rede e sem leitura de `config/sources.yaml`; códigos `0` (nenhuma falha, incluindo zero pendentes), `2` (falhas parciais) e `1` (pré-condição, todos os itens com falha ou erro da `storage`). Contrato em [ROADMAP.md](ROADMAP.md#m211--persistência-da-etapa-normalize).
+
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 
 ## 4. Interfaces internas

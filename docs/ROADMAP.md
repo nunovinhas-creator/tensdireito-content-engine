@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) concluído e integrado (PR #12); M2.8 (recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`) concluído e integrado (PR #14); M2.9 (primeiro collector concreto: `rss`, com transporte HTTPS restrito) concluído e integrado (PR #16); M2.10 (validação de fontes) implementado, a integrar; a validação real das primeiras fontes (D1) continua por fazer. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) concluído e integrado (PR #10); M2.7 (sincronização explícita de `sources.yaml` para SQLite) concluído e integrado (PR #12); M2.8 (recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`) concluído e integrado (PR #14); M2.9 (primeiro collector concreto: `rss`, com transporte HTTPS restrito) concluído e integrado (PR #16); M2.10 (validação de fontes) concluído e integrado (PR #18); M2.11 (persistência da etapa NORMALIZE) definido, por implementar; a validação real das primeiras fontes (D1) continua por fazer. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,7 +10,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)); M2.8 recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`, sem collectors concretos nem rede (DEC-031; ver [M2.8](#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)); M2.9 primeiro collector concreto, `rss` (RSS 2.0), com transporte HTTPS restrito, sem endpoints reais (DEC-032, DEC-033; ver [M2.9](#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito)). M2.10 validação de fontes: processo, registo de evidência e regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`", sem validar fontes reais (DEC-035, DEC-036; ver [M2.10](#m210--validação-de-fontes)). A validação manual das primeiras fontes (D1) é actividade posterior ao M2.10, segundo DEC-034 e DEC-036. | **Em curso** — M2.1 a M2.9 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10, M2.7 no PR #12, M2.8 no PR #14, M2.9 no PR #16); M2.10 implementado, a integrar |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)); M2.7 sincronização explícita de `sources.yaml` para SQLite (DEC-028, DEC-029; ver [M2.7](#m27--sincronização-explícita-de-sourcesyaml-para-sqlite)); M2.8 recolha local: ciclo de vida de `run`, persistência de `raw_item` e contrato `Collector`, sem collectors concretos nem rede (DEC-031; ver [M2.8](#m28--recolha-local-ciclo-de-vida-de-run-persistência-de-raw_item-e-contrato-collector)); M2.9 primeiro collector concreto, `rss` (RSS 2.0), com transporte HTTPS restrito, sem endpoints reais (DEC-032, DEC-033; ver [M2.9](#m29--primeiro-collector-concreto-rss-com-transporte-https-restrito)). M2.10 validação de fontes: processo, registo de evidência e regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`", sem validar fontes reais (DEC-035, DEC-036; ver [M2.10](#m210--validação-de-fontes)). A validação manual das primeiras fontes (D1) é actividade posterior ao M2.10, segundo DEC-034 e DEC-036. M2.11 persistência da etapa NORMALIZE: `source_document`, migração `0002` e `tde normalize` (DEC-037 a DEC-041; ver [M2.11](#m211--persistência-da-etapa-normalize)). | **Em curso** — M2.1 a M2.10 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8, M2.6 no PR #10, M2.7 no PR #12, M2.8 no PR #14, M2.9 no PR #16, M2.10 no PR #18); M2.11 definido, por implementar |
 
 ### M2.5 — registo de fontes e validação de fontes
 
@@ -380,7 +380,7 @@ Só `collectors/http.py` importa módulos de rede da biblioteca padrão; um test
 
 ### M2.10 — validação de fontes
 
-**Estado:** implementado, a integrar. Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. A validação real de fontes (D1) não faz parte da unidade e continua por fazer. Decisões: DEC-035 (regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`", Q4) e DEC-036 (validador, resultados e registo de evidência). Aplica DEC-034 (cinco verificações e correspondência com os estados) e respeita DEC-014, DEC-023, DEC-024, DEC-027 a DEC-033, sem as alterar.
+**Estado:** concluído e integrado (PR #18). Esta secção é o contrato da unidade; a implementação está descrita em *Implementação*, no fim da secção. A validação real de fontes (D1) não faz parte da unidade e continua por fazer. Decisões: DEC-035 (regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`", Q4) e DEC-036 (validador, resultados e registo de evidência). Aplica DEC-034 (cinco verificações e correspondência com os estados) e respeita DEC-014, DEC-023, DEC-024, DEC-027 a DEC-033, sem as alterar.
 
 **Objectivo:** validar documentalmente fontes e endpoints candidatos antes de serem considerados activáveis pelo sistema. O M2.10 fixa o processo — quem valida, que evidência é necessária, como se regista, que resultados permitem cada passagem de estado — e torna automática a única regra entre estados verificável a partir do YAML. **Não valida nenhuma fonte real:** a validação das fontes T1 prioritárias (D1) é actividade posterior, feita por pessoas, um pull request por passagem de estado, segundo este contrato. Mantém-se a regra central: descobrir não é verificar; verificar não é aprovar; aprovar não é publicar (DEC-002).
 
@@ -464,6 +464,166 @@ As perguntas e a natureza da evidência de cada verificação são as de SOURCES
 
 **Implementação:** regra de DEC-035 em `src/tensdireito_content_engine/sources/registry.py`, na leitura do registo, ao lado da regra "endpoint `ACTIVE` exige `url` e `validated_at`". O estado da fonte é o `registry_status` lido do YAML, ou `CANDIDATE` (valor por omissão do domínio, M2.2) quando o campo falta; se o valor for inválido, a regra não é avaliada e só o erro do estado é reportado. Cada endpoint `ACTIVE` numa fonte `CANDIDATE` ou `INACTIVE` produz `um endpoint ACTIVE exige fonte VALIDATED (fonte <id>: <ESTADO>)`, com o prefixo de localização dos restantes erros (`sources[i].endpoints[j] (id=…)`), pela ordem do ficheiro. `tde sources sync` recusa o registo pela leitura comum (DEC-028 (3)), sem código próprio. Formato do registo de evidência e modelo só com marcadores em [`docs/source_validation/README.md`](source_validation/README.md); nenhum ficheiro de evidência de fonte real. Testes offline e sintéticos em `tests/test_sources_registry.py`, `tests/test_cli.py` e `tests/test_source_sync.py`; os testes existentes com endpoints `ACTIVE` passam a usar fonte `VALIDATED`. Sem alterações ao domínio, ao esquema, às migrações, ao formato do YAML, a `tde collect`, aos collectors, ao transporte nem às dependências; `config/sources.yaml` continua `[]`.
 
+### M2.11 — persistência da etapa NORMALIZE
+
+**Estado:** definido, por implementar. Esta secção é o contrato da unidade. Decisões: DEC-037 (`canonical_url` nulo enquanto D12 estiver OPEN), DEC-038 (`language` só por declaração explícita), DEC-039 (`document_kind` nulo = não determinado), DEC-040 (extracção de texto de itens `rss`) e DEC-041 (contrato de `tde normalize`, `source_document` e `0002`). Aplica DEC-021, DEC-022 e DEC-026, e respeita DEC-013 e DEC-027 a DEC-036, sem as alterar.
+
+**Objectivo:** persistir a etapa NORMALIZE ([CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-2--normalize), etapa 2). Os `raw_item` pendentes passam a `source_document`, Nível 2 (DATA_MODEL.md §2.1), através de um comando explícito e local, `tde normalize`, com a tabela criada pela migração `0002`. Desta forma, `tde collect && tde normalize` (critério de saída da Fase 1) corre localmente, de forma idempotente, verificado com fixtures sintéticas.
+
+**Contexto:** o M2.3 e o M2.4 definiram a normalização mecânica e a deduplicação exacta sem persistência (DEC-021, DEC-022). O M2.8 e o M2.9 gravam `raw_item` (para `rss`, `raw_content` é o XML do `<item>` — DEC-032). DEC-026 adiou `source_document` para "a unidade que persistir NORMALIZE, depois de essa unidade definir como trata `canonical_url` sob D12". O M2.9 deixou registada a dependência de extracção de texto do `<item>`. O NORMALIZE é a etapa seguinte ao COLLECT em todos os resultados possíveis de D1, ao contrário de `html_page`, Atom ou `manual`, cuja necessidade depende da validação real das fontes.
+
+**Âmbito (entregáveis da implementação):**
+
+1. **Migração `0002_source_document.sql`** em `src/tensdireito_content_engine/storage/migrations/`, que cria só a tabela `source_document` (ver *Esquema*), com um índice não único em `text_hash`. Não altera nenhuma tabela da `0001`.
+2. **Modelo de domínio `SourceDocument`** (M2.2) alinhado com a tabela, sem campos além dela: `canonical_url`, `language`, `document_kind` e `text` passam a opcionais (DEC-037 a DEC-040); acrescentam-se `raw_item_id`, `text_hash`, `duplicate_of` e `status`. `status` usa uma enumeração com os valores de DATA_MODEL.md §2.1 (`normalized`, `classified`, `clustered`, `ignored`), dos quais o M2.11 só atribui `normalized` e `ignored`. Invariantes: `text` nulo ⇔ `text_hash` nulo; `text_hash`, quando existe, é SHA-256 hexadecimal em minúsculas; `duplicate_of` não nulo ⇒ `status = ignored` e `text_hash` não nulo; `language`, quando existe, tem 2 ou 3 letras ASCII minúsculas; `source_id` nulo ⇒ `T4` (invariante existente); `created_in_run` pertence à persistência e não está no domínio, como em `RawItem`. A escrita pode receber os valores sem `id` (atribuído pela base de dados); a forma do objecto de entrada é escolha de implementação, sem campos nem regras além deste contrato.
+3. **Extracção de texto `rss` (DEC-040)** em `src/tensdireito_content_engine/normalize/`, como função pura de `raw_content` → texto extraído (ou nenhum), mais a `xml:lang` efectiva do elemento escolhido (DEC-038). Usa só a biblioteca padrão (`xml.parsers.expat`, `xml.etree.ElementTree`, `html.parser`), sem rede. As funções do M2.3/M2.4 mantêm-se, e o `text_hash` é o fingerprint de DEC-021 sobre o texto normalizado.
+4. **Repositório em `storage`:** leitura dos `raw_item` pendentes com o `endpoint_type` do seu endpoint e o `tier`/`registry_status` da sua fonte; procura do representante por `text_hash`; inserção de `source_document`. Todo o SQL fica em `storage/`, e `storage` continua a depender só de `domain` (não importa `normalize`, `collectors` nem `sources`).
+5. **Orquestração** fora de `storage` e de `normalize` (num módulo próprio, como `collect.py`, ou na CLI), sem SQL: pré-condições, `run`, ciclo de vida dos itens, códigos de saída.
+6. **Comando `tde [--db PATH] normalize`** em `cli.py` (ver *Comando*).
+7. **Documentação actualizada com a implementação** (ver *Documentação a actualizar*).
+
+**Esquema — `source_document` (`0002`; DATA_MODEL.md §2.1; DEC-037 a DEC-041):**
+
+| Coluna | Tipo | Nulo | Restrições | Origem | Semântica |
+|--------|------|------|------------|--------|-----------|
+| `id` | `INTEGER` | Não | PK | Base de dados | Identificador do documento. |
+| `raw_item_id` | `INTEGER` | Não | FK → `raw_item(id)`; `UNIQUE` | `raw_item.id` | Relação 1:1 com a captura bruta (DATA_MODEL.md §1). |
+| `source_id` | `TEXT` | Sim | FK → `source_registry(id)` | `source_endpoint.source_id` do endpoint do `raw_item` | Fonte resolvida. No M2.11 nunca é nulo nos documentos criados (as pistas manuais são `unsupported`); a coluna admite nulo para pistas manuais futuras (SOURCES.md §3.4). |
+| `canonical_url` | `TEXT` | Sim | — | — | Sempre nulo no M2.11: "por calcular — D12 OPEN" (DEC-037). O URL original está em `raw_item.url`. |
+| `title` | `TEXT` | Não | — | `raw_item.title` normalizado (DEC-021) | Título normalizado. |
+| `text` | `TEXT` | Sim | — | Extracção de DEC-040 + normalização de DEC-021 | Texto limpo. Nulo = sem texto útil no item (nada fabricado). |
+| `language` | `TEXT` | Sim | — | `xml:lang` efectiva (DEC-038) | Subetiqueta primária em minúsculas (ex.: `pt`). Nulo = língua desconhecida; nunca presumida. |
+| `published_at` | `TEXT` | Sim | — | `raw_item.published_at_raw` pela regra de DEC-021 | UTC ISO 8601 com fuso explícito. Só ISO 8601 com fuso explícito é convertido; o `pubDate` RFC 822 de RSS fica nulo até D13. Nunca inventada. |
+| `source_tier` | `TEXT` | Não | — | `source_registry.tier` se `registry_status` = `VALIDATED` no momento da normalização; senão `T4` | SOURCES.md §3.1; DATA_MODEL.md §2.1. |
+| `document_kind` | `TEXT` | Sim | — | — | Sempre nulo no M2.11: "não determinado" (DEC-039). `other` nunca representa desconhecido. |
+| `text_hash` | `TEXT` | Sim | Índice não único | Fingerprint de DEC-021 sobre `text` | Nulo se e só se `text` é nulo. |
+| `duplicate_of` | `INTEGER` | Sim | FK → `source_document(id)` | Deduplicação persistida (DEC-022, DEC-041 (7)) | `id` do representante com o mesmo `text_hash`; nulo nos representantes e nos documentos sem texto. |
+| `status` | `TEXT` | Não | — | DEC-041 (7) | `normalized` (representante ou sem texto) ou `ignored` (duplicado exacto). |
+| `created_in_run` | `INTEGER` | Não | FK → `run(id)` | `run` em curso | Execução de `tde normalize` que criou o documento (DEC-041 (10)). |
+| `created_at` / `updated_at` | `TEXT` | Não | — | Camada `storage` (relógio injectável) | UTC ISO 8601 com fuso. No M2.11, `updated_at` = `created_at` (as linhas não são alteradas). |
+
+- **Fora da `0002`:** `proposed_category`, `proposed_subcategory`, `proposed_impact_type`, `proposed_legal_stage`, `relevance_flag` e `classified_by` pertencem ao CLASSIFY e entram numa migração dessa unidade (DEC-026). Nenhuma outra coluna é acrescentada.
+- Os valores das enumerações (`source_tier`, `status`) são guardados no valor interno e validados pelo domínio antes da escrita, sem `CHECK` (como na `0001`).
+- **Portabilidade (DEC-013, DEC-026):** as mesmas regras da `0001` — só `TEXT`/`INTEGER`, `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `NOT NULL` e `CREATE INDEX` simples. Sem `AUTOINCREMENT`, `WITHOUT ROWID`, `STRICT`, `INSERT OR REPLACE`, `PRAGMA` nem `CURRENT_TIMESTAMP`; sem `ON DELETE`/`ON CONFLICT`.
+
+**Migração `0002`:**
+- **Objectivo:** criar `source_document` (DEC-026 (4)).
+- **Base vazia:** `tde init` aplica a `0001` e a `0002` por ordem, cada uma na sua transacção, com registo em `schema_migration`.
+- **Base existente com só a `0001`:** `tde init` aplica apenas a `0002`, sem alterar dados nem tabelas existentes; uma segunda execução não aplica nada. Até lá, `tde sources sync`, `tde collect` e `tde normalize` terminam com `esquema não conforme` e pedem `tde init` (comportamento existente de DEC-028/DEC-031, inalterado).
+- **Imutável depois de aplicada:** a `0001` não é editada; qualquer alteração futura a `source_document` é uma migração nova.
+- **Compatibilidade:** as FK apontam para `raw_item`, `source_registry` e `run` da `0001`. DEC-029 não muda: uma fonte com documentos tem sempre `raw_item` nos seus endpoints, o que já impede a sua remoção ou alteração estrutural pelo sync.
+
+**Comando `tde [--db PATH] normalize`** (DEC-041):
+
+- **Entradas:** a base de dados no caminho resolvido (`--db`, depois `TDE_DB_PATH`, depois `data/tde.sqlite3`). Não lê `config/sources.yaml`, não sincroniza, não acede à rede, não usa IA. Sem opções próprias (`--source`, `--since`, `--dry-run` e `--no-llm` não fazem parte do M2.11).
+- **Pré-condições, por esta ordem, antes de criar o `run`:** base existente (verificada antes de abrir qualquer ligação: não cria ficheiro nem directório); esquema conforme, incluindo a `0002` (mesma verificação do M2.7/M2.8: ficheiro que não é SQLite, migrações pendentes, desconhecidas ou com checksum diferente → erro). Em falha: `normalize: ERRO — <caminho>` e `- <motivo>` em stderr, código `1`, pedindo `tde init` quando aplicável; nenhum `run`, nenhuma migração e nenhuma escrita.
+- **`run`** (DEC-031): no início, numa transacção própria, `command = "normalize"`, `started_at`, `finished_at` e `status` nulos. No fim, numa transacção própria, `finished_at`, `status` e `stats`. `outcome` e `report_path` ficam nulos.
+- **Selecção:** `raw_item` sem `source_document` (pendentes), por ordem crescente de `id`.
+- **Processamento de cada pendente, por ordem:**
+  1. **`unsupported`** (não é falha; o item continua pendente; não há escrita): `source_endpoint_id` nulo (`sem endpoint`) ou `endpoint_type` diferente de `rss` (`sem regra de extracção para endpoint_type <tipo>`).
+  2. **Extracção** (DEC-040) e **língua** (DEC-038). `raw_content` ilegível → **`failed`**, com o motivo `raw_content: XML malformado: <mensagem do parser>`, `raw_content: DOCTYPE não permitido` ou `raw_content: raiz não suportada: <raiz>`; não há escrita e o item continua pendente.
+  3. **Construção** dos campos (ver *Esquema*). Um erro de validação do domínio → **`failed`**, com o motivo `<mensagem do domínio>`.
+  4. **Inserção numa transacção do item:** procura de um documento existente com o mesmo `text_hash` e `duplicate_of` nulo. Se existir → `duplicate_of` = o seu `id`, `status = ignored` (**`duplicate`**). Senão → `duplicate_of` nulo, `status = normalized` (**`normalized`**). `text_hash` nulo → sem procura, `normalized`. Depois, `INSERT` com `created_in_run` e `created_at` = `updated_at`, e commit. O representante já registado nunca é substituído nem alterado; dentro da mesma execução, o primeiro pela ordem de `id` é o representante (DEC-022).
+- **Erro da `storage`** (por exemplo, erro SQLite): rollback da transacção do item, código `1`, `run` com `finished_at` nulo (execução interrompida), como em DEC-031. Os documentos já confirmados mantêm-se, porque cada um é completo e coerente.
+- **Estados finais e códigos:** `success` / código `0` (nenhum `failed`, incluindo zero pendentes e execuções só com `unsupported`); `partial` / código `2` (pelo menos um documento criado e pelo menos um `failed`); `failed` / código `1` (pelo menos um `failed` e nenhum documento criado).
+- **`stats`** (JSON em `TEXT`):
+
+```json
+{
+  "items": [
+    {"raw_item_id": 0, "result": "failed", "reason": "<motivo>"}
+  ],
+  "totals": {"pending": 0, "normalized": 0, "duplicates": 0, "without_text": 0, "unsupported": 0, "failed": 0}
+}
+```
+
+  `items` lista só os pendentes `unsupported` e `failed`, por ordem de `id`. `normalized` e `duplicates` contam documentos criados com `status` `normalized` e `ignored`; `without_text` conta, entre os `normalized`, os que têm `text` nulo; `pending` = total seleccionado = `normalized + duplicates + unsupported + failed`.
+- **Saída:** em stdout, `normalize: OK — <caminho>` (código `0`), `normalize: PARCIAL — <caminho>` (código `2`) ou `normalize: ERRO — <caminho>` (código `1`), seguido de `run: <id>`, `pendentes: <n>`, `normalizados: <n>`, `duplicados: <n>`, `sem texto: <n>`, `não suportados: <n>` e `com falha: <n>`. Cada `failed` é indicado em stderr como `- raw_item <id>: <motivo>`.
+- **Idempotência:** uma segunda execução sem `raw_item` novos cria um novo `run`, não cria `source_document`, não altera nenhuma linha existente e conta `0` pendentes, ou só os `unsupported`/`failed` anteriores, que são tentados de novo. Sem `raw_item`, termina com `success` e zero itens.
+- **Sem efeitos laterais noutras tabelas:** `raw_item`, `source_registry`, `source_endpoint` e `config/sources.yaml` não são alterados; `last_success_at`/`last_error` não mudam.
+
+**Fronteiras decididas:**
+
+| Tema | No M2.11 | Fundamento |
+|------|----------|------------|
+| `canonical_url` | Sempre nulo; D12 OPEN | DEC-037 |
+| `language` | Só `xml:lang` explícita; senão nulo | DEC-038 |
+| `document_kind` | Sempre nulo (não determinado) | DEC-039 |
+| Texto `rss` | `content:encoded` → `description`; HTML removido; sem texto → nulo | DEC-040 |
+| `source_tier` | Tier da fonte `VALIDATED`, senão `T4`; pistas manuais (§3.4) ficam `unsupported` | SOURCES.md §3.1/§3.4; DEC-041 (8) |
+| `published_at` | Regra de DEC-021; RFC 822 → nulo até D13 | DEC-021; D13 |
+| `duplicate_of` | Representante já registado mantém-se; duplicados `ignored` | DEC-022; DEC-041 (7) |
+| `proposed_*`, `relevance_flag`, `classified_by` | Fora da tabela | DEC-026 |
+| Filtro de língua (`ignored` para não-`pt`) | Fora do M2.11. CONTENT_PIPELINE.md coloca-o no NORMALIZE, mas a excepção "fontes marcadas como multilíngues" não tem representação no registo (DEC-023), e com `language` quase sempre nulo o filtro não teria efeito fiável | Q10 |
+| Janela temporal `max_age_days` | Fora do M2.11. CONTENT_PIPELINE.md coloca-a no NORMALIZE, mas: `published_at` é nulo nos itens RSS até D13; a excepção "documentos oficiais procurados como evidência" pertence à Fase 3; e nenhum ficheiro de configuração a define (aparece também em SCORING.md) | Q11 |
+
+**Dependências:** M2.3 (normalização de título, texto e `published_at`; fingerprint), M2.4 (regra de DEC-022), M2.6 (`0001`, executor de migrações, resolução do caminho), M2.7/M2.8 (verificação de esquema, `run`, `raw_item` com `created_in_run`), M2.9 (forma de `raw_content` dos itens `rss`, salvaguarda de `DOCTYPE`). Decisões: DEC-021, DEC-022, DEC-026, DEC-031, DEC-032, DEC-033 §10, DEC-037 a DEC-041. Nenhuma dependência externa nova; nenhuma depende de D1, D7, Q2, Q3, Q5, Q6 ou Q7.
+
+**Dados reais:** o M2.11 **não** introduz nem valida fontes, endpoints, URLs, feeds ou documentos reais. `config/sources.yaml` continua `[]`. Sem endpoints `ACTIVE`, não há `raw_item` em produção, e `tde normalize` termina com `success` e zero pendentes. Fixtures e testes usam só dados sintéticos com domínios reservados (RFC 2606).
+
+**Exclusões:** cálculo de `canonical_url` e decisão de D12; detecção de língua pelo conteúdo e qualquer outra declaração além de `xml:lang` (Q8); regra de `document_kind` (Q9); filtro de língua (Q10); `max_age_days` (Q11); interpretação de datas além de DEC-021 (D13); extracção de HTML de páginas completas e collector `html_page`; `manual` e `tde add-manual` (incluindo a resolução de tier pelo domínio de SOURCES.md §3.4); Atom (Q2); transporte de `fetch`; colunas e etapa CLASSIFY; CLUSTER, `event`, `event_document`, VERIFY, `claim`, `source_evidence`; deduplicação aproximada; `editorial_decision`; `tde run`, `tde report` e relatório; política de retenção; `--source`, `--since`, `--dry-run`, `--no-llm`; IA; rede; execução agendada (D8); PostgreSQL; alterações a `raw_item`, à `0001`, ao collector `rss`, ao transporte, a `tde collect`, `tde sources validate`, `tde sources sync`, `tde doctor`, ao formato do YAML e a `config/`; fontes reais.
+
+**Questões abertas (não resolvidas por inferência):**
+- **D1, D7, D13, Q2, Q3, Q5, Q6, Q7** — continuam como no M2.10; nenhuma bloqueia o M2.11.
+- **D12** — continua OPEN (DEC-037). Não há fundamento documental para uma lista de parâmetros de tracking.
+- **Q8 — detecção de língua** (não bloqueante): regra para determinar `language` quando o item não declara `xml:lang` (pelo conteúdo, por outras declarações como `dc:language`, ou por `<channel><language>`, que exigiria alterar DEC-032). Até decisão, nulo.
+- **Q9 — regra de `document_kind`** (não bloqueante para o M2.11; bloqueante antes da Fase 3): que etapa e que regra determinam o tipo de documento. Até decisão, nulo.
+- **Q10 — filtro de língua e fontes multilíngues** (não bloqueante): se e onde se aplica o `ignored` para documentos não-`pt`, e como se representa uma fonte multilíngue no registo (alteraria DEC-023).
+- **Q11 — janela temporal `max_age_days`** (não bloqueante): onde se configura, a que data se aplica enquanto `published_at` for nulo (D13) e como se concretiza a excepção para evidência oficial (Fase 3).
+
+**Critérios de aceitação (verificáveis na implementação):**
+1. **Migração:** numa base vazia, `tde init` aplica `0001` e `0002`; numa base com só a `0001` e dados, aplica apenas a `0002` e os dados ficam intactos; uma segunda execução não aplica nada. `source_document` tem exactamente as colunas, tipos, nulidade, PK, FK (`raw_item`, `source_registry`, `source_document`, `run`), `UNIQUE (raw_item_id)` e índice em `text_hash` do *Esquema*; as FK são aplicadas; nenhuma tabela da `0001` muda.
+2. **Portabilidade:** a `0002` passa a verificação de construções proibidas do M2.6, e o SQL novo não usa `INSERT OR IGNORE`, `INSERT OR REPLACE` nem `ON CONFLICT`.
+3. **Execução sobre a estrutura actual:** com `raw_item` criados por `tde collect` com o collector `rss` e transporte falso numa base criada por `tde init`, `tde normalize` cria um `source_document` por `raw_item` `rss` pendente, com `raw_item_id` e `created_in_run` correctos.
+4. **`canonical_url`:** é nulo em todos os documentos, incluindo itens cujo `url` tem parâmetros (ex.: `utm_source`) ou fragmento; `raw_item.url` é preservado.
+5. **`language`:** `xml:lang="pt-PT"` no `<item>` → `pt`; `xml:lang` no elemento escolhido prevalece sobre o do `<item>`; sem declaração, `xml:lang=""` ou valor fora da forma → nulo, mesmo em fonte T1 `VALIDATED`; `<channel><language>` não tem efeito.
+6. **`document_kind`:** é nulo em todos os documentos; nenhum documento recebe `other`.
+7. **Selecção do texto:** com `content:encoded` e `description`, o texto vem só de `content:encoded`; sem `content:encoded`, ou com `content:encoded` vazio depois da remoção de HTML, vem de `description`; `content:encoded` é reconhecido pelo URI do namespace, com o prefixo `ns0:` da serialização do M2.9.
+8. **`raw_content` preservado:** `raw_item` (incluindo `raw_content` e `content_hash`) fica igual antes e depois de `tde normalize`.
+9. **HTML:** HTML em CDATA e HTML escapado produzem o mesmo texto; entidades convertidas; etiquetas removidas; `script`/`style` e comentários descartados; os elementos de bloco de DEC-040 separam linhas e as etiquetas em linha não separam palavras; atributos não geram texto; o resultado é normalizado por DEC-021.
+10. **Sem texto útil:** um item sem `content:encoded` nem `description` com texto → documento `normalized` com `text` e `text_hash` nulos e o título preservado; dois documentos destes nunca são duplicados entre si.
+11. **`published_at`:** `pubDate` RFC 822 → nulo; um valor ISO 8601 com fuso explícito em `published_at_raw` (fixture) → UTC; sem fuso → nulo.
+12. **`source_tier`:** fonte `VALIDATED` → tier da fonte; fonte `CANDIDATE` ou `INACTIVE` no momento da normalização → `T4`; `source_id` = fonte do endpoint.
+13. **Deduplicação (DEC-022):** dois pendentes com o mesmo texto na mesma execução → o de menor `id` é `normalized` e o outro `ignored`, com `duplicate_of` igual ao primeiro; numa execução posterior, um novo item com o mesmo texto é `ignored` com `duplicate_of` igual ao representante já registado, que não é alterado.
+14. **Sem classificação:** `source_document` não tem `proposed_*`, `relevance_flag` nem `classified_by`.
+15. **Atomicidade:** um item com `raw_content` ilegível → `failed`, sem linha, os restantes processados, `run` em `partial` (código `2`) ou `failed` (código `1`, se nenhum documento foi criado); um erro da `storage` injectado → código `1`, `run` com `finished_at` nulo e sem linha do item interrompido.
+16. **`run` (DEC-031):** cada execução após as pré-condições cria um `run` com `command = "normalize"`, fechado com `status` e `stats` do contrato; zero pendentes → `success`, código `0`; `unsupported` (endpoint `html_page` em fixture; `raw_item` sem endpoint) → contado, sem documento, item continua pendente, sem falha.
+17. **Idempotência:** uma segunda execução sem `raw_item` novos não cria documentos nem altera linhas; os `failed`/`unsupported` são tentados de novo e contados.
+18. **Pré-condições:** base inexistente → código `1`, sem ficheiro nem directório criados; esquema com a `0002` pendente ou não conforme → código `1`, pedindo `tde init`, sem migração aplicada; em ambos os casos, sem `run`.
+19. **Isolamento:** SQL só em `storage/`; `storage` não importa `normalize`, `collectors` nem `sources`; `normalize/` não importa `storage`, `sqlite3` nem módulos de rede; só `collectors/http.py` importa módulos de rede.
+20. **CLI:** `tde normalize` aparece em `tde --help`, sem opções próprias; `tde doctor`, `tde init`, `tde sources validate`, `tde sources sync` e `tde collect` mantêm interface e saídas.
+21. **Determinismo:** a mesma base e o mesmo relógio injectado produzem os mesmos documentos, `text_hash` e `stats`.
+22. **Sem dados reais:** `config/sources.yaml` continua `[]`; fixtures sintéticas com domínios reservados (RFC 2606); sem rede (salvaguarda do M2.9); nenhum teste escreve em `data/`.
+23. **Sem dependências novas:** `pyproject.toml` sem dependências novas e `uv.lock` inalterado.
+24. **Validação do repositório:** `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run tde doctor` e `uv lock --check` passam.
+
+**Testes:** offline e deterministas, com bases de dados em directórios temporários, relógio injectado e fixtures sintéticas (`raw_item` construídos directamente ou por `tde collect` com transporte falso). Cobrem:
+- a extracção (função pura, sem base de dados): candidatos, CDATA/escapado, prefixo `ns0:`, `script`/`style`, comentários, elementos de bloco e em linha, entidades, vazio, XML inválido, `DOCTYPE`, raiz errada;
+- a língua;
+- a migração `0002` em base vazia e em base existente;
+- o esquema (colunas, FK, `UNIQUE`, índice);
+- o domínio (novas invariantes de `SourceDocument`);
+- o comando: pré-condições, `run`, estados e códigos, `stats`, saída, `unsupported`, atomicidade, erro da `storage`, idempotência, deduplicação na mesma execução e entre execuções, tier;
+- o isolamento das camadas e a portabilidade do SQL.
+
+Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os campos obrigatórios de `SourceDocument`, são actualizados para o novo contrato, sem enfraquecer as restantes verificações.
+
+**Documentação a actualizar na implementação:**
+- este ROADMAP (estado e *Implementação* do M2.11);
+- [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md) §3 (`tde normalize` implementado; caminho da base também usado por `tde normalize`) e §5;
+- [DATA_MODEL.md](DATA_MODEL.md) (cabeçalho, §2.1 `source_document` "implementado", §4);
+- [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md), etapa 2;
+- [DECISION_LOG.md](DECISION_LOG.md) ("Implementado em" de DEC-037 a DEC-041).
+
+[SOURCES.md](SOURCES.md) e `config/` não mudam.
+
+**Critérios de conclusão da definição (este documento):**
+1. N1–N4 decididos por DEC-037 a DEC-040, sem lista de parâmetros de tracking e com D12 OPEN.
+2. Contrato do comando, do `run`, da tabela e da migração `0002` definido (DEC-041 e esta secção).
+3. Fronteiras de `source_tier`, `published_at`, `duplicate_of`, `proposed_*`, filtro de língua e `max_age_days` explícitas.
+4. Questões abertas listadas sem resposta inferida.
+5. Sem alterações a `src/`, `tests/`, `config/`, `pyproject.toml` nem `uv.lock`.
+
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
 - [x] Documentação técnica inicial em `docs/`.
@@ -479,7 +639,7 @@ As perguntas e a natureza da evidência de cada verificação são as de SOURCES
 - Camada `storage` com SQLite e migrações numeradas para `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run`: a migração inicial (M2.6) cobre `run`, `source_registry`, `source_endpoint` e `raw_item`; `source_document` entra numa migração seguinte, com a persistência da etapa NORMALIZE (DEC-026).
 - Registo de fontes + `tde sources validate` (M2.5) + `tde sources sync`, sincronização explícita YAML → SQLite dos campos projectados (M2.7).
 - Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados. A orquestração de `tde collect`, o ciclo de vida de `run`, a persistência de `raw_item` e o contrato `Collector` são o M2.8 (DEC-031). O collector `rss` (RSS 2.0) e o transporte HTTPS restrito são o M2.9 (DEC-032, DEC-033); `html_page`, `manual` e o transporte de `fetch` ficam para unidades posteriores.
-- NORMALIZE com deduplicação exacta.
+- NORMALIZE com deduplicação exacta. A normalização mecânica e a deduplicação exacta sem persistência são o M2.3 e o M2.4 (DEC-021, DEC-022); a persistência em `source_document`, a migração `0002` e `tde normalize` são o M2.11 (DEC-037 a DEC-041).
 - Validação manual de 5–10 fontes (prioridade T1), registando endpoints reais só após confirmação, segundo o protocolo de [SOURCES.md](SOURCES.md#8-protocolo-de-validação-de-fontes) §8 (DEC-034). Unidade separada do M2.9: é trabalho humano, documentado e revisto por pull request; o modelo não infere URLs, feeds nem endpoints.
 - Relatório mínimo da execução.
 
@@ -549,5 +709,5 @@ As perguntas e a natureza da evidência de cada verificação são as de SOURCES
 | D9 | Frequência das execuções agendadas | 5 | **Pendente.** |
 | D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
 | D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |
-| D12 | Regra de `canonical_url`: que parâmetros são "de tracking" e se se normalizam esquema, domínio, barra final ou fragmento | 1 | **Pendente (OPEN).** DATA_MODEL.md exige `canonical_url` "sem parâmetros de tracking" sem os enumerar. Não se inventa nem assume nenhuma lista de parâmetros. Até decisão, o M2.3 não calcula `canonical_url` e preserva o URL tal como obtido (DEC-021). |
+| D12 | Regra de `canonical_url`: que parâmetros são "de tracking" e se se normalizam esquema, domínio, barra final ou fragmento | 1 | **Pendente (OPEN).** DATA_MODEL.md exige `canonical_url` "sem parâmetros de tracking" sem os enumerar. Não se inventa nem assume nenhuma lista de parâmetros. Até decisão, o M2.3 não calcula `canonical_url` e preserva o URL tal como obtido (DEC-021). O projecto não tem nenhuma lista documentada de parâmetros de tracking; no M2.11, `source_document.canonical_url` fica nulo ("por calcular") até D12 ser decidida, segundo a orientação conservadora registada em DEC-037. |
 | D13 | Formatos aceites em `published_at_raw` e tratamento de data sem hora ou data/hora sem fuso | 1 | **Pendente (OPEN).** Nenhum fuso (incluindo `Europe/Lisbon`) é assumido silenciosamente. Até decisão, só ISO 8601 com fuso explícito é convertido para UTC; os restantes casos ficam nulos, com o original preservado (DEC-021). Com o M2.9, `published_at_raw` de itens RSS virá do `pubDate` (formato RFC 822 em RSS 2.0), que DEC-021 não converte: até D13, esses itens terão `published_at` nulo na normalização. |

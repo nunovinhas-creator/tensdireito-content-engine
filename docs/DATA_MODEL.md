@@ -1,6 +1,6 @@
 # Modelo de Dados
 
-> Estado: **especificação conceptual (M1)**. Esquema-alvo para SQLite (V1), escrito de forma portável para PostgreSQL. Tipos indicados de forma lógica; datas em UTC, formato ISO 8601. Desde o M2.2 existem modelos de domínio (sem persistência) em `src/tensdireito_content_engine/domain/` para `event`, `source_registry`, `source_endpoint`, `source_document`, `source_evidence` e para as enumerações das secções 2–3; os campos de etapas ainda não implementadas (recolha, normalização, classificação) e as restantes entidades ficam para as unidades correspondentes. Desde o M2.3 existe `raw_item` (sem `id` nem `created_in_run`, que pertencem à persistência; `content_hash` calculado) e, em `src/tensdireito_content_engine/normalize/`, um intermédio `NormalizedItem` com os campos de `source_document` obtidos por transformação mecânica (`title`, `text`, `published_at`) e o `text_hash` (fingerprint) — ver DEC-021. Desde o M2.4 a deduplicação exacta por `text_hash` identifica, sem persistência, o representante e os duplicados (`duplicate_of`) — ver DEC-022. Desde o M2.5 (concluído e integrado, PR #8) `config/sources.yaml` é lido e validado para `source_registry` e `source_endpoint` (sem persistência; `fetch` ainda não é convertido) — ver [ROADMAP.md](ROADMAP.md#m25--registo-de-fontes-e-validação-de-fontes). Desde o M2.6 existe a camada `storage` (SQLite local) e `tde init`, que aplica a migração inicial `0001_init.sql` com `schema_migration`, `run`, `source_registry`, `source_endpoint` e `raw_item`, sem escrever dados de negócio; `source_document` fica para uma migração posterior — ver [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial), DEC-026 e DEC-027.
+> Estado: **especificação conceptual (M1)**. Esquema-alvo para SQLite (V1), escrito de forma portável para PostgreSQL. Tipos indicados de forma lógica; datas em UTC, formato ISO 8601. Desde o M2.2 existem modelos de domínio (sem persistência) em `src/tensdireito_content_engine/domain/` para `event`, `source_registry`, `source_endpoint`, `source_document`, `source_evidence` e para as enumerações das secções 2–3; os campos de etapas ainda não implementadas (recolha, normalização, classificação) e as restantes entidades ficam para as unidades correspondentes. Desde o M2.3 existe `raw_item` (sem `id` nem `created_in_run`, que pertencem à persistência; `content_hash` calculado) e, em `src/tensdireito_content_engine/normalize/`, um intermédio `NormalizedItem` com os campos de `source_document` obtidos por transformação mecânica (`title`, `text`, `published_at`) e o `text_hash` (fingerprint) — ver DEC-021. Desde o M2.4 a deduplicação exacta por `text_hash` identifica, sem persistência, o representante e os duplicados (`duplicate_of`) — ver DEC-022. Desde o M2.5 (concluído e integrado, PR #8) `config/sources.yaml` é lido e validado para `source_registry` e `source_endpoint` (sem persistência; `fetch` ainda não é convertido) — ver [ROADMAP.md](ROADMAP.md#m25--registo-de-fontes-e-validação-de-fontes). Desde o M2.6 existe a camada `storage` (SQLite local) e `tde init`, que aplica a migração inicial `0001_init.sql` com `schema_migration`, `run`, `source_registry`, `source_endpoint` e `raw_item`, sem escrever dados de negócio; `source_document` fica para uma migração posterior — ver [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial), DEC-026 e DEC-027. Definido no M2.11 (por implementar): `source_document` na migração `0002`, escrito por `tde normalize` — ver [ROADMAP.md](ROADMAP.md#m211--persistência-da-etapa-normalize) e DEC-037 a DEC-041.
 
 **Convenção de nomes de estados.** Nos documentos, os estados conceptuais escrevem-se em maiúsculas (ex.: `VERIFIED_OFFICIAL`, `EDITORIAL_REVIEW`). Na implementação, o código armazenado será a mesma designação em minúsculas (ex.: `verified_official`). Não existem outros nomes para estes estados. Em `config/sources.yaml`, os estados (`registry_status`, `endpoint_status`) escrevem-se na forma documental em maiúsculas e são convertidos na leitura (DEC-024; [SOURCES.md](SOURCES.md#4-registo-configsourcesyaml) §4).
 
@@ -104,20 +104,23 @@ Implementado no M2.9 (DEC-032): para endpoints `rss`, `url` ← `<link>`, `title
 | `id` | integer PK | |
 | `raw_item_id` | FK → raw_item, único | |
 | `source_id` | FK → source_registry, nulo | Resolvido pelo endpoint, ou pelo domínio validado (ver [SOURCES.md](SOURCES.md#34-pistas-manuais)). |
-| `canonical_url` | text | Sem parâmetros de tracking. |
+| `canonical_url` | text, nulo | Sem parâmetros de tracking. Nulo = por calcular: enquanto D12 estiver OPEN não é calculado nem copiado de `raw_item.url` (DEC-037). |
 | `title` | text | |
-| `text` | text | Texto limpo. |
-| `language` | text | Esperado `pt`. |
+| `text` | text, nulo | Texto limpo. Para itens `rss`, extraído de `content:encoded`, senão de `description`, sem HTML (DEC-040). Nulo = sem texto útil (nunca fabricado). |
+| `language` | text, nulo | Esperado `pt`. Só a partir de declaração explícita (`xml:lang`) no item; subetiqueta primária em minúsculas. Nulo = desconhecida; nunca presumida (DEC-038). |
 | `published_at` | datetime | Normalizada; nulo se desconhecida (nunca inventada). |
 | `source_tier` | text | Copiado da fonte no momento da normalização; `T4` se a fonte não estiver validada. |
-| `document_kind` | text | `legal_text` \| `consolidated_legal_text` \| `official_page` \| `official_communication` \| `news` \| `analysis` \| `social_post` \| `other`. |
-| `text_hash` | text | Hash do texto normalizado (deduplicação exacta). |
-| `duplicate_of` | FK → source_document, nulo | |
+| `document_kind` | text, nulo | `legal_text` \| `consolidated_legal_text` \| `official_page` \| `official_communication` \| `news` \| `analysis` \| `social_post` \| `other`. Nulo = não determinado; `other` é um tipo determinado, nunca "desconhecido" (DEC-039). |
+| `text_hash` | text, nulo | Hash do texto normalizado (deduplicação exacta; DEC-021). Nulo se e só se `text` é nulo. |
+| `duplicate_of` | FK → source_document, nulo | Representante já registado com o mesmo `text_hash`; o duplicado fica `status = ignored` (DEC-022, DEC-041). |
 | `proposed_category` / `proposed_subcategory` | text | Proposta de classificação (regras ou IA). |
 | `proposed_impact_type` / `proposed_legal_stage` | text | Proposta de classificação. |
 | `relevance_flag` | text | `relevant` \| `irrelevant` \| `uncertain`. |
 | `classified_by` | text | `rules` \| `llm:<prompt_id>`. |
 | `status` | text | `normalized` \| `classified` \| `clustered` \| `ignored`. |
+| `created_in_run` | FK → run | Execução de `tde normalize` que criou o documento (DEC-041). |
+
+Definido no M2.11 (DEC-037 a DEC-041; contrato em [ROADMAP.md](ROADMAP.md#m211--persistência-da-etapa-normalize)): a migração `0002` cria `source_document` sem as colunas de classificação (`proposed_*`, `relevance_flag`, `classified_by`), que entram com o CLASSIFY (DEC-026). No M2.11, `canonical_url` e `document_kind` ficam sempre nulos, `source_tier` é o tier da fonte `VALIDATED` (senão `T4`), `published_at` segue DEC-021, e só se atribuem os estados `normalized` e `ignored`.
 
 ### 2.2 `event` — a unidade editorial (Níveis 3 e 4)
 
