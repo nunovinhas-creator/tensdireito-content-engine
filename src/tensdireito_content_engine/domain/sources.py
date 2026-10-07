@@ -8,11 +8,13 @@
 Apenas modelos de domínio: não há recolha, HTTP, parsing nem validação externa.
 """
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 
 from tensdireito_content_engine.domain.enums import (
     DocumentKind,
+    DocumentStatus,
     EndpointStatus,
     EndpointType,
     EntityType,
@@ -23,6 +25,7 @@ from tensdireito_content_engine.domain.enums import (
 from tensdireito_content_engine.domain.validation import (
     DomainValidationError,
     optional_human_actor,
+    optional_id,
     optional_text,
     optional_utc,
     require_human_actor,
@@ -33,6 +36,9 @@ from tensdireito_content_engine.domain.validation import (
     require_text_tuple,
     require_utc,
 )
+
+_SHA256_HEX = re.compile(r"[0-9a-f]{64}")
+_LANGUAGE = re.compile(r"[a-z]{2,3}")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -95,29 +101,59 @@ class SourceEndpoint:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SourceDocument:
-    id: int
-    canonical_url: str
+    """Documento normalizado, Nível 2 (DATA_MODEL.md §2.1; DEC-037 a DEC-041).
+
+    `id` é atribuído pela base de dados (nulo antes da escrita); `created_in_run`
+    pertence à persistência e não está aqui, como em `RawItem`.
+    """
+
+    raw_item_id: int
     title: str
-    text: str
-    language: str
     source_tier: SourceTier
-    document_kind: DocumentKind
+    status: DocumentStatus
+    id: int | None = None
     source_id: str | None = None  # nulo quando a fonte não foi resolvida
+    canonical_url: str | None = None  # nulo = por calcular, D12 OPEN (DEC-037)
+    text: str | None = None  # nulo = sem texto útil, nunca fabricado (DEC-040)
+    language: str | None = None  # nulo = desconhecida, nunca presumida (DEC-038)
     published_at: datetime | None = None  # nunca inventada
+    document_kind: DocumentKind | None = None  # nulo = não determinado (DEC-039)
+    text_hash: str | None = None  # nulo se e só se `text` é nulo
+    duplicate_of: int | None = None  # representante com o mesmo `text_hash` (DEC-022)
 
     def __post_init__(self) -> None:
-        require_id(self.id, "id")
-        require_text(self.canonical_url, "canonical_url")
+        optional_id(self.id, "id")
+        require_id(self.raw_item_id, "raw_item_id")
         require_text(self.title, "title")
-        require_text(self.text, "text")
-        require_text(self.language, "language")
         require_member(self.source_tier, SourceTier, "source_tier")
-        require_member(self.document_kind, DocumentKind, "document_kind")
+        require_member(self.status, DocumentStatus, "status")
         optional_text(self.source_id, "source_id")
+        optional_text(self.canonical_url, "canonical_url")
+        optional_text(self.text, "text")
+        optional_text(self.language, "language")
         optional_utc(self.published_at, "published_at")
+        if self.document_kind is not None:
+            require_member(self.document_kind, DocumentKind, "document_kind")
+        optional_text(self.text_hash, "text_hash")
+        optional_id(self.duplicate_of, "duplicate_of")
 
         if self.source_id is None and self.source_tier is not SourceTier.T4:
             raise DomainValidationError("um documento sem fonte resolvida é T4 (SOURCES.md §3.4)")
+        if (self.text is None) != (self.text_hash is None):
+            raise DomainValidationError("text e text_hash são ambos nulos ou ambos preenchidos")
+        if self.text_hash is not None and not _SHA256_HEX.fullmatch(self.text_hash):
+            raise DomainValidationError(
+                f"text_hash tem de ser SHA-256 hexadecimal em minúsculas: {self.text_hash!r}"
+            )
+        if self.language is not None and not _LANGUAGE.fullmatch(self.language):
+            raise DomainValidationError(
+                f"language tem de ter 2 ou 3 letras ASCII minúsculas: {self.language!r}"
+            )
+        if self.duplicate_of is not None:
+            if self.status is not DocumentStatus.IGNORED:
+                raise DomainValidationError("um documento com duplicate_of tem status ignored")
+            if self.text_hash is None:
+                raise DomainValidationError("um documento com duplicate_of tem text_hash")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -15,6 +15,7 @@ from tensdireito_content_engine import __version__
 from tensdireito_content_engine.collect import CollectError, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry, default_registry
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
+from tensdireito_content_engine.normalize_command import run_normalize
 from tensdireito_content_engine.sources import SourceRegistryError, load_sources
 from tensdireito_content_engine.storage import (
     DB_PATH_ENV,
@@ -128,6 +129,39 @@ def collect(
     return code, out, err
 
 
+def normalize(db_path: Path) -> tuple[int, list[str], list[str]]:
+    """Normaliza os `raw_item` pendentes em `source_document` (ROADMAP.md M2.11; DEC-041).
+
+    Devolve o código de saída e as linhas de stdout e de stderr. Não lê
+    `config/sources.yaml`, não acede à rede, não cria a base de dados nem aplica migrações.
+    """
+    try:
+        result = run_normalize(db_path)
+    except StorageError as exc:
+        return 1, [], [f"normalize: ERRO — {db_path}", f"- {exc}"]
+    label, code = {"success": ("OK", 0), "partial": ("PARCIAL", 2), "failed": ("ERRO", 1)}[
+        result.status
+    ]
+    totals = result.stats()["totals"]
+    assert isinstance(totals, dict)
+    out = [
+        f"normalize: {label} — {result.path}",
+        f"run: {result.run_id}",
+        f"pendentes: {totals['pending']}",
+        f"normalizados: {totals['normalized']}",
+        f"duplicados: {totals['duplicates']}",
+        f"sem texto: {totals['without_text']}",
+        f"não suportados: {totals['unsupported']}",
+        f"com falha: {totals['failed']}",
+    ]
+    err = [
+        f"- raw_item {outcome.raw_item_id}: {outcome.reason}"
+        for outcome in result.items
+        if outcome.result == "failed"
+    ]
+    return code, out, err
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=PROG,
@@ -196,6 +230,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="recolhe só os endpoints ACTIVE desta fonte",
     )
+    subparsers.add_parser(
+        "normalize",
+        help="normaliza os raw_item pendentes em source_document (exige tde init)",
+        description="Normaliza os raw_item sem source_document, por ordem de id, num run, "
+        "gravando um source_document por item rss, cada um numa transacção própria. Itens "
+        "sem regra de extracção ficam pendentes, sem falha. Não lê config/sources.yaml nem "
+        "acede à rede; não cria a base de dados nem aplica migrações. Códigos: 0 sem "
+        "falhas, 2 falhas parciais, 1 erro ou todos os itens com falha.",
+    )
     return parser
 
 
@@ -233,6 +276,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         code, out, err = collect(
             resolve_db_path(args.db, os.environ), default_registry(), args.source
         )
+        for line in out:
+            print(line)
+        for line in err:
+            print(line, file=sys.stderr)
+        return code
+
+    if args.command == "normalize":
+        code, out, err = normalize(resolve_db_path(args.db, os.environ))
         for line in out:
             print(line)
         for line in err:

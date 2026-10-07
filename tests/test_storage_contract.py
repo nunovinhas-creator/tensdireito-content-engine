@@ -97,7 +97,7 @@ def sql_without_comments(text: str) -> str:
 
 
 def test_there_are_migration_files():
-    assert [path.name for path in MIGRATION_FILES] == ["0001_init.sql"]
+    assert [path.name for path in MIGRATION_FILES] == ["0001_init.sql", "0002_source_document.sql"]
 
 
 @pytest.mark.parametrize("path", MIGRATION_FILES, ids=lambda path: path.name)
@@ -155,9 +155,10 @@ DATE_COLUMNS = {
     ("source_endpoint", "validated_at"),
     ("source_endpoint", "last_success_at"),
     ("raw_item", "fetched_at"),
+    ("source_document", "published_at"),
 } | {
     (table, column)
-    for table in ("run", "source_registry", "source_endpoint", "raw_item")
+    for table in ("run", "source_registry", "source_endpoint", "raw_item", "source_document")
     for column in ("created_at", "updated_at")
 }
 
