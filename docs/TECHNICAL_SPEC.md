@@ -45,7 +45,7 @@ tensdireito-content-engine/
 │   ├── cli.py
 │   ├── config.py             # configuração interna mínima (M2.2)
 │   ├── domain/               # enums e entidades de domínio, sem persistência (DATA_MODEL.md; M2.2)
-│   ├── storage/              # repositórios + esquema SQL + migrações
+│   ├── storage/              # ligação SQLite + migrações numeradas (M2.6; DEC-026); repositórios por entidade depois
 │   ├── sources/
 │   ├── collectors/           # base.py (interface Collector), rss.py, html_page.py, manual.py
 │   ├── normalize/            # normalização mecânica + fingerprint (M2.3; DEC-021) + deduplicação exacta (M2.4; DEC-022)
@@ -92,6 +92,8 @@ Um único executável, `tde`. Cada etapa é um subcomando independente e idempot
 Não existe comando de publicação na V1.
 
 Opções globais: `--db PATH`, `--config DIR`, `--dry-run` (não escreve), `--no-llm` (desactiva IA, usa só regras), `--verbose`.
+
+Implementado: `tde doctor` (M2.1), `tde [--config DIR] sources validate` (M2.5) e `tde [--db PATH] init` (M2.6; contrato e saída em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)).
 
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 
@@ -160,6 +162,7 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 - Fuso horário de referência: `Europe/Lisbon` para apresentação; armazenamento em UTC (ISO 8601).
 - Implementado (M2.2): `config.py` contém apenas nome, versão (a do pacote) e ambiente (`development` por defeito, `test`). Não lê variáveis de ambiente; os segredos acima entram quando tiverem consumidor.
 - Implementado (M2.5): `config/sources.yaml` é localizado no directório de configuração — por defeito `config/`, relativo ao directório de trabalho, ou o indicado pela opção global `--config DIR` (secção 3). É lido como UTF-8 por `sources/` e validado por `tde sources validate` (local, sem rede, sem escrita); regras do formato em SOURCES.md §4 (DEC-023 a DEC-025).
+- Implementado (M2.6): o caminho da base de dados é `--db PATH`, senão `TDE_DB_PATH`, senão `data/tde.sqlite3`, relativo ao directório de trabalho (DEC-026); o directório pai é criado por `tde init` se faltar. `TDE_DB_PATH` é lido só pela CLI, para `tde init`; `config.py` e `tde doctor` continuam sem ler variáveis de ambiente. `data/` está no `.gitignore`.
 
 ## 6. Requisitos não funcionais
 
