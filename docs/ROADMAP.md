@@ -1,6 +1,6 @@
 # Roadmap
 
-> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) implementado, em revisão. Os critérios de saída da Fase 0 continuam dependentes de D1.
+> Estado actual: **Fase 0 — Architecture / Documentation phase.** Milestone M1 (fecho das decisões arquitecturais e editoriais) concluído com o PR do M1, depois de revisto. M2 em curso: M2.1 (fundação executável), M2.2 (modelos de domínio), M2.3 (normalização e identidade) e M2.4 (deduplicação exacta por `text_hash`) concluídos e integrados (M2.3 no PR #5, M2.4 no PR #6); M2.5 (registo de fontes e validação de fontes) concluído e integrado (PR #8); M2.6 (storage SQLite e migração inicial) definido, por implementar. Os critérios de saída da Fase 0 continuam dependentes de D1.
 
 Cada fase termina com critérios de saída verificáveis. Uma fase só começa quando os critérios da anterior estão cumpridos e as decisões pendentes relevantes estão tomadas.
 
@@ -10,11 +10,11 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 |-----------|--------|--------|
 | Prompt 1 | Documentação inicial da arquitectura e especificação técnica. | Concluído |
 | **M1** | Decisões arquitecturais e editoriais fundamentais: modelo de verificação, taxonomia V1, modelo de fontes, guia de estilo, política editorial, revisão humana, separação score/verificação, estados editoriais, persistência, tooling, decision log. Apenas documentação. | **Concluído com o PR do M1, depois de revisto** |
-| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)). | **Em curso** — M2.1 a M2.4 concluídos e integrados (M2.4 no PR #6); M2.5 implementado, em revisão |
+| M2 | Implementação por unidades: M2.1 fundação executável; M2.2 modelos de domínio; M2.3 normalização e identidade (DEC-021); M2.4 deduplicação exacta por `text_hash` (DEC-022) — usa o `text_hash` do M2.3, faz apenas deduplicação exacta, sem clustering nem deduplicação aproximada; M2.5 registo de fontes e validação de fontes (ver [M2.5](#m25--registo-de-fontes-e-validação-de-fontes)); M2.6 storage SQLite e migração inicial (ver [M2.6](#m26--storage-sqlite-e-migração-inicial)). | **Em curso** — M2.1 a M2.5 concluídos e integrados (M2.4 no PR #6, M2.5 no PR #8); M2.6 definido, por implementar |
 
 ### M2.5 — registo de fontes e validação de fontes
 
-**Estado:** implementado, em revisão.
+**Estado:** concluído e integrado (PR #8).
 
 **Objectivo:** preparar a camada de fontes para os futuros collectors, sem os implementar: ler o registo versionado `config/sources.yaml` ([SOURCES.md](SOURCES.md#4-registo-configsourcesyaml) §4) para os modelos de domínio `SourceRegistry` e `SourceEndpoint` do M2.2 e validá-lo com `tde sources validate` ([TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos) §3).
 
@@ -30,6 +30,77 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 
 **Exclusões:** collectors; RSS; HTML; HTTP; scraping; qualquer acesso à rede (incluindo verificar se um URL responde); descoberta automática de fontes; SQLite, migrações e ORM; deduplicação; clustering; `SourceDocument`; `SourceEvidence`; claims; verificação; scoring; IA; scheduler; WhatsApp; publicação. Não altera D12 (não calcula `canonical_url`) nem D13 (não interpreta `published_at_raw`); ambas continuam OPEN.
 
+### M2.6 — storage SQLite e migração inicial
+
+**Estado:** definido, por implementar. Esta secção é o contrato da unidade; nada dela está implementado.
+
+**Objectivo:** criar a camada `storage` ([ARCHITECTURE.md](ARCHITECTURE.md) §5; [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#2-estrutura-de-código-proposta) §2) e a primeira migração SQLite, aplicada por `tde init`, preparando a persistência de `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run` para as unidades que a vão usar (sincronização do registo, collectors, NORMALIZE). O M2.6 cria a base de dados e o esquema; não escreve dados de negócio. Decisões: DEC-026 (migrações e âmbito da migração inicial) e DEC-027 (relação entre `config/sources.yaml` e SQLite).
+
+**Âmbito (entregáveis da implementação):**
+
+1. **Localização da base de dados.** Ficheiro SQLite local. Caminho resolvido por esta ordem: opção global `--db PATH` ([TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos) §3); senão a variável `TDE_DB_PATH`; senão `data/tde.sqlite3`, relativo ao directório de trabalho ([TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#5-configuração) §5). O directório pai é criado se não existir. `data/` passa a constar do `.gitignore` (TECHNICAL_SPEC.md §2 já o descreve como ignorado; hoje não está). A base de dados nunca é versionada.
+2. **Comando `tde init`** (TECHNICAL_SPEC.md §3: "Cria a base de dados e aplica migrações"; escreve só o esquema):
+   - base de dados inexistente → cria-a e aplica todas as migrações por ordem;
+   - base existente → aplica apenas as migrações pendentes; sem pendentes, não altera nada (idempotente);
+   - saída: `init: OK`, o caminho da base de dados e as migrações aplicadas nesta execução (eventualmente nenhuma), código `0`; em erro, `init: ERRO` e o motivo em stderr, código `1`, sem migração parcial;
+   - erros: ficheiro que não é uma base SQLite; migração registada na base que o código não conhece (base mais recente que o código); migração aplicada cujo conteúdo foi alterado (checksum diferente).
+   - Não cria nenhum `run` nem nenhum registo de negócio. Não sincroniza `config/sources.yaml` (ver *YAML vs SQLite*). Não acede à rede.
+   - `--dry-run`, `--verbose` e `--no-llm` não fazem parte do M2.6. `tde doctor` mantém-se sem acesso a base de dados nem a variáveis de ambiente.
+3. **Estratégia de migrações (DEC-026).** Ficheiros SQL numerados, `storage/migrations/NNNN_<nome>.sql` (DATA_MODEL.md §4), começando em `0001_init.sql`, incluídos no pacote e lidos como recursos do pacote. Só para a frente: sem migrações de reversão; uma migração aplicada nunca é editada — qualquer alteração é uma migração nova. Cada migração é aplicada numa transacção, juntamente com o seu registo numa tabela de controlo `schema_migration` (`version` PK, `checksum` SHA-256 do ficheiro, `applied_at` em UTC); falha → rollback completo. Sem `PRAGMA user_version` (específico de SQLite).
+4. **Esquema inicial — `0001_init.sql`** (ver *Esquema*): `schema_migration`, `run`, `source_registry`, `source_endpoint`, `raw_item`. `source_document` fica para uma migração posterior (motivo abaixo).
+5. **Isolamento da camada SQL (DEC-013).** Todo o SQL e todo o uso de `sqlite3` vivem em `src/tensdireito_content_engine/storage/`. `domain/`, `normalize/` e `sources/` não importam `storage` nem `sqlite3`; a dependência é só `storage → domain`. A CLI chama funções de `storage`, sem SQL. O M2.6 implementa apenas a ligação (com `PRAGMA foreign_keys = ON` em cada ligação, configuração de ligação isolada em `storage`) e o executor de migrações; os repositórios de leitura/escrita de cada entidade chegam com as unidades que os consomem.
+6. **Portabilidade futura para PostgreSQL (DEC-013).** O SQL das migrações usa só construções com equivalente directo em PostgreSQL: tipos `TEXT`, `INTEGER`, `REAL`; `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `NOT NULL`. Não usa `AUTOINCREMENT`, `WITHOUT ROWID`, tabelas `STRICT`, `INSERT OR REPLACE`, `PRAGMA` dentro das migrações, nem valores por defeito dependentes do formato de data do SQLite (`CURRENT_TIMESTAMP`). Colunas `json` são `TEXT` com JSON válido (`JSONB` em PostgreSQL); datas são `TEXT` ISO 8601 em UTC com fuso explícito (`TIMESTAMPTZ` em PostgreSQL), escritas pela camada `storage` a partir de `datetime` com fuso. `created_at`/`updated_at` são preenchidos pela camada `storage` (relógio injectável nos testes), não pela base de dados. O M2.6 não cria migrações PostgreSQL, não instala driver PostgreSQL e não testa contra PostgreSQL (Fase 6).
+
+**Esquema (a partir de [DATA_MODEL.md](DATA_MODEL.md) §2; nenhum campo novo de negócio):**
+
+| Tabela | Na `0001` | Colunas | Restrições |
+|--------|-----------|---------|------------|
+| `schema_migration` | Sim | `version`, `checksum`, `applied_at` | PK `version`. Tabela técnica de controlo das migrações (DEC-026); não é entidade de negócio. |
+| `run` | Sim | DATA_MODEL.md §2.9: `id`, `command`, `started_at`, `finished_at`, `status`, `stats` (json), `outcome`, `report_path`; `created_at`, `updated_at` (§4) | PK `id` (integer). |
+| `source_registry` | Sim | DATA_MODEL.md §2.1: `id`, `name`, `entity_type`, `tier`, `categories` (json), `domains` (json), `registry_status`, `validated_at`, `validated_by`, `notes`; `created_at`, `updated_at` | PK `id` (text). |
+| `source_endpoint` | Sim | DATA_MODEL.md §2.1: `id`, `source_id`, `endpoint_type`, `url`, `fetch` (json), `endpoint_status`, `validated_at`, `validated_by`, `last_success_at`, `last_error`; `created_at`, `updated_at` | PK `id` (text; único em todo o registo, como já valida o M2.5); FK `source_id` → `source_registry`. |
+| `raw_item` | Sim | DATA_MODEL.md §2.1: `id`, `source_endpoint_id`, `url`, `external_id`, `title`, `raw_content`, `fetched_at`, `published_at_raw`, `content_hash`, `manual_note`, `created_in_run`; `created_at`, `updated_at` | PK `id` (integer); FK `source_endpoint_id` → `source_endpoint` (nulo para pistas manuais); FK `created_in_run` → `run`; `UNIQUE (source_endpoint_id, url, content_hash)`. |
+| `source_document` | **Não** — migração posterior | — | Ver abaixo. |
+
+Regras do esquema:
+- Nulidade: `NOT NULL` só onde DATA_MODEL.md ou os invariantes dos modelos de domínio do M2.2/M2.3 já tornam o campo obrigatório (ex.: `url`, `title`, `raw_content`, `fetched_at`, `content_hash` em `raw_item`; `source_id`, `endpoint_type`, `endpoint_status` em `source_endpoint`); campos que a documentação marca como nulos ficam nulos. O esquema não enfraquece nem acrescenta invariantes.
+- Os valores das enumerações são guardados no valor interno em minúsculas (DATA_MODEL.md, convenção de nomes; DEC-024) e validados pelos modelos de domínio antes de qualquer escrita. A `0001` não duplica as enumerações em `CHECK`.
+- Índices além dos implicados por PK/UNIQUE não fazem parte da `0001`; entram com a unidade que os justifique.
+- `created_in_run` aparece onde DATA_MODEL.md o lista explicitamente (`raw_item`). Em `source_registry`/`source_endpoint`, a sua aplicabilidade é decidida com a sincronização do registo.
+- `published_at_raw` é guardado tal como obtido; o M2.6 não o interpreta (D13).
+- Limitação conhecida, a tratar com `tde add-manual`: em SQLite e PostgreSQL, `NULL` em `source_endpoint_id` não colide numa restrição `UNIQUE`, pelo que a unicidade de `raw_item` não impede, sozinha, pistas manuais repetidas. O M2.6 cria a restrição como documentada e não resolve este caso.
+
+**Porque `source_document` não entra na `0001`:** os campos que DATA_MODEL.md §2.1 e o modelo de domínio `SourceDocument` (M2.2) tornam obrigatórios ainda não têm regra de cálculo — `canonical_url` depende de D12 (OPEN; o M2.3 não o calcula), e `language`, `source_tier` e `document_kind` não são atribuídos pela normalização (DEC-021). Criar a tabela agora obrigaria a decidir a nulidade destas colunas — enfraquecendo o modelo de domínio ou bloqueando qualquer escrita — e a fixar nomes das colunas de classificação (`proposed_*`, `relevance_flag`, `classified_by`) antes da etapa que as usa. A tabela entra numa migração seguinte (`0002_…`), na unidade que persistir a etapa NORMALIZE, depois de essa unidade definir como trata `canonical_url` sob D12. A estratégia de migrações do M2.6 é o que permite acrescentá-la sem retrabalho.
+
+**YAML vs SQLite (DEC-027):**
+- `config/sources.yaml` continua a ser a **fonte de verdade** de `source_registry` e `source_endpoint` (DATA_MODEL.md §2.1; DEC-023). O M2.6 não altera essa decisão.
+- As tabelas `source_registry` e `source_endpoint` são um **espelho operacional**: existem para que `raw_item.source_endpoint_id` e, depois, `source_document.source_id` tenham chaves estrangeiras, e para guardar o estado de execução que não pertence ao ficheiro versionado (`last_success_at`, `last_error`; DEC-023).
+- Sincronização futura (fora do M2.6): **unidireccional YAML → SQLite**, por comando explícito e local, só depois de o registo passar as regras de `tde sources validate`; actualiza os campos do YAML pelo `id`; preserva os campos operacionais; nunca escreve no YAML. O tratamento de fontes/endpoints retirados do YAML é decidido nessa unidade, sem apagar linhas referenciadas por `raw_item` (DATA_MODEL.md §4: nada usado como evidência é apagado).
+- Uma alteração a uma fonte faz-se no YAML, por pull request; nunca directamente na base de dados.
+- No M2.6, `source_registry` e `source_endpoint` ficam vazias: `tde init` não as preenche e nenhuma fonte é inserida.
+
+**Persistência e D8:** o M2.6 permite persistência SQLite **local**, para execução manual. Não resolve D8: um SQLite local num runner efémero continua a não ser solução para execução agendada nem para estado partilhado (DEC-013). A base de dados não é versionada, não é artefacto de CI e não é partilhada. D8 continua OPEN e bloqueante para a Fase 5.
+
+**D1, D12 e D13:** continuam OPEN. O M2.6 não os desbloqueia nem os decide: não insere fontes, endpoints, URLs nem `domains` (D1); não calcula nem guarda `canonical_url` (D12); não interpreta `published_at_raw` nem assume fuso (D13).
+
+**Exclusões:** collectors; RSS, HTTP e HTML; scraping; qualquer acesso à rede; fornecedores de IA; execução agendada e GitHub Actions; publicação; sincronização de `config/sources.yaml` para SQLite; escrita de `raw_item`, `run` ou fontes por qualquer comando; repositórios por entidade; tabela `source_document`; `event`, `event_document`, `claim`, `source_evidence`, `score`, `content_piece`, `editorial_decision`, `llm_call`; migrações e driver PostgreSQL; ORM; `--dry-run`; resolução de D1, D8, D12 e D13. Não altera os modelos de domínio, a normalização, a deduplicação nem `tde sources validate`.
+
+**Critérios de aceitação (verificáveis na implementação):**
+1. **Criação inicial:** `tde init` sem base de dados cria o ficheiro no caminho resolvido (`--db`, depois `TDE_DB_PATH`, depois `data/tde.sqlite3`), cria o directório pai se faltar, aplica a `0001` e termina com código `0`.
+2. **Idempotência:** uma segunda execução de `tde init` termina com código `0`, não aplica nenhuma migração e não altera o esquema nem `schema_migration`.
+3. **Migrações:** com migrações fictícias em teste, só as pendentes são aplicadas, por ordem numérica; uma migração que falha não deixa alterações nem registo em `schema_migration`; uma migração aplicada com checksum diferente e uma versão registada desconhecida do código terminam com código `1`; um ficheiro que não é SQLite termina com código `1`.
+4. **Esquema esperado:** após `0001`, existem exactamente `schema_migration`, `run`, `source_registry`, `source_endpoint` e `raw_item`, com as colunas, PK, FK, `UNIQUE` e `NOT NULL` desta secção; `source_document` não existe; as FK são aplicadas (inserir `raw_item` com `source_endpoint_id` inexistente falha); todas as tabelas de negócio ficam vazias.
+5. **Isolamento SQL:** um teste confirma que `sqlite3` só é importado em `storage/` e que `domain/`, `normalize/` e `sources/` não importam `storage`.
+6. **Portabilidade:** um teste confirma que os ficheiros de migração não contêm `AUTOINCREMENT`, `WITHOUT ROWID`, `STRICT`, `INSERT OR REPLACE`, `PRAGMA` nem `CURRENT_TIMESTAMP`; colunas json e datas são `TEXT`.
+7. **Determinismo:** a mesma sequência de migrações produz o mesmo esquema (comparado sem `applied_at`); datas escritas pela camada `storage` estão em UTC ISO 8601 com fuso.
+8. **CLI:** `tde init` aparece em `tde --help`; `tde doctor` e `tde sources validate` mantêm o comportamento actual.
+9. **Testes offline:** todos os testes usam bases de dados em directórios temporários, sem rede, sem fornecedor de IA e sem fontes nem URLs reais (TECHNICAL_SPEC.md §6, Testabilidade); nenhum teste escreve em `data/`.
+10. **Validação do repositório:** `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .` e `uv run tde doctor` passam.
+
+**Testes:** offline, com fixtures (bases de dados temporárias e migrações fictícias para os casos de erro), sem rede e sem fornecedor de IA, conforme TECHNICAL_SPEC.md §6.
+
+**Dependências:** nenhuma prevista — `sqlite3` faz parte da biblioteca padrão (TECHNICAL_SPEC.md §1). Se a implementação vier a exigir alguma, tem de ser justificada no PR de implementação e registada em TECHNICAL_SPEC.md §7; nenhuma é adicionada nesta definição.
+
 ## Fase 0 — Arquitectura e documentação *(actual)*
 
 - [x] Documentação técnica inicial em `docs/`.
@@ -42,7 +113,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 ## Fase 1 — Fundação e recolha (manual)
 
 - Projecto Python gerido com `uv` (`pyproject.toml`, `uv.lock`), pacote `tensdireito_content_engine`, CLI `tde`, `ruff`, `pytest`.
-- Camada `storage` com SQLite e migração inicial (`source_registry`, `source_endpoint`, `raw_item`, `source_document`, `run`).
+- Camada `storage` com SQLite e migrações numeradas para `source_registry`, `source_endpoint`, `raw_item`, `source_document` e `run`: a migração inicial (M2.6) cobre `run`, `source_registry`, `source_endpoint` e `raw_item`; `source_document` entra numa migração seguinte, com a persistência da etapa NORMALIZE (DEC-026).
 - Registo de fontes + `tde sources validate`.
 - Collectors `rss`, `html_page`, `manual` — apenas para endpoints validados.
 - NORMALIZE com deduplicação exacta.
@@ -111,7 +182,7 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 | D5 | Verificação na ausência de fonte oficial | 3 | **Fechada no M1** — máximo `VERIFIED_EDITORIAL`; override nunca produz `VERIFIED_OFFICIAL` (DEC-004). |
 | D6 | Guia de estilo por formato | 4 | **Fechada no M1** — [STYLE_GUIDE.md](STYLE_GUIDE.md) (DEC-008); nota de responsabilidade proporcional ao risco (DEC-018). |
 | D7 | Quem revê e aprova | 4 | **Parcialmente fechada** — formato do registo de revisão definido (DEC-014); pessoas concretas e eventual autenticação a decidir. |
-| D8 | Persistência durável e estado partilhado em modo agendado (ex.: storage externo, PostgreSQL gerido) | **Antes da Fase 5** | **Pendente e bloqueante** para qualquer execução agendada (DEC-013). |
+| D8 | Persistência durável e estado partilhado em modo agendado (ex.: storage externo, PostgreSQL gerido) | **Antes da Fase 5** | **Pendente e bloqueante** para qualquer execução agendada (DEC-013). O M2.6 (SQLite local) não a resolve. |
 | D9 | Frequência das execuções agendadas | 5 | **Pendente.** |
 | D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
 | D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |
