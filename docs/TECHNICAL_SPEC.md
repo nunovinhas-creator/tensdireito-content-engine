@@ -170,7 +170,7 @@ Os blocos de código desta secção são esboços de interface para orientar a i
 | Tolerância a falhas | Falha de uma fonte ou chamada de IA não aborta a execução; fica registada. |
 | Testabilidade | Testes correm offline com fixtures; nenhum teste chama a rede ou um fornecedor de IA. |
 | Observabilidade | Logs estruturados (JSON lines) por execução; relatório legível por humanos. |
-| Língua | Conteúdo produzido em português europeu. |
+| Língua | Conteúdo publicado em português europeu, segundo o AO1990 (DEC-017). A documentação técnica interna não está sujeita a esta norma. |
 | Custo | Chamadas de IA contabilizadas por execução (tokens); limite configurável por execução. |
 
 ## 7. Registo de dependências

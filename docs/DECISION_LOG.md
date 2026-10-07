@@ -90,7 +90,7 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Decisão:** Criado [STYLE_GUIDE.md](STYLE_GUIDE.md) (português de Portugal, claro, directo, acessível, útil, rigoroso, sem burocratês, alarmismo nem clickbait, proporcional à evidência; regras para títulos, subtítulos, leads, WhatsApp, artigos, SEO e CTA). Não existe limite rígido de caracteres para WhatsApp; extensões SEO são orientações que geram aviso, nunca bloqueio.
 - **Razão:** Resolver D6; o limite de 700 caracteres da especificação inicial não tinha fundamento e podia levar a cortar incerteza ou condições essenciais.
 - **Alternativas consideradas:** Manter limites rígidos por formato.
-- **Estado:** Aceite (texto final da nota de responsabilidade e norma ortográfica pendentes — D6, D11)
+- **Estado:** Aceite (complementada por DEC-017 — norma ortográfica — e DEC-018 — nota de responsabilidade)
 - **Data:** 2026-10-07
 
 ### DEC-009 — Política editorial e transformações proibidas
@@ -148,3 +148,35 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Alternativas consideradas:** Microserviços por etapa (custo operacional sem benefício nesta escala).
 - **Estado:** Aceite (reafirma P11 / ADR-001)
 - **Data:** 2026-10-07
+
+### DEC-017 — Norma ortográfica do conteúdo publicado: AO1990, variante europeia
+- **Decisão:** Todo o conteúdo destinado ao público segue o Acordo Ortográfico de 1990, na variante portuguesa/europeia, em linguagem natural de português de Portugal. **Âmbito:** WhatsApp, artigos, títulos, subtítulos, leads, SEO, CTAs, notas de responsabilidade e todo o conteúdo gerado ou proposto por IA. **Fora do âmbito:** a documentação técnica interna, que pode manter a grafia actual. **Excepções no conteúdo publicado:** citações literais preservam a grafia original; excertos de legislação apresentados como citação reproduzem exactamente o texto oficial; nomes oficiais de diplomas, entidades, documentos ou obras mantêm a designação oficial. Fecha D11.
+- **Razão:** O AO1990 é a norma em vigor para a escrita pública em Portugal; separar a documentação interna evita uma conversão sem valor; as excepções protegem a fidelidade às fontes.
+- **Alternativas consideradas:** Grafia anterior ao AO1990 no conteúdo público (afasta-se da norma que o público espera); converter também toda a documentação interna (custo sem benefício para o leitor); corrigir a grafia de citações e textos oficiais (comprometeria a fidelidade às fontes).
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
+### DEC-018 — Nota de responsabilidade proporcional ao risco
+- **Decisão:** A nota de responsabilidade não é obrigatória em todos os conteúdos nem acrescentada automaticamente. Usa-se quando o conteúdo pode induzir uma decisão jurídica, uma decisão financeira relevante ou uma decisão administrativa importante, ou envolve interpretação normativa particularmente sensível. É curta e clara, não sugere que o TensDireito substitui aconselhamento jurídico profissional, e a decisão de a incluir cabe à pessoa que revê (a IA pode apenas propor). Textos de referência em [STYLE_GUIDE.md](STYLE_GUIDE.md#13-nota-de-responsabilidade).
+- **Razão:** Uma nota em todos os conteúdos perde significado e polui textos de baixo risco; o risco jurídico concentra-se em conteúdos que levam a decisões.
+- **Alternativas consideradas:** Nota padrão obrigatória em todos os conteúdos (proposta inicial do M1); nenhuma nota (insuficiente para conteúdos de risco); exigência automática por validação (falsos positivos; substitui juízo editorial).
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
+## 4. Estado das decisões pendentes
+
+A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
+
+| # | Estado |
+|---|--------|
+| D1 — Fontes T1 prioritárias e endpoints | **OPEN.** Fecha quando as fontes prioritárias e os respectivos endpoints forem validados manualmente. Nenhum URL, feed, RSS ou API é assumido. |
+| D2 — Fontes T2/T3 | OPEN |
+| D3 — Fornecedor de IA e orçamento | OPEN |
+| D4 — Taxonomia | CLOSED (DEC-006) |
+| D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
+| D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
+| D7 — Quem revê e aprova | Parcial: formato do registo fechado (DEC-014); pessoas e autenticação OPEN |
+| D8 — Persistência durável e estado partilhado | OPEN — bloqueante para qualquer execução agendada (DEC-013) |
+| D9 — Frequência das execuções agendadas | OPEN |
+| D10 — Destino de publicação | OPEN |
+| D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |

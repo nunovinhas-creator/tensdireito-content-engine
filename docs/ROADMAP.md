@@ -86,14 +86,14 @@ Cada fase termina com critérios de saída verificáveis. Uma fase só começa q
 
 | # | Decisão | Fase | Estado / notas |
 |---|---------|------|----------------|
-| D1 | Fontes T1 prioritárias e confirmação de endpoints reais de cada uma | 1 | **Pendente.** Lista candidata em [SOURCES.md](SOURCES.md). Exige validação manual; nenhum endpoint é assumido. |
+| D1 | Fontes T1 prioritárias e confirmação de endpoints reais de cada uma | 1 | **Pendente (OPEN).** Lista candidata em [SOURCES.md](SOURCES.md). Só será fechada quando as fontes prioritárias e os respectivos endpoints forem validados manualmente; nenhum URL, feed, RSS ou API é assumido até lá. |
 | D2 | Selecção de fontes T2/T3 (imprensa) | 1–2 | **Pendente.** Decisão editorial. |
 | D3 | Fornecedor(es) de IA inicial(is) e orçamento mensal | 2 | **Pendente.** Interface agnóstica já definida. |
 | D4 | Âmbito temático (taxonomia) | 2 | **Fechada no M1** — taxonomia V1 extensível (DEC-006). |
 | D5 | Verificação na ausência de fonte oficial | 3 | **Fechada no M1** — máximo `VERIFIED_EDITORIAL`; override nunca produz `VERIFIED_OFFICIAL` (DEC-004). |
-| D6 | Guia de estilo por formato | 4 | **Fechada no M1** — [STYLE_GUIDE.md](STYLE_GUIDE.md) (DEC-008). Falta validar editorialmente o texto final da nota de responsabilidade. |
+| D6 | Guia de estilo por formato | 4 | **Fechada no M1** — [STYLE_GUIDE.md](STYLE_GUIDE.md) (DEC-008); nota de responsabilidade proporcional ao risco (DEC-018). |
 | D7 | Quem revê e aprova | 4 | **Parcialmente fechada** — formato do registo de revisão definido (DEC-014); pessoas concretas e eventual autenticação a decidir. |
 | D8 | Persistência durável e estado partilhado em modo agendado (ex.: storage externo, PostgreSQL gerido) | **Antes da Fase 5** | **Pendente e bloqueante** para qualquer execução agendada (DEC-013). |
 | D9 | Frequência das execuções agendadas | 5 | **Pendente.** |
 | D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
-| D11 | Norma ortográfica do conteúdo publicado (ex.: Acordo Ortográfico de 1990 ou não) | 4 | **Pendente.** Decisão editorial; afecta o [STYLE_GUIDE.md](STYLE_GUIDE.md) e os prompts de geração. |
+| D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |

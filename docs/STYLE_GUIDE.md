@@ -8,7 +8,7 @@ O texto do TensDireito é:
 
 | Princípio | Na prática |
 |-----------|-----------|
-| **Português de Portugal** | Vocabulário, sintaxe e formatos de Portugal ("receber", "pedir", "candidatura"; "telemóvel", não "celular"). Norma ortográfica do conteúdo publicado: decisão pendente (ver [ROADMAP.md](ROADMAP.md#decisões-pendentes), D11). |
+| **Português de Portugal** | Linguagem natural de Portugal: vocabulário, sintaxe e formatos ("receber", "pedir", "candidatura"; "telemóvel", não "celular"). Ortografia do conteúdo publicado: Acordo Ortográfico de 1990, variante europeia (secção 1.1). |
 | **Claro** | Uma ideia por frase. Frases curtas. Palavras comuns. |
 | **Directo** | O mais importante primeiro. Sem introduções genéricas. |
 | **Acessível** | Escrito para quem não conhece a lei nem o vocabulário da Administração. Termos técnicos explicados na primeira utilização. |
@@ -19,6 +19,29 @@ O texto do TensDireito é:
 | **Sem clickbait enganador** | O título promete apenas o que o texto confirma. |
 | **Proporcional à evidência** | Nenhuma frase é mais forte do que a evidência permite. |
 
+### 1.1 Norma ortográfica e âmbito
+
+Decisão D11 (fechada — [DECISION_LOG.md](DECISION_LOG.md), DEC-017).
+
+**Conteúdo destinado ao público** segue:
+- o **Acordo Ortográfico de 1990** (AO1990);
+- na **variante portuguesa/europeia** (ex.: "atual", "ação", "direção", "objetivo", "projeto"; mantém-se "facto", "receção", "contacto", conforme a variante europeia);
+- em **linguagem natural de português de Portugal**.
+
+A regra aplica-se a: textos para WhatsApp, artigos, títulos, subtítulos, leads, metadados e textos SEO, CTAs, notas de responsabilidade e a todo o conteúdo gerado ou proposto por IA (os prompts de geração devem exigi-lo).
+
+**Fora do âmbito da norma de publicação:**
+- **Documentação técnica interna** (este repositório, incluindo este guia, especificações, configuração, comentários, relatórios internos): não está sujeita à norma editorial de publicação e pode manter a grafia actualmente utilizada. Não é necessário convertê-la.
+
+**Excepções dentro do conteúdo publicado** (preserva-se o original):
+- **Citações literais** mantêm a grafia original da fonte.
+- **Excertos de legislação** apresentados como citação reproduzem exactamente o texto oficial, sem correcção ortográfica.
+- **Nomes oficiais** de diplomas, entidades, documentos, programas ou obras mantêm a designação oficial, tal como publicada.
+
+Fora destas excepções, o texto que rodeia a citação ou o nome oficial segue o AO1990.
+
+Os exemplos de texto público entre aspas neste guia seguem o AO1990; o texto corrido do guia, sendo documentação interna, mantém a grafia actual do repositório.
+
 ## 2. Incerteza
 
 Sempre que exista incerteza relevante, ela é **explícita** — no texto, não apenas numa nota de rodapé.
@@ -26,13 +49,13 @@ Sempre que exista incerteza relevante, ela é **explícita** — no texto, não 
 - Dizer o que está confirmado, o que não está, e o que se espera (se houver fonte para isso).
 - Indicar a origem da informação não oficial: "segundo [fonte]".
 - Não esconder a incerteza em formulações vagas ("poderá eventualmente vir a ser").
-- Exemplo: "O Governo anunciou o aumento, mas o diploma ainda não foi publicado. Até lá, o valor em vigor continua a ser o actual."
+- Exemplo: "O Governo anunciou o aumento, mas o diploma ainda não foi publicado. Até lá, o valor em vigor continua a ser o atual."
 
 ## 3. Números, datas e referências
 
 - Valores monetários: `1 234,56 €` (espaço como separador de milhares, vírgula decimal, símbolo depois do valor).
 - Percentagens: `3,5 %`.
-- Datas: por extenso ("15 de março de 2027"; maiúscula ou minúscula no nome do mês conforme a norma ortográfica a decidir em D11) ou `dd/mm/aaaa`; nunca formatos ambíguos.
+- Datas: por extenso, com o nome do mês em minúscula, conforme o AO1990 ("15 de março de 2027"), ou `dd/mm/aaaa`; nunca formatos ambíguos.
 - Prazos: indicar sempre a data concreta, além de expressões relativas ("até 30 de junho", não só "nas próximas semanas").
 - Referências legais: tal como publicadas (tipo de diploma, número, data). Na primeira menção, explicar o que é.
 - Nunca arredondar ou "simplificar" um valor oficial sem dizer que é aproximado.
@@ -50,7 +73,7 @@ O verbo acompanha o estágio legal (`legal_stage`) e o nível de verificação. 
 
 | Situação | Usar | Nunca usar |
 |----------|------|------------|
-| `proposal` | "foi proposto", "está em discussão", "o projecto prevê" | "foi aprovado", "vai passar a", "já pode" |
+| `proposal` | "foi proposto", "está em discussão", "o projeto prevê" | "foi aprovado", "vai passar a", "já pode" |
 | `announcement` | "o Governo anunciou", "está previsto", "ainda não foi publicado" | "nova lei", "novo direito", "passa a receber" |
 | `approved` | "foi aprovado em [órgão]; aguarda publicação" | "está em vigor", "já pode pedir" |
 | `published` | "foi publicado; entra em vigor a [data]" | "já está em vigor" (antes da data) |
@@ -119,8 +142,8 @@ Estrutura de referência (secções sem conteúdo confirmado são omitidas, não
 6. **Como pedir / o que fazer.**
 7. **O que ainda não se sabe** — obrigatório quando há claims não `VERIFIED_OFFICIAL` ou datas desconhecidas.
 8. **Fontes.**
-9. Data de actualização e, quando aplicável, nota de estado ("Artigo actualizado a [data] com a publicação do diploma").
-10. Nota de responsabilidade (secção 13).
+9. Data de actualização e, quando aplicável, nota de estado ("Artigo atualizado a [data] com a publicação do diploma").
+10. Nota de responsabilidade, **apenas quando aplicável** (secção 13).
 
 Parágrafos curtos; intertítulos frequentes; listas para condições e documentos.
 
@@ -138,15 +161,41 @@ Parágrafos curtos; intertítulos frequentes; listas para condições e document
 - Orientado para a utilidade: "Confirme se tem direito", "Veja como pedir", "Leia o artigo completo", "Consulte o diploma".
 - Quando existe um serviço oficial para agir, o CTA indica-o pelo nome (o link concreto vem da fonte verificada, nunca inventado).
 - Sem urgência falsa ("Garanta já!", "Últimas horas!") — a urgência só aparece se houver prazo verificado, e é dita com a data.
-- Sem CTA de acção quando a medida ainda não está em vigor; nesse caso, "Acompanhe" ou "Vamos actualizar quando for publicado".
+- Sem CTA de acção quando a medida ainda não está em vigor; nesse caso, "Acompanhe" ou "Vamos atualizar quando for publicado".
 
 ## 13. Nota de responsabilidade
 
-Texto padrão V1 (proposta, a validar editorialmente — ver [ROADMAP.md](ROADMAP.md#decisões-pendentes), D6):
+A nota de responsabilidade é **proporcional ao risco**. **Não é obrigatória em todos os conteúdos** e não é acrescentada automaticamente a todos os posts.
 
-> "Este conteúdo é informativo e não substitui aconselhamento jurídico. Para confirmar a sua situação, contacte os serviços competentes."
+### 13.1 Quando usar
 
-Não se dá aconselhamento jurídico individual.
+Usa-se quando o conteúdo:
+- pode induzir uma **decisão jurídica** (ex.: contestar uma decisão, fazer valer ou renunciar a um direito);
+- pode induzir uma **decisão financeira relevante** (ex.: opções fiscais, crédito, reforma antecipada);
+- pode levar o leitor a tomar uma **decisão administrativa importante** (ex.: pedir ou cancelar uma prestação, aceitar condições, cumprir ou deixar passar um prazo com consequências);
+- envolve **interpretação normativa particularmente sensível** (ex.: regras ambíguas, casos-limite de elegibilidade, regimes transitórios).
+
+Não se usa, em regra, em conteúdos meramente informativos de baixo risco (ex.: calendário de pagamentos, lembrete de um prazo simples, explicação geral de uma medida sem margem de interpretação).
+
+### 13.2 Quem decide
+
+- A pessoa que revê decide se a nota é necessária, segundo os critérios de 13.1.
+- A geração (incluindo por IA) pode **propor** a nota quando identifica um destes critérios; a proposta não é obrigatória nem bloqueia a aprovação.
+- Não existe validação automática que exija a nota.
+
+### 13.3 Forma
+
+- Curta (uma ou duas frases), clara, no fim do conteúdo (no WhatsApp, só quando o risco o justifica e em versão mínima).
+- Não deve sugerir que o TensDireito presta ou substitui aconselhamento jurídico profissional — deve dizer o contrário, sem tom defensivo.
+- Remete para quem pode avaliar o caso concreto.
+
+Textos de referência V1 (AO1990), adaptáveis ao caso:
+
+> "Este conteúdo explica as regras gerais e não substitui aconselhamento jurídico profissional. Para avaliar o seu caso, contacte os serviços competentes ou um profissional qualificado."
+
+> Versão curta (WhatsApp): "Informação geral; confirme o seu caso junto dos serviços competentes."
+
+Em nenhum caso se dá aconselhamento jurídico individual.
 
 ## 14. Checklist do revisor (estilo)
 
@@ -157,3 +206,5 @@ Não se dá aconselhamento jurídico individual.
 - [ ] Sem burocratês, alarmismo ou clickbait.
 - [ ] Fontes indicadas; fonte oficial citada quando existe.
 - [ ] CTA útil e sem urgência falsa.
+- [ ] Conteúdo público em AO1990 (variante europeia), com citações, excertos legais e nomes oficiais preservados.
+- [ ] Nota de responsabilidade incluída se, e só se, os critérios da secção 13.1 se aplicam.

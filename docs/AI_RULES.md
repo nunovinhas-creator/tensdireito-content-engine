@@ -49,7 +49,8 @@ A geração segue a [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md) e o [STYLE_GUIDE.
 - O verbo segue o `legal_stage` (tabela em [STYLE_GUIDE.md](STYLE_GUIDE.md#5-formulações-por-estágio-e-nível-de-verificação)).
 - Explicita a incerteza relevante no próprio texto.
 - Não impõe limites artificiais de extensão: os formatos seguem as orientações do guia de estilo (não existe limite rígido para WhatsApp).
-- Não inclui aconselhamento jurídico individual; inclui a nota de responsabilidade definida no guia de estilo.
+- Escreve em português de Portugal segundo o **Acordo Ortográfico de 1990** (variante europeia), preservando a grafia original em citações literais, excertos de legislação e nomes oficiais ([STYLE_GUIDE.md](STYLE_GUIDE.md#11-norma-ortográfica-e-âmbito)).
+- Não inclui aconselhamento jurídico individual. Pode **propor** a nota de responsabilidade quando se aplicam os critérios de risco do guia de estilo; a decisão de a incluir é humana e não é automática.
 
 ## 6. Validações automáticas pós-geração
 
