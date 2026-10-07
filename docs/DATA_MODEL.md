@@ -1,6 +1,6 @@
 # Modelo de Dados
 
-> Estado: **especificação conceptual (M1)**. Esquema-alvo para SQLite (V1), escrito de forma portável para PostgreSQL. Tipos indicados de forma lógica; datas em UTC, formato ISO 8601. Nenhuma persistência está implementada. Desde o M2.2 existem modelos de domínio (sem persistência) em `src/tensdireito_content_engine/domain/` para `event`, `source_registry`, `source_endpoint`, `source_document`, `source_evidence` e para as enumerações das secções 2–3; os campos de etapas ainda não implementadas (recolha, normalização, classificação) e as restantes entidades ficam para as unidades correspondentes. Desde o M2.3 existe `raw_item` (sem `id` nem `created_in_run`, que pertencem à persistência; `content_hash` calculado) e, em `src/tensdireito_content_engine/normalize/`, um intermédio `NormalizedItem` com os campos de `source_document` obtidos por transformação mecânica (`title`, `text`, `published_at`) e o `text_hash` (fingerprint) — ver DEC-021. Desde o M2.4 a deduplicação exacta por `text_hash` identifica, sem persistência, o representante e os duplicados (`duplicate_of`) — ver DEC-022. Desde o M2.5 `config/sources.yaml` é lido e validado para `source_registry` e `source_endpoint` (sem persistência; `fetch` ainda não é convertido) — ver [ROADMAP.md](ROADMAP.md#m25--registo-de-fontes-e-validação-de-fontes).
+> Estado: **especificação conceptual (M1)**. Esquema-alvo para SQLite (V1), escrito de forma portável para PostgreSQL. Tipos indicados de forma lógica; datas em UTC, formato ISO 8601. Nenhuma persistência está implementada. Desde o M2.2 existem modelos de domínio (sem persistência) em `src/tensdireito_content_engine/domain/` para `event`, `source_registry`, `source_endpoint`, `source_document`, `source_evidence` e para as enumerações das secções 2–3; os campos de etapas ainda não implementadas (recolha, normalização, classificação) e as restantes entidades ficam para as unidades correspondentes. Desde o M2.3 existe `raw_item` (sem `id` nem `created_in_run`, que pertencem à persistência; `content_hash` calculado) e, em `src/tensdireito_content_engine/normalize/`, um intermédio `NormalizedItem` com os campos de `source_document` obtidos por transformação mecânica (`title`, `text`, `published_at`) e o `text_hash` (fingerprint) — ver DEC-021. Desde o M2.4 a deduplicação exacta por `text_hash` identifica, sem persistência, o representante e os duplicados (`duplicate_of`) — ver DEC-022. Desde o M2.5 (concluído e integrado, PR #8) `config/sources.yaml` é lido e validado para `source_registry` e `source_endpoint` (sem persistência; `fetch` ainda não é convertido) — ver [ROADMAP.md](ROADMAP.md#m25--registo-de-fontes-e-validação-de-fontes). O M2.6 (storage SQLite e migração inicial) está definido mas não implementado: a migração inicial cobrirá `run`, `source_registry`, `source_endpoint` e `raw_item`; `source_document` fica para uma migração posterior — ver [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial), DEC-026 e DEC-027.
 
 **Convenção de nomes de estados.** Nos documentos, os estados conceptuais escrevem-se em maiúsculas (ex.: `VERIFIED_OFFICIAL`, `EDITORIAL_REVIEW`). Na implementação, o código armazenado será a mesma designação em minúsculas (ex.: `verified_official`). Não existem outros nomes para estes estados. Em `config/sources.yaml`, os estados (`registry_status`, `endpoint_status`) escrevem-se na forma documental em maiúsculas e são convertidos na leitura (DEC-024; [SOURCES.md](SOURCES.md#4-registo-configsourcesyaml) §4).
 
@@ -53,7 +53,7 @@ A publicação nos canais **não** é um nível gerido pelo sistema na V1 (ver s
 Detalhe e regras em [SOURCES.md](SOURCES.md).
 
 #### `source_registry`
-Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdade).
+Espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdade). A sincronização é unidireccional YAML → SQLite; os campos operacionais de `source_endpoint` (`last_success_at`, `last_error`) só existem na base de dados (DEC-027).
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
@@ -368,7 +368,7 @@ DRAFT ──(validações automáticas passam)──▶ HUMAN_REVIEW_REQUIRED �
 
 - Colunas `json` em SQLite como `TEXT` com JSON válido; em PostgreSQL como `JSONB`.
 - Todas as tabelas com `created_at`, `updated_at`, `created_in_run` (quando aplicável).
-- Migrações numeradas (`storage/migrations/0001_init.sql`, ...), aplicadas por `tde init`.
+- Migrações numeradas (`storage/migrations/0001_init.sql`, ...), aplicadas por `tde init`; só para a frente, nunca editadas depois de aplicadas, registadas em `schema_migration` (DEC-026; contrato em [ROADMAP.md](ROADMAP.md#m26--storage-sqlite-e-migração-inicial)).
 - Todo o SQL vive na camada `storage`; sem funcionalidades exclusivas de SQLite (ver [DECISION_LOG.md](DECISION_LOG.md), DEC-013).
 - Nunca apagar `raw_item`/`source_document` usados como evidência; a política de retenção aplica-se apenas a itens nunca associados a eventos (ver [SECURITY.md](SECURITY.md)).
 - Os campos desta especificação são conceptuais: nenhum está implementado e o esquema final pode ajustar nomes técnicos, mantendo os conceitos e os estados aqui definidos.

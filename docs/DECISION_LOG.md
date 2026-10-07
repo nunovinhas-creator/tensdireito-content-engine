@@ -237,6 +237,26 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Aceite
 - **Data:** 2026-10-07
 
+### DEC-026 — Migrações SQL numeradas, só para a frente, e âmbito da migração inicial
+- **Problema:** DATA_MODEL.md §4 prevê "migrações numeradas (`0001_init.sql`, ...) aplicadas por `tde init`", mas não diz como se sabe que migrações já foram aplicadas, o que acontece a uma migração editada ou falhada, nem como se resolve o caminho da base de dados quando `--db` e `TDE_DB_PATH` coexistem. O ROADMAP (Fase 1) inclui `source_document` na migração inicial, mas os campos que o domínio torna obrigatórios (`canonical_url`, `language`, `source_tier`, `document_kind`) ainda não têm regra de cálculo, e `canonical_url` depende de D12 (OPEN).
+- **Decisão:** (1) As migrações são ficheiros SQL `storage/migrations/NNNN_<nome>.sql`, aplicados por ordem numérica, **só para a frente** (sem reversão). Uma migração aplicada nunca é editada; qualquer alteração é uma migração nova. (2) Cada migração é aplicada numa transacção, com o seu registo na tabela técnica `schema_migration` (`version`, `checksum` SHA-256 do ficheiro, `applied_at` UTC); falha → rollback completo. `tde init` é idempotente e termina em erro perante um checksum diferente, uma versão registada desconhecida do código ou um ficheiro que não é SQLite. (3) Caminho da base de dados: `--db PATH`, senão `TDE_DB_PATH`, senão `data/tde.sqlite3`. (4) A migração inicial `0001` cria `schema_migration`, `run`, `source_registry`, `source_endpoint` e `raw_item`, com os campos de DATA_MODEL.md §2 e sem campos de negócio novos. `source_document` entra numa migração posterior, na unidade que persistir NORMALIZE, depois de essa unidade definir o tratamento de `canonical_url` sob D12.
+- **Razão:** Sem registo das migrações aplicadas, `tde init` não pode ser idempotente; o checksum torna verificável a regra "uma migração aplicada nunca é editada". Uma tabela de controlo é portável para PostgreSQL, ao contrário de `PRAGMA user_version` (DEC-013). Transacções por migração evitam esquemas parciais. A precedência opção > variável de ambiente > defeito é a convenção habitual e não contradiz TECHNICAL_SPEC.md §3/§5. Criar `source_document` agora obrigaria a decidir a nulidade de colunas dependentes de D12 e de regras inexistentes — enfraquecendo o modelo de domínio ou impedindo qualquer escrita — e a fixar colunas de classificação antes da etapa que as usa.
+- **Alternativas consideradas:** `PRAGMA user_version` (específico de SQLite); migrações em Python ou ferramenta externa de migrações (dependência sem necessidade; o SQL deixa de ser legível e revisto como tal); migrações reversíveis (duplicam o esforço sem caso de uso na V1); `source_document` na `0001` com `canonical_url` nulo ou com todas as colunas de DATA_MODEL.md (decide implicitamente sobre D12 e congela nomes da etapa CLASSIFY).
+- **Impacto:** Altera o item "migração inicial" da Fase 1 do ROADMAP: a lista de tabelas mantém-se, repartida pela `0001` e por uma migração seguinte. Não altera D1, D8, D12 nem D13. Não acrescenta dependências (`sqlite3` é da biblioteca padrão). `schema_migration` é técnica e não é entidade de DATA_MODEL.md §2.
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md) M2.6 e Fase 1, [DATA_MODEL.md](DATA_MODEL.md) §4. [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md) §3/§5 é actualizada com a implementação.
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
+### DEC-027 — `config/sources.yaml` é a fonte de verdade; SQLite é espelho operacional
+- **Problema:** DATA_MODEL.md §2.1 define `source_registry` como "espelho do registo versionado `config/sources.yaml` (o YAML é a fonte de verdade)", mas não diz em que sentido se sincroniza, quem é dono dos campos de execução (`last_success_at`, `last_error`, que DEC-023 exclui do ficheiro) nem se a base de dados pode ser editada directamente.
+- **Decisão:** `config/sources.yaml` continua a ser a fonte de verdade das fontes e dos endpoints. As tabelas `source_registry` e `source_endpoint` são um espelho operacional, que existe para as chaves estrangeiras de `raw_item` (e, depois, `source_document`) e para o estado de execução. A sincronização é **unidireccional YAML → SQLite**, por comando explícito e local, só sobre um registo que passe as regras de `tde sources validate`; actualiza os campos do YAML pelo `id`, preserva os campos operacionais e nunca escreve no YAML. Fontes e endpoints alteram-se no YAML, por pull request, nunca na base de dados. A sincronização não faz parte do M2.6; o tratamento de entradas retiradas do YAML é decidido na unidade que a implementar, sem apagar linhas referenciadas por `raw_item`.
+- **Razão:** Mantém a decisão já documentada (o registo é revisto por pessoas, por pull request — DEC-023, DEC-024) e evita duas fontes de verdade. Separa configuração versionada de estado de execução, que muda em cada recolha e não deve gerar commits.
+- **Alternativas consideradas:** SQLite como fonte de verdade, com o YAML apenas para bootstrap (perde a revisão por pull request); sincronização bidireccional (conflitos sem regra de resolução); ler sempre o YAML sem tabelas (sem chaves estrangeiras para `raw_item` nem lugar para o estado de execução).
+- **Impacto:** Não altera o formato de `config/sources.yaml` nem `tde sources validate`. No M2.6 as duas tabelas ficam vazias. `editorial_decision` (`VALIDATE_SOURCE`) mantém-se como documentado e fora do M2.6.
+- **Documentos subordinados:** [DATA_MODEL.md](DATA_MODEL.md) §2.1, [ROADMAP.md](ROADMAP.md) M2.6.
+- **Estado:** Aceite
+- **Data:** 2026-10-07
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
@@ -250,7 +270,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
 | D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
 | D7 — Quem revê e aprova | Parcial: formato do registo fechado (DEC-014); pessoas e autenticação OPEN |
-| D8 — Persistência durável e estado partilhado | OPEN — bloqueante para qualquer execução agendada (DEC-013) |
+| D8 — Persistência durável e estado partilhado | OPEN — bloqueante para qualquer execução agendada (DEC-013); o SQLite local do M2.6 não a resolve (DEC-026) |
 | D9 — Frequência das execuções agendadas | OPEN |
 | D10 — Destino de publicação | OPEN |
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |
