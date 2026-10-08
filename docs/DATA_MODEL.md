@@ -113,14 +113,20 @@ Implementado no M2.9 (DEC-032): para endpoints `rss`, `url` ← `<link>`, `title
 | `document_kind` | text, nulo | `legal_text` \| `consolidated_legal_text` \| `official_page` \| `official_communication` \| `news` \| `analysis` \| `social_post` \| `other`. Nulo = não determinado; `other` é um tipo determinado, nunca "desconhecido" (DEC-039). |
 | `text_hash` | text, nulo | Hash do texto normalizado (deduplicação exacta; DEC-021). Nulo se e só se `text` é nulo. |
 | `duplicate_of` | FK → source_document, nulo | Representante já registado com o mesmo `text_hash`; o duplicado fica `status = ignored` (DEC-022, DEC-041). |
-| `proposed_category` / `proposed_subcategory` | text | Proposta de classificação (regras ou IA). |
-| `proposed_impact_type` / `proposed_legal_stage` | text | Proposta de classificação. |
-| `relevance_flag` | text | `relevant` \| `irrelevant` \| `uncertain`. |
-| `classified_by` | text | `rules` \| `llm:<prompt_id>`. |
+| `proposed_category` / `proposed_subcategory` | text, nulo | Propostas por documento; nulo significa sem proposta sustentada. Domínios em EDITORIAL_POLICY §4.1; subcategorias dependem de configuração explícita. |
+| `proposed_audience` | json, nulo antes de CLASSIFY | Após CLASSIFY é uma lista 0..N de propostas distintas por documento, separada de `Event.audience`; lista vazia significa nenhuma audiência sustentada. Não equivale a `populacao_geral` nem a revisão humana. DEC-042 está proposta. |
+| `proposed_impact_type` / `proposed_legal_stage` | text, nulo | Propostas por documento; nulo significa sem proposta sustentada. Domínios em EDITORIAL_POLICY §4.3 e DATA_MODEL §3.3. `legal_stage` proposto não é confirmação jurídica. |
+| `relevance_flag` | text, nulo antes de CLASSIFY | `relevant` \| `irrelevant` \| `uncertain`; proposta documental, não relevância consolidada do evento. Relevância inclui novidade histórica, que CLASSIFY não avalia (Q12). |
+| `classified_by` | text, nulo antes de CLASSIFY | CLASSIFY rules-only grava exactamente `rules`; não identifica versão nem revisão humana. |
+| `classified_in_run` | FK → run, nulo antes de CLASSIFY | Execução que classificou o documento. Proposto para auditoria em M2.12 (DEC-044). |
+| `classification_config_hash` | text, nulo antes de CLASSIFY | Fingerprint da configuração de regras usada. Proposto para auditoria em M2.12 (DEC-044). |
+| `classifier_version` | text, nulo antes de CLASSIFY | Obrigatório após uma classificação concluída; versão do algoritmo rules-only usada. Proposto para auditoria em M2.12 (DEC-044). |
 | `status` | text | `normalized` \| `classified` \| `clustered` \| `ignored`. |
 | `created_in_run` | FK → run | Execução de `tde normalize` que criou o documento (DEC-041). |
 
-Implementado no M2.11 (DEC-037 a DEC-041; contrato em [ROADMAP.md](ROADMAP.md#m211--persistência-da-etapa-normalize)): a migração `0002` cria `source_document` sem as colunas de classificação (`proposed_*`, `relevance_flag`, `classified_by`), que entram com o CLASSIFY (DEC-026). No M2.11, `canonical_url` e `document_kind` ficam sempre nulos, `source_tier` é o tier da fonte `VALIDATED` (senão `T4`), `published_at` segue DEC-021, e só se atribuem os estados `normalized` e `ignored`.
+Implementado no M2.11 (DEC-037 a DEC-041; contrato em [ROADMAP.md](ROADMAP.md#m211--persistência-da-etapa-normalize)): a migração `0002` cria `source_document` sem as colunas de classificação, que entram numa migração futura, após a decisão/implementação de CLASSIFY (DEC-026). M2.12 define documentalmente propostas por documento e mantém a respectiva implementação pendente. No M2.11, `canonical_url` e `document_kind` ficam sempre nulos, `source_tier` é o tier da fonte `VALIDATED` (senão `T4`), `published_at` segue DEC-021, e só se atribuem os estados `normalized` e `ignored`.
+
+**Propostas de CLASSIFY (M2.12, definição documental):** os campos `proposed_*` pertencem ao `source_document`; não substituem nem pré-preenchem os campos de `Event`. Os quatro campos singulares são nulos quando não existe uma proposta única sustentada. `proposed_audience` fica nulo antes da classificação e, após uma execução concluída, contém uma lista JSON distinta de `Event.audience`; lista vazia significa que nenhuma audiência foi sustentada. A localização documental dessa proposta está sujeita à DEC-042 (Proposta). `relevance_flag` fica nulo antes da classificação e, depois, expressa `relevant`, `irrelevant` ou `uncertain`; não regista novidade histórica. A persistência proposta inclui `classified_by`, `classified_in_run`, `classification_config_hash` e `classifier_version`; ver DEC-043/044 e o contrato M2.12 no ROADMAP. A protecção contra sobrescrita por execuções concorrentes está sujeita à DEC-045 (Proposta). Não existem ainda migration nem valores concretos de configuração.
 
 ### 2.2 `event` — a unidade editorial (Níveis 3 e 4)
 

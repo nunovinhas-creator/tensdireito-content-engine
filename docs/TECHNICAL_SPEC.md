@@ -38,7 +38,7 @@ tensdireito-content-engine/
 ├── docs/
 ├── config/
 │   ├── sources.yaml          # source_registry + source_endpoint (SOURCES.md)
-│   ├── taxonomy.yaml         # categorias, subcategorias, audiências, impact_type, legal_stage (EDITORIAL_POLICY.md)
+│   ├── taxonomy.yaml         # regras para os domínios de EDITORIAL_POLICY.md (M2.12, documental)
 │   ├── scoring.yaml          # pesos e limiares (SCORING.md)
 │   └── llm.yaml              # fornecedor/modelo por tarefa (AI_RULES.md)
 ├── prompts/                  # prompts versionados, um ficheiro por tarefa e versão
@@ -77,7 +77,7 @@ Um único executável, `tde`. Cada etapa é um subcomando independente e idempot
 | `tde collect [--source ID] [--since DATA]` | Recolhe itens dos endpoints `ACTIVE`. | `raw_item`, `run` |
 | `tde add-manual --url URL [--note TEXTO]` | Regista manualmente uma pista; tier pelo domínio validado, senão T4. | `raw_item` |
 | `tde normalize` | Normaliza `raw_item` pendentes. | `source_document` |
-| `tde classify` | Classifica documentos pendentes (propostas). | `source_document.proposed_*` |
+| `tde classify` | Propõe classificação rules-only para `source_document.status = normalized`. Contrato documental M2.12; implementação pendente. | `source_document`, `run` |
 | `tde cluster` | Cria ou actualiza eventos. | `event`, `event_document` |
 | `tde verify [--event ID]` | Extrai claims, associa evidência, calcula verificação. | `claim`, `source_evidence`, `event.verification_status` |
 | `tde score` | Calcula `editorial_score` e propõe estado editorial. | `score`, `event.editorial_status` |
@@ -104,6 +104,8 @@ Implementado (M2.9; DEC-032, DEC-033): `tde collect` não muda de interface, sa�
 Implementado (M2.10; DEC-035): `tde sources validate` recusa um endpoint `ACTIVE` cuja fonte não esteja `VALIDATED` (`CANDIDATE` ou `INACTIVE`), com o erro `um endpoint ACTIVE exige fonte VALIDATED (fonte <id>: <ESTADO>)`, reportado por endpoint ao lado dos restantes erros (código `1`); se o `registry_status` da própria fonte for inválido, só esse erro é reportado. A regra vive na leitura do registo (`sources/registry.py`), pelo que `tde sources sync` recusa o mesmo registo, sem verificação própria (DEC-028 (3)). Interface, saídas dos casos válidos e códigos de saída não mudam; `tde collect` não muda. Nenhuma outra regra entre estados é verificada: `domains`, evidência (DEC-036), verificações V1–V5 e identidade de `validated_by` (além do prefixo `llm:`) ficam para a revisão humana do pull request. Contrato em [ROADMAP.md](ROADMAP.md#m210--validação-de-fontes).
 
 Implementado (M2.11; DEC-041): `tde [--db PATH] normalize` — normaliza os `raw_item` sem `source_document`, por ordem de `id`, e escreve `source_document` (migração `0002`), com `run` (`command = "normalize"`) no padrão de DEC-031; sem opções próprias, sem rede e sem leitura de `config/sources.yaml`; códigos `0` (nenhuma falha, incluindo zero pendentes), `2` (falhas parciais) e `1` (pré-condição, todos os itens com falha ou erro da `storage`). Contrato em [ROADMAP.md](ROADMAP.md#m211--persistência-da-etapa-normalize).
+
+Definido documentalmente no M2.12, ainda não implementado: `tde [--db PATH] [--config DIR] classify`. Lê apenas a configuração de regras `taxonomy.yaml` no directório de configuração e documentos normalizados do SQLite; não lê `sources.yaml`, não acede à rede nem usa IA. A execução, persistência, códigos de saída, auditoria e questões pendentes estão no [ROADMAP.md](ROADMAP.md#m212--classify-rules-only-definição-documental). DEC-042 a DEC-045 são propostas e Q12–Q16 permanecem abertas; não tratar esta linha como funcionalidade implementada.
 
 Códigos de saída: `0` sucesso (incluindo "nada a publicar"); `1` erro; `2` sucesso parcial (algumas fontes falharam).
 

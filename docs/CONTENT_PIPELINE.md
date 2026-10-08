@@ -58,12 +58,13 @@ Regra central (ver [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#2-regra-central)): 
 
 **Objectivo:** propor categoria, subcategoria, audiência, `impact_type`, `legal_stage` e relevância.
 
-1. **Regras** (sempre): palavras-chave por categoria (`config/taxonomy.yaml`), categorias por defeito da fonte, exclusões.
-2. **IA** (opcional): classificação estruturada (`classify@vN`) com justificação curta.
-3. Conflito regras vs. IA → `relevance_flag = uncertain` (segue, com penalização no score).
-4. `legal_stage` proposto nunca é mais avançado do que o texto do próprio documento sustenta; na dúvida, o estágio menos avançado.
+**Contrato documental M2.12 (implementação pendente):** CLASSIFY V1 é local, determinista e rules-only. A entrada são apenas `source_document.status = normalized`; duplicados/ignorados, documentos já classificados/agrupados e documentos sem linha `source_document` ficam fora. Usa apenas `title` e `text` não nulo para correspondências; campos ausentes, incluindo `language` e `document_kind`, nunca são inferidos. A configuração futura `config/taxonomy.yaml` contém regras, não uma taxonomia de códigos alternativa: os domínios continuam os de EDITORIAL_POLICY §4 e DATA_MODEL §3.1–3.3.
 
-Saída: documentos `irrelevant` ficam `ignored`; os restantes seguem. As classificações são **propostas**; os valores do evento são consolidados no CLUSTER e podem ser corrigidos por humanos.
+CLASSIFY persiste em `source_document` propostas distintas das propriedades do evento: `proposed_category`, `proposed_subcategory`, `proposed_audience` (lista vazia se não houver correspondências), `proposed_impact_type`, `proposed_legal_stage`, `relevance_flag` e proveniência. Campo singular sem correspondência única → nulo; audiências só são propostas por correspondência própria, sem generalização; conflito não tem desempate implícito; o estágio em conflito usa o menos avançado, conforme DEC-020. `classified_by` em V1 é `rules`, nunca `human` nem `llm:*`. Uma linha `classified` pode ter propostas parciais/nulas; `ignored` por duplicação no NORMALIZE não é reprocessado.
+
+Novidade face ao que já foi tratado é condição editorial (EDITORIAL_POLICY §6/§10), mas CLASSIFY não compara eventos/histórico. Até Q12 ser decidida, só uma regra explícita de exclusão pode produzir `irrelevant`; os restantes ficam `uncertain` e seguem para consideração no CLUSTER. CLASSIFY não marca `relevant` por inferência nem decide novidade. A localização de `audience`, a semântica completa de relevance, as regras de configuração, a provenance e o isolamento concorrente estão documentados em [ROADMAP.md](ROADMAP.md#m212--classify-rules-only-definição-documental) e DEC-042 a DEC-045, ainda propostas para revisão.
+
+CLASSIFY não verifica, não cria nem consolida `Event`, não calcula SCORE e não decide estado editorial. CLUSTER consolida as propostas no `Event`; VERIFY confirma claims e evidências; SCORE calcula prioridade e proposta editorial. D1 não bloqueia a implementação/teste com fixtures sintéticas; mantém-se bloqueante para fontes reais e gates de fase. D3 só bloqueia a futura integração de IA.
 
 ## Etapa 4 — CLUSTER
 

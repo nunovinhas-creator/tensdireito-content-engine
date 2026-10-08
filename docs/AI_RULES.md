@@ -27,6 +27,8 @@ As saídas da IA são sempre **propostas**, identificadas como `llm:<prompt_id>`
 
 Qualquer outra utilização de IA tem de ser documentada aqui antes de ser implementada.
 
+**M2.12:** a definição documental de CLASSIFY V1 é rules-only. A possibilidade de classificação assistida por IA descrita nesta tabela é futura, continua dependente de D3 e não faz parte do comando nem do contrato M2.12.
+
 ## 3. Regras de entrada (grounding)
 
 - O modelo recebe **apenas** o material necessário: texto dos documentos, claims (com estado de verificação e `legal_stage`) e evidências do evento. Não se pede ao modelo conhecimento "de memória" sobre legislação ou valores.
