@@ -397,6 +397,46 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Aceite
 - **Data:** 2026-10-07
 
+### DEC-042 — Persistência da proposta de audiência por documento (M2.12)
+- **Problema:** DEC-006/019 e EDITORIAL_POLICY definem `audience` em `Event`, mas CLASSIFY produz propostas antes de CLUSTER e DATA_MODEL não tem `source_document.proposed_audience`. `Event.audience` não pode preservar a proposta de cada documento nem a sua proveniência.
+- **Decisão:** **Proposta para revisão:** acrescentar `source_document.proposed_audience`, JSON nullable antes de CLASSIFY, com uma lista de zero ou mais códigos de audiência sustentados por regras do documento depois da classificação. Antes da classificação, nulo significa que ainda não há resultado; depois de uma execução concluída, a lista é sempre gravada e lista vazia significa que nenhuma audiência foi sustentada. Uma lista não vazia contém códigos distintos, sem generalização automática. O valor não é `Event.audience`: CLUSTER consolida as propostas ao nível do evento, respeitando DEC-019. A coluna e as suas constraints só entram numa migração futura de CLASSIFY.
+- **Razão:** CLASSIFY necessita de guardar resultados por documento até CLUSTER sem criar ou alterar `Event`; este é o mesmo local lógico dos restantes `proposed_*`. Fazer da audiência um campo apenas de `Event` perde os sinais documentais e não permite auditar a consolidação.
+- **Alternativas consideradas:** atribuir `Event.audience` em CLASSIFY (cria/edita prematuramente o evento e antecipa CLUSTER); guardar audiência em `run.stats` (não é dado durável e relacional de cada documento); adiar toda a classificação de audiência para CLUSTER (altera a saída já atribuída a CLASSIFY e impede a auditoria documental).
+- **Impacto:** Exige coluna nullable `proposed_audience` em `source_document` e lógica de consolidação futura no CLUSTER; não altera o domínio actual nem cria migration nesta unidade. A cardinalidade 0..N respeita DEC-006/019, sem converter audiência não identificada em `populacao_geral`.
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md#m212--classify-rules-only-definição-documental), [DATA_MODEL.md](DATA_MODEL.md#21-modelo-de-fontes--quatro-conceitos-distintos), [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-3--classify).
+- **Estado:** Proposta
+- **Data:** 2026-10-08
+
+### DEC-043 — Contrato de correspondência lexical para CLASSIFY rules-only (M2.12)
+- **Problema:** EDITORIAL_POLICY e CONTENT_PIPELINE enumeram categorias e indicam palavras-chave, mas não definem schema de regras, normalização lexical, correspondências concorrentes, empates nem conflitos. Sem isso, duas implementações podem produzir resultados diferentes.
+- **Decisão:** **Proposta para revisão:** `config/taxonomy.yaml` será uma configuração fechada das regras, sem redefinir códigos de domínio. Terá `schema_version: 1` e listas obrigatórias (possivelmente vazias) `category_rules`, `subcategory_rules`, `audience_rules`, `impact_type_rules`, `legal_stage_rules` e `exclusion_rules`; cada regra contém identificador estável globalmente único, código, frases `match_any` não vazias e, para subcategorias, código da categoria-pai. A regra de exclusão usa o código fixo `fora_de_ambito`. Chaves desconhecidas, códigos de vocabulários fechados desconhecidos, categoria-pai inexistente, IDs repetidos ou regra inválida falham a validação global; códigos de subcategoria são definidos pelas regras declaradas e têm de apontar para categoria válida. Cada frase é NFC + `casefold`; a correspondência é uma sequência contígua de tokens Unicode alfanuméricos, sem substring parcial. Apenas `title` e `text` não nulo são pesquisados. Para campo singular, uma única proposta distinta vence; zero ou mais de uma → nulo, sem ranking/contagem/ordem como desempate. Audiências resultam da união distinta das regras que correspondem. Em conflito de `legal_stage`, escolhe-se o menos avançado de DEC-020; `not_applicable` só prevalece se não houver correspondência a estágio ordenável. Inclusão e exclusão em conflito resultam em `uncertain`, nunca em irrelevante. Os IDs das regras correspondentes por campo ficam no `run.stats`, permitindo identificar a proveniência específica de cada proposta sem persistir texto do documento.
+- **Razão:** A correspondência literal por tokens, configurada e testável, é determinista e auditável; regras ambíguas não escolhem um facto por heurística de frequência ou posição. Os domínios continuam a ter uma única fonte editorial.
+- **Alternativas consideradas:** embeddings/similaridade (não deterministas ou limiar não definido, e dependência de CLUSTER); regexes livres (capacidade expressiva excessiva e precedências difíceis de auditar); contagem/peso das palavras (pesos e limiares não existem); substring simples (falsos positivos dentro de palavras); taxonomia duplicada no YAML (duas fontes de verdade).
+- **Impacto:** Fixa, se aceite, schema e semântica de uma futura configuração, não os termos concretos de produção. Não cria `taxonomy.yaml`, não escolhe vocabulário real e não afecta D1/D3. Regras de relevância e uso de categorias de fonte continuam sujeitas a Q12/Q15.
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md#m212--classify-rules-only-definição-documental), [CONTENT_PIPELINE.md](CONTENT_PIPELINE.md#etapa-3--classify), [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md#4-taxonomia-editorial-v1).
+- **Estado:** Proposta
+- **Data:** 2026-10-08
+
+### DEC-044 — Proveniência e versionamento das classificações rules-only (M2.12)
+- **Problema:** `classified_by = rules` identifica o método, mas não qual configuração/algoritmo o produziu nem em que execução; `source_document.created_in_run` já identifica NORMALIZE e não deve ser reinterpretado como run de CLASSIFY.
+- **Decisão:** **Proposta para revisão:** cada classificação concluída guarda `classified_by = "rules"`, `classified_in_run` (FK para o `run` com `command = "classify"`), `classification_config_hash` (SHA-256 dos bytes UTF-8 de `taxonomy.yaml`) e `classifier_version` (identificador fixo do algoritmo, inicialmente `classify-rules-v1`). O `run.stats` repete o hash/versão e enumera os documentos processados, resultados e IDs das regras correspondentes por campo (proveniência da proposta). Campos ficam nulos antes da classificação e preenchidos na mesma transacção dos resultados. Alterar configuração/algoritmo não reclassifica automaticamente linhas existentes; M2.12 não oferece reclassificação.
+- **Razão:** `classified_by` conserva a semântica de método, não finge autoria humana, e os dados adicionais tornam cada proposta repetível/auditável sem guardar texto ou dados desnecessários no run de NORMALIZE.
+- **Alternativas consideradas:** apenas `classified_by = rules` (não permite identificar a configuração); pôr o hash apenas em `run.stats` (a relação documento-run não fica estruturalmente verificável); substituir `created_in_run` (apaga a proveniência NORMALIZE); reclassificação automática em alteração de YAML (sobrescreve decisões persistidas e pode divergir de eventos já agrupados).
+- **Impacto:** Exige colunas `classified_in_run`, `classification_config_hash` e `classifier_version` e uma migração futura, não criada nesta unidade. Reclassificação explícita e documentos já consolidados permanecem Q14.
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md#m212--classify-rules-only-definição-documental), [DATA_MODEL.md](DATA_MODEL.md#21-modelo-de-fontes--quatro-conceitos-distintos), [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos).
+- **Estado:** Proposta
+- **Data:** 2026-10-08
+
+### DEC-045 — Isolamento de execuções CLASSIFY concorrentes (M2.12)
+- **Problema:** duas execuções podem ler o mesmo `source_document.status = normalized` antes de qualquer uma persistir, levando a uma sobrescrita de propostas ou proveniência e a um `classified_in_run` incoerente.
+- **Decisão:** **Proposta para revisão:** manter transacções por documento e condicionar a escrita final a `status = normalized`. Se a condição não actualizar exactamente uma linha, a execução não escreve dados do documento, regista `result = skipped` em `run.stats` e continua; não é falha. A primeira transição confirmada para `classified` ou `ignored` preserva as propostas e a proveniência do run vencedor. `skipped` conta no snapshot inicial de `pending`, mas não em `classified`, `ignored` ou `failed`; não altera o estado global do run. Requer teste concorrente sobre SQLite.
+- **Razão:** impede que uma execução atrasada sobrescreva uma classificação confirmada, mantendo a atomicidade por documento e sem impor uma transacção longa para todo o lote.
+- **Alternativas consideradas:** bloquear/serializar globalmente todos os comandos (maior acoplamento ao processo e bloqueio prolongado); não detectar concorrência (pode sobrescrever a proveniência e resultados de outra execução).
+- **Impacto:** requer que o repositório de `source_document` implemente a actualização condicional dentro da transacção, sem SQL na orquestração. Não altera `Event`, não cria migration nesta unidade; aceitação desta estratégia permanece aberta em Q16.
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md#m212--classify-rules-only-definição-documental), [DATA_MODEL.md](DATA_MODEL.md#21-modelo-de-fontes--quatro-conceitos-distintos).
+- **Estado:** Proposta
+- **Data:** 2026-10-08
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
@@ -416,3 +456,13 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |
 | D12 — Regra de `canonical_url` | OPEN (ver DEC-021). Sem lista documentada de parâmetros de tracking; até decisão, `canonical_url` fica nulo em `source_document` (DEC-037, M2.11). |
 | D13 — Formatos e fuso de `published_at_raw` | OPEN (ver DEC-021) |
+
+## 6. Questões abertas após a definição documental M2.12
+
+| # | Questão | Estado / implicação |
+|---|---------|--------------------|
+| Q12 | `relevance_flag` pode representar apenas adequação temática do documento, deixando novidade para CLUSTER, ou deve aguardar comparação histórica/Event antes de poder ser `relevant`? | **OPEN.** Até decisão, o contrato conservador não produz `relevant`; novidade nunca é inferida por CLASSIFY. |
+| Q13 | Aprovar o schema/matching da DEC-043 e quem define/revê o conjunto de regras lexicais concretas de produção. | **OPEN.** Sem regras aprovadas não há classificação substantiva; fixtures sintéticas validam apenas o motor de regras. |
+| Q14 | Como reclassificar um documento já classificado e como tratar um Event/documento já agrupado quando regras mudam? | **OPEN.** M2.12 não reclassifica; uma futura operação exige decisão explícita sobre histórico e CLUSTER. |
+| Q15 | `source_registry.categories` é apenas informação predominante ou pode servir de sugestão/default para a categoria de um documento sem correspondência textual? | **OPEN.** Até decisão, M2.12 não lê nem usa esse campo para preencher propostas. |
+| Q16 | Aprovar a actualização condicional por documento de DEC-045 como controlo de concorrência, em vez de serialização global. | **OPEN.** A implementação não pode permitir que uma execução CLASSIFY sobrescreva a proposta ou a provenance confirmada por outra. |
