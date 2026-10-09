@@ -27,7 +27,12 @@ from tensdireito_content_engine.storage.endpoints import (
 from tensdireito_content_engine.storage.errors import StorageError
 from tensdireito_content_engine.storage.init import InitResult, init_database
 from tensdireito_content_engine.storage.migrator import Migration, load_migrations, migrate
-from tensdireito_content_engine.storage.raw_items import SavedItems, save_endpoint_items
+from tensdireito_content_engine.storage.raw_items import (
+    SavedItems,
+    StoredRawItem,
+    list_raw_items,
+    save_endpoint_items,
+)
 from tensdireito_content_engine.storage.runs import RUN_STATUSES, finish_run, start_run
 from tensdireito_content_engine.storage.schema import open_existing_database
 from tensdireito_content_engine.storage.source_documents import (
@@ -53,6 +58,7 @@ __all__ = [
     "SavedItems",
     "SourceSyncError",
     "StorageError",
+    "StoredRawItem",
     "SyncCounts",
     "SyncResult",
     "active_endpoints",
@@ -61,6 +67,7 @@ __all__ = [
     "init_database",
     "insert_source_document",
     "load_migrations",
+    "list_raw_items",
     "migrate",
     "open_existing_database",
     "pending_raw_items",

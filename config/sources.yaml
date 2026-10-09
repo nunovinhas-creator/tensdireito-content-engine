@@ -1,8 +1,7 @@
 # Registo de fontes — formato em docs/SOURCES.md §4 (fonte de verdade: este ficheiro).
 #
-# Vazio de propósito: a lista de fontes T1 prioritárias e os respectivos endpoints
-# dependem de D1 (OPEN). Nenhuma fonte, URL, feed ou domínio é acrescentado por
-# suposição; cada entrada entra por pull request depois de validada manualmente.
+# Ainda sem endpoints ACTIVE: os candidatos RSS consultados não têm autorização de
+# reutilização suficientemente clara para recolha diária. Ver docs/DAILY_PIPELINE.md.
+# Acrescentar ou remover fontes aqui; validar com: uv run tde sources validate.
 #
-# Validar com: uv run tde sources validate
 []
