@@ -1,5 +1,5 @@
 - id: dre
-  name: "DiÃ¡rio da RepÃºblica - 1.Âª SÃ©rie"
+  name: "Diário da República - 1.ª Série"
   entity_type: "official_journal"
   tier: "T1"
   registry_status: "VALIDATED"
@@ -34,7 +34,7 @@
       url: "https://www.portugal.gov.pt/pt/comunicacao/noticias.rss"
 
 - id: assembleia_republica
-  name: "Assembleia da RepÃºblica"
+  name: "Assembleia da República"
   entity_type: "parliament"
   tier: "T1"
   registry_status: "VALIDATED"
@@ -52,7 +52,7 @@
       url: "https://www.parlamento.pt/Rss/Pages/Rss.aspx"
 
 - id: seguranca_social
-  name: "Portal da SeguranÃ§a Social"
+  name: "Portal da Segurança Social"
   entity_type: "public_body"
   tier: "T2"
   registry_status: "VALIDATED"
@@ -70,7 +70,7 @@
       url: "https://www.seg-social.pt/noticias"
 
 - id: iefp
-  name: "IEFP - Emprego e FormaÃ§Ã£o Profissional"
+  name: "IEFP - Emprego e Formação Profissional"
   entity_type: "public_body"
   tier: "T2"
   registry_status: "VALIDATED"
@@ -88,7 +88,7 @@
       url: "https://www.iefp.pt/noticias.rss"
 
 - id: act
-  name: "ACT - Autoridade para as CondiÃ§Ãµes do Trabalho"
+  name: "ACT - Autoridade para as Condições do Trabalho"
   entity_type: "public_body"
   tier: "T2"
   registry_status: "VALIDATED"
@@ -106,7 +106,7 @@
       url: "https://www.act.gov.pt/(pt-PT)/Noticias/Rss/Pages/default.aspx"
 
 - id: rtp_noticias
-  name: "RTP NotÃ­cias"
+  name: "RTP Notícias"
   entity_type: "press"
   tier: "T3"
   registry_status: "VALIDATED"
@@ -124,7 +124,7 @@
       url: "https://www.rtp.pt/noticias/rss"
 
 - id: publico
-  name: "PÃºblico"
+  name: "Público"
   entity_type: "press"
   tier: "T3"
   registry_status: "VALIDATED"
@@ -142,7 +142,7 @@
       url: "https://www.publico.pt/api/feed/rss/economia"
 
 - id: jornal_noticias
-  name: "Jornal de NotÃ­cias"
+  name: "Jornal de Notícias"
   entity_type: "press"
   tier: "T3"
   registry_status: "VALIDATED"
@@ -214,7 +214,7 @@
       url: "https://cnnportugal.iol.pt/rss"
 
 - id: jornal_economico
-  name: "Jornal EconÃ³mico"
+  name: "Jornal Económico"
   entity_type: "press"
   tier: "T3"
   registry_status: "VALIDATED"
@@ -232,7 +232,7 @@
       url: "https://jornaleconomico.sapo.pt/feed/"
 
 - id: lusa
-  name: "AgÃªncia Lusa"
+  name: "Agência Lusa"
   entity_type: "press"
   tier: "T3"
   registry_status: "VALIDATED"
@@ -249,7 +249,7 @@
       url: "https://www.lusa.pt/rss"
 
 - id: diario_noticias
-  name: "DiÃ¡rio de NotÃ­cias"
+  name: "Diário de Notícias"
   entity_type: "press"
   tier: "T3"
   registry_status: "VALIDATED"
@@ -266,7 +266,7 @@
       url: "https://www.dn.pt/rss"
 
 - id: jornal_negocios
-  name: "Jornal de NegÃ³cios"
+  name: "Jornal de Negócios"
   entity_type: "press"
   tier: "T3"
   registry_status: "VALIDATED"
