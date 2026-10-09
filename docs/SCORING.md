@@ -1,6 +1,6 @@
 # Pontuação Editorial
 
-> Estado: **especificação (M1)**. Pesos e limiares são valores iniciais a calibrar com dados reais. Todos os valores viverão em `config/scoring.yaml`. Nada aqui está implementado.
+> Estado: **especificação em evolução**. O pipeline diário implementa um scorer lexical inicial, determinístico e conservador para priorização de rascunhos WhatsApp; não é verificação factual nem substitui o modelo editorial aqui especificado.
 
 ## 1. Objectivo
 
@@ -127,3 +127,9 @@ Processo:
 - Ajustes por pull request em `scoring.yaml`, com nota da razão; mudanças estruturais (novas dimensões, pesos por categoria) registadas no [DECISION_LOG.md](DECISION_LOG.md).
 - Métricas: precisão das propostas `EDITORIAL_REVIEW` (% aprovados na revisão), eventos relevantes perdidos, proporção de execuções "nada a publicar".
 - A calibração nunca pode introduzir verificação no score nem relaxar o gate de verificação.
+
+### Implementação lexical inicial do pipeline diário
+
+O scorer actual procura termos normalizados sem distinguir maiúsculas nem diacríticos em impacto, alcance, accionabilidade e urgência. Cada dimensão recebe 0 quando não há correspondência e, caso contrário, `min(5, correspondências distintas + 2)`. Novelty e interest ficam a zero: o pipeline ainda não dispõe de histórico de eventos nem de agrupamento para as inferir. Aplicam-se os pesos da tabela da secção 3 e o limiar inicial de 65.
+
+Este score é apenas uma prioridade lexical, não determina a veracidade, estado legal, adequação jurídica ou aprovação editorial. Para entrar na fila de rascunhos, o item tem também de ser representante não duplicado, provir de fonte `VALIDATED` e ter URL HTTPS. O rascunho persiste com `verification_status = unverified`; `tde drafts approve` exige que a pessoa revisora declare explicitamente `verified_editorial` ou `verified_official`. Estas regras não atribuem automaticamente verificação nem publicam o conteúdo. O scorer e os pesos são implementação inicial, não a calibração final prevista nesta especificação.

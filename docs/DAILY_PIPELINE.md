@@ -7,7 +7,11 @@ uv run tde sources validate
 uv run tde daily
 ```
 
-O comando inicializa e migra a base de dados local se necessário, sincroniza `config/sources.yaml`, recolhe endpoints RSS `ACTIVE`, normaliza os `raw_item` persistidos com NORMALIZE existente, elimina duplicados exatos por texto normalizado e escreve `data/reports/daily/AAAA-MM-DD.txt`. As falhas de uma fonte não impedem o processamento das restantes; o comando termina com código `2` em sucesso parcial.
+O comando inicializa e migra a base de dados local se necessário, sincroniza `config/sources.yaml`, recolhe endpoints RSS `ACTIVE`, normaliza os `raw_item` persistidos, elimina duplicados exatos por texto normalizado, calcula um score lexical determinístico e escreve `data/reports/daily/AAAA-MM-DD.txt`. Cria ainda rascunhos WhatsApp pendentes para representantes não duplicados com score ≥ 65, fonte em estado `VALIDATED` e URL HTTPS; a fila fica na tabela `whatsapp_draft`. O score só prioriza texto e não confirma factos. Cada rascunho começa explicitamente com verificação `unverified`; a aprovação requer revisão humana e uma declaração `verified_editorial` ou `verified_official`. O texto apresenta o excerto original da fonte, assinalado como por validar, sem o reescrever.
+
+Os comandos de revisão são `tde --db data/tde.sqlite3 drafts list` e `tde --db data/tde.sqlite3 drafts approve <id> --verification-status verified_editorial` (ou `verified_official`). Aprovar não publica nem define `PUBLISHED`; o envio permanece manual.
+
+As falhas de uma fonte não impedem o processamento das restantes; o comando termina com código `2` em sucesso parcial.
 
 `sources validate` é uma verificação local opcional que confirma a configuração antes da recolha; `daily` volta a validá-la ao carregar o YAML. Exemplos com caminhos alternativos (as opções globais `--config` e `--db` ficam antes de `daily`):
 

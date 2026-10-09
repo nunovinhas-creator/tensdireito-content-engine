@@ -10,7 +10,7 @@ import os
 import platform
 import sys
 from collections.abc import Sequence
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from tensdireito_content_engine import __version__
@@ -31,7 +31,9 @@ from tensdireito_content_engine.storage import (
     DEFAULT_DB_PATH,
     SourceSyncError,
     StorageError,
+    approve_draft,
     init_database,
+    list_drafts,
     resolve_db_path,
     sync_sources,
 )
@@ -220,6 +222,45 @@ def daily(
     return _daily_lines(result)
 
 
+def drafts_list(db_path: Path) -> tuple[bool, list[str]]:
+    """Mostra a fila persistente de rascunhos pendentes."""
+    try:
+        drafts = list_drafts(db_path)
+    except StorageError as exc:
+        return False, [f"drafts: ERRO — {exc}"]
+    lines = [f"rascunhos pendentes: {len(drafts)}"]
+    for draft in drafts:
+        lines.extend(
+            (
+                f"[{draft.id}] score={draft.editorial_score:g} "
+                f"verificação={draft.verification_status.value} estado={draft.status}",
+                draft.message,
+                "",
+            )
+        )
+    return True, lines
+
+
+def drafts_approve(
+    db_path: Path, draft_id: int, verification_status: VerificationStatus
+) -> tuple[bool, list[str]]:
+    """Marca um rascunho como aprovado após declaração explícita de verificação humana."""
+    try:
+        approved = approve_draft(
+            db_path, draft_id, verification_status, datetime.now(UTC)
+        )
+    except (StorageError, ValueError) as exc:
+        return False, [f"drafts approve: ERRO — {exc}"]
+    if not approved:
+        return False, [
+            f"drafts approve: ERRO — rascunho {draft_id} inexistente, não elegível ou não pendente"
+        ]
+    return True, [
+        f"rascunho {draft_id}: aprovado",
+        f"verificação: {verification_status.value}",
+    ]
+
+
 def publish_whatsapp(input_path: Path) -> tuple[bool, list[str]]:
     """Gera uma pré-visualização WhatsApp apenas para conteúdo elegível."""
     try:
@@ -297,6 +338,7 @@ def _daily_lines(result: DailyResult) -> tuple[int, list[str], list[str]]:
         f"  duplicados na janela: {result.duplicates}",
         "DAILY",
         f"  notícias selecionadas: {len(result.articles)}",
+        f"  rascunhos WhatsApp gerados: {result.drafts_created}",
         f"relatório gerado: {result.report_path}",
     ]
     errors = [
@@ -406,12 +448,38 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="AAAA-MM-DD",
         help="dia da janela (por defeito, hoje em Europe/Lisbon)",
     )
+    daily_parser.description += (
+        " Os rascunhos WhatsApp elegíveis são guardados na fila SQLite para revisão humana."
+    )
     daily_parser.add_argument(
         "--report-dir",
         type=Path,
         default=DEFAULT_REPORT_DIR,
         metavar="DIR",
         help=f"directório dos relatórios (por defeito: {DEFAULT_REPORT_DIR})",
+    )
+    drafts_parser = subparsers.add_parser(
+        "drafts",
+        help="lista e aprova rascunhos WhatsApp pendentes",
+        description="Fila local de rascunhos WhatsApp. A aprovação requer declarar "
+        "explicitamente o estado de verificação editorial ou oficial.",
+    )
+    drafts_actions = drafts_parser.add_subparsers(
+        dest="drafts_command", metavar="<acção>", required=True
+    )
+    drafts_actions.add_parser("list", help="lista os rascunhos pendentes")
+    approve_parser = drafts_actions.add_parser(
+        "approve", help="aprova um rascunho após revisão humana"
+    )
+    approve_parser.add_argument("draft_id", type=int, metavar="ID")
+    approve_parser.add_argument(
+        "--verification-status",
+        required=True,
+        choices=(
+            VerificationStatus.VERIFIED_EDITORIAL.value,
+            VerificationStatus.VERIFIED_OFFICIAL.value,
+        ),
+        help="estado de verificação confirmado pela pessoa revisora",
     )
     publish_parser = subparsers.add_parser(
         "publish",
@@ -508,6 +576,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in err:
             print(line, file=sys.stderr)
         return code
+
+    if args.command == "drafts" and args.drafts_command == "list":
+        ok, lines = drafts_list(resolve_db_path(args.db, os.environ))
+        for line in lines:
+            print(line, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
+
+    if args.command == "drafts" and args.drafts_command == "approve":
+        ok, lines = drafts_approve(
+            resolve_db_path(args.db, os.environ),
+            args.draft_id,
+            VerificationStatus(args.verification_status),
+        )
+        for line in lines:
+            print(line, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
 
     if args.command == "publish" and args.target == "whatsapp":
         ok, lines = publish_whatsapp(args.input)

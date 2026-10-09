@@ -4,27 +4,32 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from tensdireito_content_engine.collect import CollectResult, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry
+from tensdireito_content_engine.domain.policy import MINIMUM_RELEVANCE_SCORE
 from tensdireito_content_engine.normalize import (
     NormalizedItem,
+    RawContentError,
     deduplicate_exact,
+    extract_rss_item,
     normalize_raw_item,
 )
+from tensdireito_content_engine.publish.whatsapp import WhatsAppMessage, format_whatsapp_message
+from tensdireito_content_engine.scoring import score_item
 from tensdireito_content_engine.sources import load_sources
 from tensdireito_content_engine.storage import (
     StoredRawItem,
     init_database,
     list_raw_items,
+    persist_pending_drafts,
     sync_sources,
 )
 
 LISBON = ZoneInfo("Europe/Lisbon")
 DEFAULT_REPORT_DIR = Path("data") / "reports" / "daily"
-
-
 @dataclass(frozen=True, slots=True)
 class DailyArticle:
     title: str
@@ -33,6 +38,9 @@ class DailyArticle:
     published_at: datetime | None
     fetched_at: datetime
     raw_item_id: int
+    registry_status: str | None
+    editorial_score: float
+    excerpt: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +51,7 @@ class DailyResult:
     duplicates: int
     articles: tuple[DailyArticle, ...]
     report_path: Path
+    drafts_created: int
 
 
 def run_daily(
@@ -67,8 +76,10 @@ def run_daily(
     selected_day = day or instant.astimezone(LISBON).date()
 
     candidates: list[tuple[StoredRawItem, NormalizedItem]] = []
+    scores_by_raw_item: dict[int, float] = {}
     for stored in list_raw_items(db_path):
         normalized = normalize_raw_item(stored.item)
+        scores_by_raw_item[stored.id] = score_item(normalized).value
         relevant_date = normalized.published_at or stored.item.fetched_at
         if relevant_date.astimezone(LISBON).date() == selected_day:
             candidates.append((stored, normalized))
@@ -83,11 +94,21 @@ def run_daily(
             published_at=item.published_at,
             fetched_at=item.raw_item.fetched_at,
             raw_item_id=records_by_item[id(item)].id,
+            registry_status=records_by_item[id(item)].registry_status,
+            editorial_score=scores_by_raw_item[records_by_item[id(item)].id],
+            excerpt=_source_excerpt(item.raw_item.raw_content),
         )
         for item in deduplicated.representatives
     ]
     articles.sort(key=_article_order)
 
+    draft_candidates = [
+        (article.raw_item_id, article.editorial_score, _render_draft(article))
+        for article in articles
+        if article.editorial_score >= MINIMUM_RELEVANCE_SCORE
+        and article.registry_status == "validated"
+        and _is_https_url(article.url)
+    ]
     report_dir = Path(report_dir)
     report_path = report_dir / f"{selected_day.isoformat()}.txt"
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -95,6 +116,7 @@ def run_daily(
         _render_report(selected_day, len(candidates), len(deduplicated.duplicates), articles),
         encoding="utf-8",
     )
+    drafts_created = persist_pending_drafts(db_path, draft_candidates, instant)
     return DailyResult(
         day=selected_day,
         collection=collection,
@@ -102,6 +124,7 @@ def run_daily(
         duplicates=len(deduplicated.duplicates),
         articles=tuple(articles),
         report_path=report_path,
+        drafts_created=drafts_created,
     )
 
 
@@ -145,3 +168,43 @@ def _render_report(
             )
         )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _source_excerpt(raw_content: str) -> str | None:
+    """Obtém um excerto literal do resumo RSS, sem o reescrever nem o verificar."""
+    try:
+        return extract_rss_item(raw_content).text
+    except RawContentError:
+        return None
+
+
+def _is_https_url(value: str) -> bool:
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return False
+    return (
+        parsed.scheme == "https"
+        and bool(parsed.hostname)
+        and parsed.username is None
+        and parsed.password is None
+        and "\n" not in value
+        and "\r" not in value
+    )
+
+
+def _render_draft(article: DailyArticle) -> str:
+    excerpt = article.excerpt
+    point = (
+        f"Resumo da fonte (por validar): {' '.join(excerpt.split())}"
+        if excerpt
+        else "Resumo pendente de revisão editorial."
+    )
+    message = WhatsAppMessage(
+        emoji="📢",
+        title=article.title,
+        key_points=(point, "Confirme os factos e o impacto antes de aprovar."),
+        cta="Consulte a fonte",
+        url=article.url,
+    )
+    return format_whatsapp_message(message)
