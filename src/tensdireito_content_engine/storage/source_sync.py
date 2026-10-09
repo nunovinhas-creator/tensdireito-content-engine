@@ -27,6 +27,7 @@ from pathlib import Path
 from tensdireito_content_engine.domain import SourceEndpoint, SourceRegistry
 from tensdireito_content_engine.storage.database import connect, to_utc_iso
 from tensdireito_content_engine.storage.errors import StorageError
+from tensdireito_content_engine.storage.interfaces import Connection
 from tensdireito_content_engine.storage.schema import check_schema, require_database
 
 # Campos projectados do YAML (ROADMAP.md M2.7, *Campos*), pela ordem das colunas.
@@ -159,7 +160,7 @@ def sync_sources(
 
 
 def _reconcile(
-    conn: sqlite3.Connection,
+    conn: Connection,
     path: Path,
     source_rows: list[Row],
     endpoint_rows: list[Row],
@@ -200,13 +201,13 @@ def _reconcile(
     return SyncResult(path=path, sources=source_plan.counts(), endpoints=endpoint_plan.counts())
 
 
-def _stored(conn: sqlite3.Connection, table: str, fields: tuple[str, ...]) -> dict[str, Row]:
+def _stored(conn: Connection, table: str, fields: tuple[str, ...]) -> dict[str, Row]:
     """Linhas existentes, só nos campos projectados, indexadas pelo `id`."""
     rows = conn.execute(f"SELECT {', '.join(fields)} FROM {table} ORDER BY id").fetchall()
     return {row[0]: tuple(row) for row in rows}
 
 
-def _referenced_endpoints(conn: sqlite3.Connection) -> set[str]:
+def _referenced_endpoints(conn: Connection) -> set[str]:
     rows = conn.execute(
         "SELECT DISTINCT source_endpoint_id FROM raw_item WHERE source_endpoint_id IS NOT NULL"
     ).fetchall()
@@ -276,7 +277,7 @@ def _conflicts(
 
 
 def _insert(
-    conn: sqlite3.Connection, table: str, fields: tuple[str, ...], row: Row, timestamp: str
+    conn: Connection, table: str, fields: tuple[str, ...], row: Row, timestamp: str
 ) -> None:
     columns = (*fields, "created_at", "updated_at")
     placeholders = ", ".join("?" for _ in columns)
@@ -287,7 +288,7 @@ def _insert(
 
 
 def _update(
-    conn: sqlite3.Connection, table: str, fields: tuple[str, ...], row: Row, timestamp: str
+    conn: Connection, table: str, fields: tuple[str, ...], row: Row, timestamp: str
 ) -> None:
     """Sobrescreve só os campos projectados e `updated_at`; os restantes ficam intactos."""
     assignments = ", ".join(f"{field} = ?" for field in (*fields[1:], "updated_at"))

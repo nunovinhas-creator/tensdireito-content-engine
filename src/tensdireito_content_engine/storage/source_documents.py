@@ -24,6 +24,7 @@ from datetime import datetime
 from tensdireito_content_engine.domain import DocumentStatus, SourceDocument
 from tensdireito_content_engine.storage.database import to_utc_iso, transaction
 from tensdireito_content_engine.storage.errors import StorageError
+from tensdireito_content_engine.storage.interfaces import Connection
 
 PENDING_BATCH_SIZE = 100
 
@@ -44,7 +45,7 @@ class PendingRawItem:
 
 
 def pending_raw_items(
-    conn: sqlite3.Connection, batch_size: int = PENDING_BATCH_SIZE
+    conn: Connection, batch_size: int = PENDING_BATCH_SIZE
 ) -> Iterator[PendingRawItem]:
     """Os `raw_item` pendentes, por `id`, lidos em lotes. Erro SQLite → `StorageError`."""
     upper = _read(conn, "SELECT MAX(id) FROM raw_item", ())[0][0]
@@ -72,7 +73,7 @@ def pending_raw_items(
 
 
 def insert_source_document(
-    conn: sqlite3.Connection, document: SourceDocument, run_id: int, at: datetime
+    conn: Connection, document: SourceDocument, run_id: int, at: datetime
 ) -> SourceDocument:
     """Grava um documento numa transacção própria e devolve-o como ficou guardado.
 
@@ -120,7 +121,7 @@ def insert_source_document(
     return dataclasses.replace(document, id=document_id)
 
 
-def _representative(conn: sqlite3.Connection, text_hash: str) -> int | None:
+def _representative(conn: Connection, text_hash: str) -> int | None:
     row = conn.execute(
         "SELECT id FROM source_document WHERE text_hash = ? AND duplicate_of IS NULL "
         "ORDER BY id LIMIT 1",
@@ -129,7 +130,9 @@ def _representative(conn: sqlite3.Connection, text_hash: str) -> int | None:
     return None if row is None else int(row[0])
 
 
-def _read(conn: sqlite3.Connection, sql: str, params: tuple[object, ...]) -> list[tuple]:
+def _read(
+    conn: Connection, sql: str, params: tuple[object, ...]
+) -> list[tuple[object, ...]]:
     try:
         return conn.execute(sql, params).fetchall()
     except sqlite3.Error as exc:

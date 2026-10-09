@@ -13,7 +13,6 @@ repositórios por entidade chegam com as unidades que os consomem.
 from tensdireito_content_engine.storage.database import (
     DB_PATH_ENV,
     DEFAULT_DB_PATH,
-    Connection,
     connect,
     resolve_db_path,
     to_utc_iso,
@@ -26,6 +25,7 @@ from tensdireito_content_engine.storage.endpoints import (
 )
 from tensdireito_content_engine.storage.errors import StorageError
 from tensdireito_content_engine.storage.init import InitResult, init_database
+from tensdireito_content_engine.storage.interfaces import Connection
 from tensdireito_content_engine.storage.migrator import Migration, load_migrations, migrate
 from tensdireito_content_engine.storage.raw_items import (
     SavedItems,
