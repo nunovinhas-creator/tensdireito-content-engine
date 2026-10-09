@@ -19,11 +19,13 @@ from tensdireito_content_engine.storage.database import (
     transaction,
 )
 from tensdireito_content_engine.storage.drafts import (
+    DraftIssueData,
     WhatsAppDraft,
     approve_draft,
     create_pending_draft,
     export_approved_drafts,
     list_drafts,
+    list_unverified_drafts_for_issues,
     persist_pending_drafts,
 )
 from tensdireito_content_engine.storage.endpoints import (
@@ -60,6 +62,7 @@ __all__ = [
     "DEFAULT_DB_PATH",
     "RUN_STATUSES",
     "Connection",
+    "DraftIssueData",
     "WhatsAppDraft",
     "InitResult",
     "Migration",
@@ -81,6 +84,7 @@ __all__ = [
     "load_migrations",
     "list_raw_items",
     "list_drafts",
+    "list_unverified_drafts_for_issues",
     "migrate",
     "open_existing_database",
     "pending_raw_items",

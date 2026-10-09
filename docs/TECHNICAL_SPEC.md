@@ -16,7 +16,7 @@
 | Gestão de projecto e dependências | `uv` + `pyproject.toml` + `uv.lock` | Decidido (DEC-015). |
 | Pacote | `tensdireito_content_engine` | Decidido (DEC-015). |
 | CLI | `tde` | Decidido (DEC-015). |
-| Automação | GitHub Actions | `.github/workflows/daily.yml` executa `tde daily` às 06:00 UTC (D9, DEC-046). O runner é efémero: SQLite e relatórios locais não persistem entre execuções; armazenamento durável/partilhado continua pendente em D8. |
+| Automação | GitHub Actions | `.github/workflows/daily.yml` executa `tde daily` às 08:00, 13:00 e 18:00 UTC e sincroniza rascunhos não verificados com GitHub Issues. O runner é efémero: SQLite e relatórios locais não persistem entre execuções; armazenamento durável/partilhado continua pendente em D8. |
 | Arquitectura | Monólito modular | Sem microserviços (DEC-016). |
 
 ### Política de dependências
@@ -215,6 +215,6 @@ Dependências de execução: `pyyaml` (a CLI usa `argparse` da biblioteca padrã
 
 - **Manual (Fases 1–4):** `tde run`, seguido de `tde generate`, `tde check`, `tde review` e `tde export`, executados localmente.
 - **Ingestão manual:** `tde ingest` executa apenas `sources sync → collect → normalize` sobre a base já inicializada. Não é uma execução agendada e não resolve D8.
-- **Agendada (D9, DEC-046):** `.github/workflows/daily.yml` executa `uv run tde daily` diariamente às 06:00 UTC, com `workflow_dispatch` para execução manual. A configuração inclui o feed RSS oficial do Diário da República em `config/sources.yaml`. Código `0`: sucesso do job; `1`: erro fatal e job falhado; `2`: falha parcial, adiciona aviso a `$GITHUB_STEP_SUMMARY` e mantém o job bem-sucedido; códigos não previstos falham o passo.
+- **Agendada (D9, DEC-046):** `.github/workflows/daily.yml` executa `uv run tde daily` às 08:00, 13:00 e 18:00 UTC (`0 8,13,18 * * *`), com `workflow_dispatch` para execução manual, e depois sincroniza rascunhos pendentes com `uv run tde drafts sync-issues`. A permissão `issues: write` é concedida ao job para esta sincronização. Código `0`: sucesso do job; `1`: erro fatal e job falhado; `2`: falha parcial, adiciona aviso a `$GITHUB_STEP_SUMMARY` e mantém o job bem-sucedido; códigos não previstos falham o passo. A integração por issues não torna o SQLite do runner durável.
 - **Persistência e âmbito (D8):** o runner GitHub é efémero; a base SQLite e os relatórios locais são descartados no fim da execução e não são partilhados com a revisão editorial. O agendamento diário não resolve D8 nem representa automação de produção com estado durável. A execução agendada do pipeline completo `tde run` e a persistência exigem resolver D8 primeiro.
 - Em nenhum modo o sistema publica conteúdo; a V1 termina em `APPROVED → EXPORT`.

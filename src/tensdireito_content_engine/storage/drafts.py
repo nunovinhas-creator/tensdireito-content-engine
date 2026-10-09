@@ -28,6 +28,15 @@ class WhatsAppDraft:
     message: str
 
 
+@dataclass(frozen=True, slots=True)
+class DraftIssueData:
+    id: int
+    editorial_score: float
+    message: str
+    title: str
+    source_url: str
+
+
 def create_pending_draft(
     conn: Connection, raw_item_id: int, editorial_score: float, message: str, at: datetime
 ) -> int | None:
@@ -105,6 +114,34 @@ def list_drafts(path: Path, *, status: str | None = PENDING) -> tuple[WhatsAppDr
             verification_status=VerificationStatus(row[3]),
             status=row[4],
             message=row[5],
+        )
+        for row in rows
+    )
+
+
+def list_unverified_drafts_for_issues(path: Path) -> tuple[DraftIssueData, ...]:
+    """Lista rascunhos pendentes por validar, incluindo a referência original da fonte."""
+    conn = open_existing_database(Path(path))
+    try:
+        rows = conn.execute(
+            "SELECT d.id, d.editorial_score, d.message, r.title, r.url "
+            "FROM whatsapp_draft d JOIN raw_item r ON r.id = d.raw_item_id "
+            "WHERE d.status = ? AND d.verification_status = ? ORDER BY d.id",
+            (PENDING, VerificationStatus.UNVERIFIED.value),
+        ).fetchall()
+    except sqlite3.Error as exc:
+        raise StorageError(
+            f"não foi possível listar rascunhos para revisão por issues: {exc}"
+        ) from exc
+    finally:
+        conn.close()
+    return tuple(
+        DraftIssueData(
+            id=int(row[0]),
+            editorial_score=float(row[1]),
+            message=row[2],
+            title=row[3],
+            source_url=row[4],
         )
         for row in rows
     )

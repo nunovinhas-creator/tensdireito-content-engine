@@ -19,6 +19,7 @@ from tensdireito_content_engine.collectors import CollectorRegistry, default_reg
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
 from tensdireito_content_engine.daily import DEFAULT_REPORT_DIR, DailyResult, run_daily
 from tensdireito_content_engine.domain.enums import EditorialStatus, VerificationStatus
+from tensdireito_content_engine.github_issues import GitHubIssueError, sync_draft_issues
 from tensdireito_content_engine.normalize_command import run_normalize
 from tensdireito_content_engine.publish.whatsapp import (
     WhatsAppMessage,
@@ -239,6 +240,20 @@ def drafts_list(db_path: Path) -> tuple[bool, list[str]]:
                 "",
             )
         )
+    return True, lines
+
+
+def drafts_sync_issues(db_path: Path) -> tuple[bool, list[str]]:
+    """Sincroniza rascunhos não verificados com issues do GitHub."""
+    try:
+        result = sync_draft_issues(db_path)
+    except (GitHubIssueError, StorageError) as exc:
+        return False, [f"drafts sync-issues: ERRO — {exc}"]
+    lines = [
+        f"drafts sync-issues: OK — {len(result.created)} issues criadas, "
+        f"{result.already_present} já existentes"
+    ]
+    lines.extend(f"- issue criada: {issue}" for issue in result.created)
     return True, lines
 
 
@@ -524,6 +539,10 @@ def build_parser() -> argparse.ArgumentParser:
         dest="drafts_command", metavar="<acção>", required=True
     )
     drafts_actions.add_parser("list", help="lista os rascunhos pendentes")
+    drafts_actions.add_parser(
+        "sync-issues",
+        help="cria issues GitHub para rascunhos pendentes não verificados",
+    )
     approve_parser = drafts_actions.add_parser(
         "approve", help="aprova um rascunho após revisão humana"
     )
@@ -659,6 +678,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "drafts" and args.drafts_command == "list":
         ok, lines = drafts_list(resolve_db_path(args.db, os.environ))
+        for line in lines:
+            print(line, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
+
+    if args.command == "drafts" and args.drafts_command == "sync-issues":
+        ok, lines = drafts_sync_issues(resolve_db_path(args.db, os.environ))
         for line in lines:
             print(line, file=sys.stdout if ok else sys.stderr)
         return 0 if ok else 1

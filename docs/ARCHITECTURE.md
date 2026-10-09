@@ -175,6 +175,24 @@ O workflow deve obter credenciais de curta duração por OIDC quando o fornecedo
 - Configurar um grupo de concorrência do workflow para reduzir sobreposição no mesmo ambiente, sem cancelar um job em curso. O GitHub Actions mantém no máximo uma execução pendente por grupo e pode substituir uma pendente por outra mais recente; por isso, esta configuração não é uma fila garantida. A base remota continua responsável pela integridade transaccional; o controlo de concorrência não substitui restrições nem idempotência.
 - Testar o mesmo comportamento com falhas parciais, repetição no mesmo dia, indisponibilidade da base, erro de migração e falha de upload. O workflow só deve passar quando o estado e o relatório tiverem sido persistidos conforme o resultado do CLI.
 
+### Revisão por GitHub Issues
+
+O workflow agendado executa `tde daily` às 08:00, 13:00 e 18:00 UTC e, em seguida, `tde drafts sync-issues`. Para cada rascunho pendente e `unverified`, este comando procura a referência estável da fonte nas issues do repositório e cria uma issue apenas quando ainda não existe:
+
+```text
+COLLECT → NORMALIZE → SCORE → rascunho pending/unverified
+                                  │
+                           drafts sync-issues
+                                  │
+             issue [Rascunho WhatsApp] <Título>
+             label draft-whatsapp
+             mensagem + score + fonte + instruções
+                                  │
+             revisão humana → copiar → publicar → fechar issue
+```
+
+O URL da fonte é guardado como referência oculta no corpo da issue; a consulta inclui issues abertas e fechadas para a repetição de uma execução não reabrir o mesmo rascunho já tratado. O `GITHUB_TOKEN` recebe apenas `issues: write` além de `contents: read`. A issue regista a revisão/publicação operacional, mas o fecho não aprova nem altera a base SQLite local. Como o runner é efémero, não se liga o evento de fecho a `tde drafts approve` nem a `--mark-published`: isso não produziria um histórico durável e partilhado. A persistência PostgreSQL + object storage continua pendente em D8.
+
 ## 8. Fora do âmbito (V1)
 
 - Publicação automática em qualquer canal (o sistema termina em `APPROVED → EXPORT`).
@@ -182,7 +200,7 @@ O workflow deve obter credenciais de curta duração por OIDC quando o fornecedo
 - Recolha a partir de APIs de redes sociais.
 - Pesquisa web aberta durante a verificação.
 - Execução distribuída, filas de mensagens, microserviços.
-- Execução agendada em produção antes da decisão sobre persistência durável.
+- Execução agendada em produção com estado durável antes da decisão de persistência D8; o agendamento GitHub Actions actual é operacional/efémero e não constitui publicação automática.
 - Pesquisa semântica com base de dados vectorial.
 
 ## 9. Documentos relacionados
