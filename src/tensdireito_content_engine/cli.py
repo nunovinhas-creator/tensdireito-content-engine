@@ -32,6 +32,7 @@ from tensdireito_content_engine.storage import (
     SourceSyncError,
     StorageError,
     approve_draft,
+    export_approved_drafts,
     init_database,
     list_drafts,
     resolve_db_path,
@@ -261,6 +262,61 @@ def drafts_approve(
     ]
 
 
+def drafts_export(
+    db_path: Path,
+    verification_statuses: Sequence[VerificationStatus],
+    output_format: str,
+    mark_published: bool,
+) -> tuple[bool, list[str]]:
+    """Exporta rascunhos aprovados para cópia manual ou formatos estruturados."""
+    try:
+        drafts = export_approved_drafts(
+            db_path,
+            verification_statuses,
+            datetime.now(UTC),
+            mark_published=mark_published,
+        )
+    except (StorageError, ValueError) as exc:
+        return False, [f"drafts export: ERRO — {exc}"]
+
+    if not drafts:
+        if output_format == "json":
+            return True, ["[]"]
+        if output_format == "markdown":
+            return True, ["*Sem rascunhos aprovados elegíveis para exportação.*"]
+        return True, ["nenhum rascunho aprovado elegível para exportação"]
+    if output_format == "whatsapp":
+        return True, ["\n\n".join(draft.message for draft in drafts)]
+    if output_format == "json":
+        return True, [
+            json.dumps(
+                [
+                    {
+                        "id": draft.id,
+                        "editorial_score": draft.editorial_score,
+                        "verification_status": draft.verification_status.value,
+                        "status": draft.status,
+                        "message": draft.message,
+                    }
+                    for draft in drafts
+                ],
+                ensure_ascii=False,
+                indent=2,
+            )
+        ]
+    if output_format == "markdown":
+        return True, [
+            "\n\n".join(
+                f"## Rascunho {draft.id}\n\n"
+                f"- Verificação: `{draft.verification_status.value}`\n"
+                f"- Score: {draft.editorial_score:g}\n\n"
+                f"{draft.message}"
+                for draft in drafts
+            )
+        ]
+    raise ValueError(f"formato de exportação desconhecido: {output_format}")
+
+
 def publish_whatsapp(input_path: Path) -> tuple[bool, list[str]]:
     """Gera uma pré-visualização WhatsApp apenas para conteúdo elegível."""
     try:
@@ -460,9 +516,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     drafts_parser = subparsers.add_parser(
         "drafts",
-        help="lista e aprova rascunhos WhatsApp pendentes",
-        description="Fila local de rascunhos WhatsApp. A aprovação requer declarar "
-        "explicitamente o estado de verificação editorial ou oficial.",
+        help="lista, aprova e exporta rascunhos WhatsApp",
+        description="Fila local de rascunhos WhatsApp. A aprovação e a exportação exigem "
+        "verificação editorial ou oficial explícita.",
     )
     drafts_actions = drafts_parser.add_subparsers(
         dest="drafts_command", metavar="<acção>", required=True
@@ -480,6 +536,30 @@ def build_parser() -> argparse.ArgumentParser:
             VerificationStatus.VERIFIED_OFFICIAL.value,
         ),
         help="estado de verificação confirmado pela pessoa revisora",
+    )
+    export_parser = drafts_actions.add_parser(
+        "export", help="exporta rascunhos aprovados e verificados"
+    )
+    export_parser.add_argument(
+        "--verification-status",
+        action="append",
+        choices=(
+            VerificationStatus.VERIFIED_EDITORIAL.value,
+            VerificationStatus.VERIFIED_OFFICIAL.value,
+        ),
+        default=None,
+        help="filtra por nível de verificação (repetível; por omissão, ambos)",
+    )
+    export_parser.add_argument(
+        "--format",
+        choices=("whatsapp", "json", "markdown"),
+        default="whatsapp",
+        help="formato da saída (por omissão, texto WhatsApp pronto a copiar)",
+    )
+    export_parser.add_argument(
+        "--mark-published",
+        action="store_true",
+        help="marca como published os rascunhos exportados",
     )
     publish_parser = subparsers.add_parser(
         "publish",
@@ -588,6 +668,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             resolve_db_path(args.db, os.environ),
             args.draft_id,
             VerificationStatus(args.verification_status),
+        )
+        for line in lines:
+            print(line, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
+
+    if args.command == "drafts" and args.drafts_command == "export":
+        statuses = (
+            tuple(VerificationStatus(value) for value in args.verification_status)
+            if args.verification_status
+            else (
+                VerificationStatus.VERIFIED_EDITORIAL,
+                VerificationStatus.VERIFIED_OFFICIAL,
+            )
+        )
+        ok, lines = drafts_export(
+            resolve_db_path(args.db, os.environ),
+            statuses,
+            args.format,
+            args.mark_published,
         )
         for line in lines:
             print(line, file=sys.stdout if ok else sys.stderr)

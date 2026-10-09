@@ -22,6 +22,7 @@ from tensdireito_content_engine.storage.drafts import (
     WhatsAppDraft,
     approve_draft,
     create_pending_draft,
+    export_approved_drafts,
     list_drafts,
     persist_pending_drafts,
 )
@@ -73,6 +74,7 @@ __all__ = [
     "approve_draft",
     "connect",
     "create_pending_draft",
+    "export_approved_drafts",
     "finish_run",
     "init_database",
     "insert_source_document",

@@ -7,9 +7,18 @@ uv run tde sources validate
 uv run tde daily
 ```
 
-O comando inicializa e migra a base de dados local se necessário, sincroniza `config/sources.yaml`, recolhe endpoints RSS `ACTIVE`, normaliza os `raw_item` persistidos, elimina duplicados exatos por texto normalizado, calcula um score lexical determinístico e escreve `data/reports/daily/AAAA-MM-DD.txt`. Cria ainda rascunhos WhatsApp pendentes para representantes não duplicados com score ≥ 65, fonte em estado `VALIDATED` e URL HTTPS; a fila fica na tabela `whatsapp_draft`. O score só prioriza texto e não confirma factos. Cada rascunho começa explicitamente com verificação `unverified`; a aprovação requer revisão humana e uma declaração `verified_editorial` ou `verified_official`. O texto apresenta o excerto original da fonte, assinalado como por validar, sem o reescrever.
+O ciclo de vida é **Recolha → Normalização → Scoring → Rascunhos (SQLite) → Revisão Humana → Exportação/Publicação**. `daily` inicializa e migra a base local se necessário, sincroniza `config/sources.yaml`, recolhe endpoints RSS `ACTIVE`, normaliza os `raw_item` persistidos, elimina duplicados exatos por texto normalizado, calcula um score lexical determinístico e escreve `data/reports/daily/AAAA-MM-DD.txt`. Cria ainda rascunhos WhatsApp pendentes para representantes não duplicados com score ≥ 65, fonte em estado `VALIDATED` e URL HTTPS; a fila fica na tabela `whatsapp_draft`. O score só prioriza texto e não confirma factos. Cada rascunho começa explicitamente com verificação `unverified`; a aprovação requer revisão humana e uma declaração `verified_editorial` ou `verified_official`. O texto apresenta o excerto original da fonte, assinalado como por validar, sem o reescrever.
 
-Os comandos de revisão são `tde --db data/tde.sqlite3 drafts list` e `tde --db data/tde.sqlite3 drafts approve <id> --verification-status verified_editorial` (ou `verified_official`). Aprovar não publica nem define `PUBLISHED`; o envio permanece manual.
+Os comandos de revisão são `tde --db data/tde.sqlite3 drafts list` e `tde --db data/tde.sqlite3 drafts approve <id> --verification-status verified_editorial` (ou `verified_official`). Os aprovados verificados podem ser exportados em texto pronto a copiar para WhatsApp (predefinição), JSON ou Markdown:
+
+```bash
+uv run tde --db data/tde.sqlite3 drafts export
+uv run tde --db data/tde.sqlite3 drafts export \
+  --verification-status verified_official --format markdown
+uv run tde --db data/tde.sqlite3 drafts export --format json --mark-published
+```
+
+Sem `--verification-status`, a exportação inclui os dois níveis de verificação. A exportação normal não altera estados; `--mark-published` marca atomicamente como `published` apenas os rascunhos exportados, para os excluir de futuras exportações. Esta opção deve ser usada depois da publicação manual — o CLI não envia mensagens para o WhatsApp. O envio continua manual/externo.
 
 As falhas de uma fonte não impedem o processamento das restantes; o comando termina com código `2` em sucesso parcial.
 
