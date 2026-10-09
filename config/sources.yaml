@@ -1,27 +1,52 @@
-# Registo de fontes — formato em docs/SOURCES.md §4 (fonte de verdade: este ficheiro).
-#
-# Diário da República: feed RSS oficial validado e activo, com verificações em
-# docs/source_validation/dre.md. Rever periodicamente os termos de utilização.
-# Acrescentar ou remover fontes aqui; validar com: uv run tde sources validate.
-#
 - id: dre
-  name: "Diário da República"
-  entity_type: official_journal
-  tier: T1
-  categories: [seguranca_social, pensoes_reformas, emprego_desemprego, salarios_rendimento, fiscalidade_particulares, habitacao_arrendamento, apoios_familias, educacao_estudantes, saude_apoios, energia_agua, consumo, deficiencia_inclusao, idosos_cuidadores, justica_direitos]
-  domains: [diariodarepublica.pt, files.diariodarepublica.pt]
-  registry_status: VALIDATED
-  validated_at: "2026-10-09T11:17:10+01:00"
-  validated_by: "João Silva"
-  notes: "Publicação oficial da Imprensa Nacional-Casa da Moeda / Diário da República. Feed da 1.ª Série em português (pt_PT); rever periodicamente os termos de utilização."
+  name: "Diário da República - 1.ª Série"
+  entity_type: "official_journal"
+  tier: "T1"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "legislacao"
   endpoints:
     - id: dre-serie1-rss
-      endpoint_type: rss
-      url: "https://files.diariodarepublica.pt/rss/serie1-html.xml"
-      endpoint_status: ACTIVE
-      fetch:
-        frequency: daily
-        rate_limit_seconds: 5
-        max_items: 50
-      validated_at: "2026-10-09T11:17:10+01:00"
-      validated_by: "João Silva"
+      endpoint_type: "rss"
+      endpoint_status: "INACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://diariodarepublica.pt/dr/rss/home/1serie"
+
+- id: rtp_economia
+  name: "RTP Notícias - Economia"
+  entity_type: "press"
+  tier: "T3"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "economia"
+    - "direitos"
+  endpoints:
+    - id: rtp-economia-rss
+      endpoint_type: "rss"
+      endpoint_status: "ACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://www.rtp.pt/noticias/rss/economia"
+
+- id: eco_sapo
+  name: "ECO - Economia Online"
+  entity_type: "press"
+  tier: "T3"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "economia"
+    - "trabalho"
+  endpoints:
+    - id: eco-sapo-rss
+      endpoint_type: "rss"
+      endpoint_status: "ACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://eco.sapo.pt/feed/"
