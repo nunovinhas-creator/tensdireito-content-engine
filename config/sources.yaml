@@ -10,43 +10,7 @@
   endpoints:
     - id: dre-serie1-rss
       endpoint_type: "rss"
-      endpoint_status: "INACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://diariodarepublica.pt/dr/rss/home/1serie"
-
-- id: rtp_economia
-  name: "RTP Notícias - Economia"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
-  categories:
-    - "economia"
-    - "direitos"
-  endpoints:
-    - id: rtp-economia-rss
-      endpoint_type: "rss"
       endpoint_status: "ACTIVE"
       validated_at: "2026-10-09T00:00:00Z"
       validated_by: "nuno"
-      url: "https://www.rtp.pt/noticias/rss/economia"
-
-- id: eco_sapo
-  name: "ECO - Economia Online"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
-  categories:
-    - "economia"
-    - "trabalho"
-  endpoints:
-    - id: eco-sapo-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://eco.sapo.pt/feed/"
+      url: "https://files.diariodarepublica.pt/rss/serie1-html.xml"
