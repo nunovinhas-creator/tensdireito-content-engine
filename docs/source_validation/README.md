@@ -2,7 +2,7 @@
 
 > Decisões: DEC-034 (verificações V1–V5 e correspondência com os estados), DEC-035 (regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`") e DEC-036 (validador, resultados e registo de evidência). Protocolo em [SOURCES.md](../SOURCES.md#8-protocolo-de-validação-de-fontes) §8; contrato da unidade em [ROADMAP.md](../ROADMAP.md#m210--validação-de-fontes) M2.10.
 >
-> Este directório contém apenas este README. **Nenhuma fonte foi ainda validada** (D1 OPEN): não existe nenhum ficheiro de evidência de uma fonte real, e o modelo abaixo usa só marcadores (`<…>`).
+> Este directório contém o protocolo de validação e o registo de evidência do Diário da República (`dre.md`). A evidência é específica daquela fonte e não pode ser extrapolada para os restantes endpoints. A validação das outras fontes continua pendente até existirem registos próprios e revisões documentadas.
 
 ## 1. O que é e onde fica
 

@@ -177,7 +177,7 @@ O workflow deve obter credenciais de curta duração por OIDC quando o fornecedo
 
 ### Revisão por GitHub Issues
 
-O workflow agendado executa `tde daily` às 08:00, 13:00 e 18:00 UTC e, em seguida, `tde drafts sync-issues`. Para cada rascunho pendente e `unverified`, este comando procura a referência estável da fonte nas issues do repositório e cria uma issue apenas quando ainda não existe:
+O workflow é manual (`workflow_dispatch`) até existir persistência durável e partilhada; em seguida executa `tde daily` e `tde drafts sync-issues`, e preserva o relatório como artefacto por 14 dias. Para cada rascunho pendente e `unverified`, este comando procura a referência estável da fonte nas issues do repositório e cria uma issue apenas quando ainda não existe:
 
 ```text
 COLLECT → NORMALIZE → SCORE → rascunho pending/unverified

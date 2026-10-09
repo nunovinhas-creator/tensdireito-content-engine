@@ -501,3 +501,14 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | Q14 | Como reclassificar um documento já classificado e como tratar um Event/documento já agrupado quando regras mudam? | **OPEN.** M2.12 não reclassifica; uma futura operação exige decisão explícita sobre histórico e CLUSTER. |
 | Q15 | `source_registry.categories` é apenas informação predominante ou pode servir de sugestão/default para a categoria de um documento sem correspondência textual? | **OPEN.** Até decisão, M2.12 não lê nem usa esse campo para preencher propostas. |
 | Q16 | Aprovar a actualização condicional por documento de DEC-045 como controlo de concorrência, em vez de serialização global. | **OPEN.** A implementação não pode permitir que uma execução CLASSIFY sobrescreva a proposta ou a provenance confirmada por outra. |
+
+
+### DEC-048 — Suspensão do agendamento até existir persistência durável
+- **Problema:** DEC-046 activou o cron apesar de DEC-013 e D8 afirmarem que o SQLite de um runner efémero não é persistência durável. A base de dados e o relatório local desaparecem no fim do job, pelo que a execução agendada cria uma aparência de continuidade que não existe.
+- **Decisão:** Suspender temporariamente o cron. `.github/workflows/daily.yml` fica apenas com `workflow_dispatch`; o relatório produzido é guardado como artefacto GitHub Actions por 14 dias. A sincronização de rascunhos para GitHub Issues mantém-se. O agendamento só pode ser reactivado depois de D8 estar implementada e validada, com estado durável e partilhado.
+- **Razão:** Evitar execuções recorrentes sem persistência e sem acesso editorial consistente aos relatórios, respeitando DEC-013. O artefacto é apenas um mecanismo temporário de entrega do relatório, não a base de dados canónica.
+- **Alternativas consideradas:** Manter o cron sem persistência (rejeitada por contradizer DEC-013); usar artefactos como base de dados (rejeitada por não oferecer estado transaccional partilhado); activar já PostgreSQL/object storage (não há configuração de infraestrutura nem credenciais aprovadas neste pacote).
+- **Impacto:** DEC-046 fica suspensa quanto à frequência, não quanto ao tratamento dos códigos de saída. Execução manual disponível; o SQLite continua efémero em GitHub Actions.
+- **Documentos subordinados:** [DAILY_PIPELINE.md](DAILY_PIPELINE.md), [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md), [ROADMAP.md](ROADMAP.md), [ARCHITECTURE.md](ARCHITECTURE.md).
+- **Estado:** Aplicada no pacote de correcção; revisão humana recomendada antes de integrar no repositório remoto.
+- **Data:** 2026-10-09

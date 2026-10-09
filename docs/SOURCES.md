@@ -1,6 +1,6 @@
 # Fontes
 
-> Estado: **especificação (M1)**. Define o modelo de fontes, a hierarquia de confiança, o registo e as regras de utilização. A lista de fontes é uma **lista candidata**: nenhuma fonte foi testada, **nenhum URL, feed, RSS ou API é assumido**, e o mecanismo de recolha de cada uma só será conhecido após validação manual.
+> Estado: **especificação + registo operacional**. Define o modelo de fontes, a hierarquia de confiança, o registo e as regras de utilização. `config/sources.yaml` contém endpoints reais, mas a presença no YAML não é prova suficiente de validação: estados `ACTIVE`/`VALIDATED` exigem evidência e revisão; endpoints com falhas recentes foram desactivados até nova validação.
 
 ## 1. Princípio
 
@@ -164,7 +164,7 @@ Apenas entrada manual na V1.
 
 ## 8. Protocolo de validação de fontes
 
-> Decisões: DEC-034 (verificações e estados), DEC-035 (regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`") e DEC-036 (validador, resultados e registo de evidência). O processo é definido pelo M2.10 ([ROADMAP.md](ROADMAP.md#m210--validação-de-fontes)) e executado por uma pessoa, separado do código dos collectors. Nenhuma fonte foi ainda validada (D1 OPEN).
+> Decisões: DEC-034 (verificações e estados), DEC-035 (regra automática "endpoint `ACTIVE` só em fonte `VALIDATED`") e DEC-036 (validador, resultados e registo de evidência). O processo é definido pelo M2.10 ([ROADMAP.md](ROADMAP.md#m210--validação-de-fontes)) e executado por uma pessoa, separado do código dos collectors. Existe um registo de verificações para o Diário da República em [source_validation/dre.md](source_validation/dre.md); a validação das restantes fontes e a revisão contínua dos endpoints continuam a exigir evidência própria.
 
 ### 8.1 Cinco verificações distintas
 

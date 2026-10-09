@@ -1,120 +1,66 @@
-# tensdireito-content-engine
+# TensDireito Content Engine
 
-Editorial Intelligence Engine para o [TensDireito.com](https://tensdireito.com) — descobre, verifica, classifica, pontua e transforma informação sobre apoios e direitos sociais em conteúdo editorial publicável.
+Motor editorial em Python para recolher informação, normalizar itens, eliminar duplicados exactos, calcular uma pontuação lexical de prioridade e preparar rascunhos WhatsApp para revisão humana. O sistema **não confirma alterações legais nem publica automaticamente**.
 
-> **Estado actual: M2 — fundação executável.** As decisões fundamentais foram fechadas no M1.
-> Existe a fundação mínima do projecto Python (pacote, CLI `tde` com `doctor` e `sources validate`, testes), o núcleo de domínio (configuração mínima, enumerações, `Event` e modelo de fontes/evidência) e o registo de fontes `config/sources.yaml` (vazio até D1), sem persistência. Ainda não há recolha, verificação, pontuação, geração nem exportação; a documentação em `docs/` continua a ser a especificação da implementação.
+## Estado actual
 
-## Propósito
+A implementação existente cobre a fundação, fontes RSS, transporte HTTPS restrito, persistência SQLite local, normalização, pontuação básica, relatório diário, fila de rascunhos e sincronização de rascunhos não verificados com GitHub Issues. Não estão implementados o fluxo completo de `Event`/claims/evidências, verificação jurídica automática, classificação semântica, agrupamento semântico nem geração de artigos/SEO.
 
-Os cidadãos perdem acesso a apoios e direitos porque a informação está dispersa, é técnica, muda com frequência e é muitas vezes noticiada de forma incompleta ou antes de estar oficialmente confirmada. O TensDireito.com explica essa informação de forma clara e fiável.
+O registo de produção em `config/sources.yaml` contém apenas o Diário da República — 1.ª Série — porque é a fonte cujo endpoint está documentado e validado no repositório. As outras fontes observadas nos logs anteriores devolveram erros HTTP, redirects, HTML em vez de RSS ou timeouts. Não devem continuar marcadas como `ACTIVE`/`VALIDATED` sem uma nova validação documental e técnica. Ver `docs/SOURCES.md` e `docs/source_validation/dre.md`.
 
-Este motor apoia a equipa editorial a encontrar o que mudou, confirmar o que é verdade, decidir o que merece ser publicado e produzir o conteúdo — sem nunca confundir uma notícia com uma confirmação.
+## Requisitos
 
-## Objectivo
+- Python 3.12 ou superior
+- [`uv`](https://docs.astral.sh/uv/)
 
-Construir um sistema que:
-
-1. **descubra** informação relevante sobre Segurança Social, prestações sociais, emprego, habitação, fiscalidade e outras matérias com impacto nos direitos dos cidadãos;
-2. **normalize e agrupe** várias notícias sobre o mesmo acontecimento num único evento;
-3. **verifique** alterações a direitos, valores, condições, prazos ou legislação contra fontes oficiais, distinguindo `VERIFIED_OFFICIAL` de `VERIFIED_EDITORIAL`;
-4. **pontue** cada acontecimento pela sua relevância editorial — sem que o score substitua a verificação — e consiga concluir que **não há nada suficientemente importante para publicar**;
-5. **produza** conteúdo em vários formatos (WhatsApp, artigo, SEO; futuramente newsletter e redes sociais) a partir do mesmo acontecimento verificado, com rastreabilidade de cada afirmação até à fonte;
-6. submeta todo o conteúdo a **aprovação humana** e o exporte — sem publicação automática na V1.
-
-## Arquitectura conceptual
-
-```
-Fontes (T1 oficiais · T2 especializadas · T3 imprensa · T4 redes/não confirmado)
-   │
-   ▼
-COLLECT ─▶ NORMALIZE ─▶ CLASSIFY ─▶ CLUSTER ─▶ VERIFY ─▶ SCORE ─▶ GENERATE ─▶ CHECK ─▶ REVIEW ─▶ EXPORT
-descoberta  normalizada              Event      VERIFIED_*  score +  conteúdo            humano    ficheiros
-                                     (assunto)              gate                         APPROVED  (não publica)
-                                                               │
-                                                               └─▶ Relatório: revisão editorial / watchlist /
-                                                                   "nada suficientemente importante para publicar"
-```
-
-- Pipeline por etapas, cada uma um comando CLI independente e idempotente, comunicando através da base de dados.
-- O **acontecimento** (`Event`) é a unidade editorial; é actualizado (não duplicado) quando o assunto evolui, e os formatos de conteúdo derivam dele.
-- **Claims** e **evidências** (`source_evidence`) ligam cada afirmação importante a excertos literais das fontes.
-- A IA é opcional em cada etapa, está isolada atrás de uma interface independente do fornecedor, e não verifica nem aprova.
-- Monólito modular em Python, gerido com `uv`; pacote `tensdireito_content_engine`; CLI `tde`.
-- SQLite na primeira implementação, com SQL isolado para migração para PostgreSQL.
-- Execução manual primeiro; automação (GitHub Actions) só depois de decidida a persistência durável.
-
-Detalhe em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Princípios
-
-1. **Descobrir não é verificar. Verificar não é aprovar. Aprovar não é publicar.**
-2. Alterações a direitos, valores, condições, prazos ou legislação só são afirmadas como facto com `VERIFIED_OFFICIAL`; `VERIFIED_EDITORIAL` nunca é apresentado como confirmação legal.
-3. Seis níveis distintos: descoberta → normalizada → candidato editorial → acontecimento verificado → conteúdo editorial → aprovado. A publicação fica fora do sistema na V1.
-4. Várias notícias sobre o mesmo acontecimento formam um único evento.
-5. "Nada a publicar" é um resultado válido.
-6. A IA ajuda a descobrir, classificar, sintetizar e escrever — não inventa factos nem substitui a verificação documental.
-7. Rastreabilidade entre cada afirmação importante e as suas fontes.
-8. Hierarquia de fontes: oficiais > especializadas > imprensa generalista > redes sociais/não confirmado.
-9. Redes sociais detectam tendências, mas nunca confirmam isoladamente alterações legais ou direitos.
-10. Múltiplos formatos a partir do mesmo acontecimento.
-11. Começar simples; evoluir sem monólito desnecessário.
-12. Python e base de dados simples primeiro.
-13. Execução manual antes de automação.
-14. Sem acoplamento a um único fornecedor de IA.
-15. Score e verificação são dimensões separadas: o score ordena, a verificação bloqueia.
-16. Na V1, a IA não substitui a aprovação humana.
-
-## Roadmap resumido
-
-| Fase | Âmbito | Estado |
-|------|--------|--------|
-| 0 | Arquitectura e documentação (M1 — decisões fundamentais fechadas) | **Em curso** |
-| 1 | Fundação, fontes, recolha e normalização (manual) | Planeada |
-| 2 | Classificação, agrupamento, pontuação e relatório | Planeada |
-| 3 | Verificação, claims e rastreabilidade | Planeada |
-| 4 | Geração de formatos, revisão humana e exportação | Planeada |
-| 5 | Automação com execuções agendadas | Planeada |
-| 6 | Evolução (PostgreSQL, novos formatos, publicação, redes sociais) | A avaliar |
-
-Detalhe e decisões pendentes em [docs/ROADMAP.md](docs/ROADMAP.md).
-
-## Desenvolvimento
-
-Requer [`uv`](https://docs.astral.sh/uv/) e Python 3.12+.
+## Instalação e testes
 
 ```bash
-uv sync              # cria o ambiente virtual e instala o projecto e as dependências de desenvolvimento
-uv run pytest        # executa os testes (offline)
-uv run ruff check .  # lint
-uv run tde --help    # ajuda da CLI
-uv run tde doctor    # diagnóstico: confirma que a aplicação está instalada e executável
+uv sync --locked
+uv run pytest -q
+uv run ruff check .
+uv run tde --help
+uv run tde doctor
 ```
 
-`tde doctor` é determinístico: não acede à Internet, a APIs externas, a variáveis de ambiente nem a base de dados.
-
-## Pipeline diário
+## Pipeline diário local
 
 ```bash
 uv run tde sources validate
 uv run tde daily
 ```
 
-O pipeline inicializa a base de dados se necessário, sincroniza `config/sources.yaml`, recolhe endpoints RSS `ACTIVE`, normaliza e deduplica os itens persistidos e escreve `data/reports/daily/AAAA-MM-DD.txt`. A janela usa `Europe/Lisbon`; usa a data de publicação quando a normalização existente a reconhece e, se não, a data de recolha para selecionar sem apresentar uma publicação inventada. Repetir o comando não duplica itens nem notícias. Opções de `daily`: `--date AAAA-MM-DD` e `--report-dir DIR`; as opções globais `--config DIR` e `--db PATH` devem anteceder `daily`. A configuração actual não tem fontes activas, por isso o relatório diário será vazio. Não há agendamento automático: a persistência SQLite durável e partilhada ainda é um bloqueio. Consulte [docs/DAILY_PIPELINE.md](docs/DAILY_PIPELINE.md) para os detalhes de execução, estado das fontes e automatização.
+O pipeline inicializa/migra a base SQLite, sincroniza `config/sources.yaml`, recolhe endpoints RSS `ACTIVE`, normaliza os itens persistidos, elimina duplicados exactos e escreve `data/reports/daily/AAAA-MM-DD.txt`. Pode indicar a data e o directório do relatório:
+
+```bash
+uv run tde daily --date 2026-10-09 --report-dir data/reports/daily
+```
+
+As opções globais `--config DIR` e `--db PATH` têm de preceder `daily`. O dia é interpretado em `Europe/Lisbon`. O código de saída é `0` para sucesso, `2` para sucesso parcial e `1` para erro fatal/todas as fontes falhadas.
+
+O score é uma heurística lexical de priorização, não uma avaliação jurídica. Os rascunhos começam como `unverified`; o texto conserva o excerto original e assinala que está por validar. A aprovação exige revisão humana e um nível de verificação explícito.
+
+## Revisão e exportação
+
+```bash
+uv run tde drafts list
+uv run tde drafts approve 1 --verification-status verified_official
+uv run tde drafts export --verification-status verified_official
+uv run tde drafts sync-issues
+```
+
+A exportação produz texto para cópia manual. Não envia mensagens para o WhatsApp. A sincronização GitHub cria issues para rascunhos ainda não verificados, usando o URL da fonte como chave de idempotência.
+
+## GitHub Actions e persistência
+
+O workflow `.github/workflows/daily.yml` é **manual (`workflow_dispatch`)**, não agendado. Os runners hospedados são efémeros e o SQLite local não é partilhado nem preservado entre execuções. Cada execução manual preserva o relatório como artefacto por 14 dias e pode sincronizar rascunhos para GitHub Issues. Não activar agendamento recorrente até estar implementada e aprovada uma solução de persistência durável/partilhada, conforme DEC-013 e D8.
 
 ## Documentação
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Visão geral, princípios, componentes, níveis de maturidade, decisões arquitecturais. |
-| [EDITORIAL_POLICY.md](docs/EDITORIAL_POLICY.md) | Regra central, transformações proibidas, taxonomia V1, níveis de verificação, relevância, rejeição, watchlist, Event, revisão humana. |
-| [STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Estilo editorial: títulos, leads, WhatsApp, artigos, SEO, CTA, incerteza. |
-| [DECISION_LOG.md](docs/DECISION_LOG.md) | Registo das decisões arquitecturais e editoriais. |
-| [TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md) | Stack, estrutura de código, CLI, interfaces internas, requisitos não funcionais. |
-| [DATA_MODEL.md](docs/DATA_MODEL.md) | Entidades, campos, estados e enumerações. |
-| [CONTENT_PIPELINE.md](docs/CONTENT_PIPELINE.md) | Etapas do pipeline, regras de verificação, formatos e relatório. |
-| [SOURCES.md](docs/SOURCES.md) | Modelo de fontes (registry, endpoint, document, evidence), hierarquia, registo e lista candidata. |
-| [SCORING.md](docs/SCORING.md) | Score editorial (separado da verificação): dimensões, pesos, penalizações, limiares e proposta. |
-| [AI_RULES.md](docs/AI_RULES.md) | Utilização permitida de IA, grounding, validações e independência de fornecedor. |
-| [SECURITY.md](docs/SECURITY.md) | Segredos, recolha responsável, prompt injection, RGPD, integridade editorial. |
-| [ROADMAP.md](docs/ROADMAP.md) | Fases, critérios de saída e decisões pendentes. |
+- `docs/ARCHITECTURE.md` — arquitectura e limites actuais
+- `docs/DAILY_PIPELINE.md` — execução, janela temporal e workflow
+- `docs/SOURCES.md` — modelo, hierarquia e validação das fontes
+- `docs/EDITORIAL_POLICY.md` — salvaguardas editoriais
+- `docs/SCORING.md` — pontuação de prioridade
+- `docs/SECURITY.md` — segurança e recolha responsável
+- `docs/ROADMAP.md` e `docs/DECISION_LOG.md` — trabalho futuro e decisões

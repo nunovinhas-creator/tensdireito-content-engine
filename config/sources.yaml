@@ -1,319 +1,280 @@
 - id: dre
-  name: "Diário da República - 1.ª Série"
-  entity_type: "official_journal"
-  tier: "T1"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Diário da República - 1.ª Série
+  entity_type: official_journal
+  tier: T1
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "legislacao"
+  - legislacao
   endpoints:
-    - id: dre-serie1-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://files.diariodarepublica.pt/rss/serie1-html.xml"
-
+  - id: dre-serie1-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-09T00:00:00Z'
+    validated_by: nuno
+    url: https://files.diariodarepublica.pt/rss/serie1-html.xml
 - id: governo_pt
-  name: "Portal do Governo de Portugal"
-  entity_type: "government"
-  tier: "T1"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Portal do Governo de Portugal
+  entity_type: government
+  tier: T1
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "governo"
-    - "medidas"
+  - governo
+  - medidas
   endpoints:
-    - id: governo-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.portugal.gov.pt/pt/comunicacao/noticias.rss"
-
+  - id: governo-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.portugal.gov.pt/pt/comunicacao/noticias.rss
 - id: assembleia_republica
-  name: "Assembleia da República"
-  entity_type: "parliament"
-  tier: "T1"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Assembleia da República
+  entity_type: parliament
+  tier: T1
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "parlamento"
-    - "leis"
+  - parlamento
+  - leis
   endpoints:
-    - id: ar-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.parlamento.pt/Rss/Pages/Rss.aspx"
-
+  - id: ar-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.parlamento.pt/Rss/Pages/Rss.aspx
 - id: seguranca_social
-  name: "Portal da Segurança Social"
-  entity_type: "public_body"
-  tier: "T2"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Portal da Segurança Social
+  entity_type: public_body
+  tier: T2
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "seguranca_social"
-    - "apoios"
+  - seguranca_social
+  - apoios
   endpoints:
-    - id: ss-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.seg-social.pt/noticias"
-
+  - id: ss-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.seg-social.pt/noticias
 - id: iefp
-  name: "IEFP - Emprego e Formação Profissional"
-  entity_type: "public_body"
-  tier: "T2"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: IEFP - Emprego e Formação Profissional
+  entity_type: public_body
+  tier: T2
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "emprego"
-    - "formacao"
+  - emprego
+  - formacao
   endpoints:
-    - id: iefp-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.iefp.pt/noticias.rss"
-
+  - id: iefp-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.iefp.pt/noticias.rss
 - id: act
-  name: "ACT - Autoridade para as Condições do Trabalho"
-  entity_type: "public_body"
-  tier: "T2"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: ACT - Autoridade para as Condições do Trabalho
+  entity_type: public_body
+  tier: T2
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "trabalho"
-    - "direitos"
+  - trabalho
+  - direitos
   endpoints:
-    - id: act-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.act.gov.pt/(pt-PT)/Noticias/Rss/Pages/default.aspx"
-
+  - id: act-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-09T00:00:00Z'
+    validated_by: nuno
+    url: https://www.act.gov.pt/(pt-PT)/Noticias/Rss/Pages/default.aspx
 - id: rtp_noticias
-  name: "RTP Notícias"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: RTP Notícias
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "sociedade"
-    - "economia"
+  - sociedade
+  - economia
   endpoints:
-    - id: rtp-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.rtp.pt/noticias/rss"
-
+  - id: rtp-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-09T00:00:00Z'
+    validated_by: nuno
+    url: https://www.rtp.pt/noticias/rss
 - id: publico
-  name: "Público"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Público
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "politicas_publicas"
-    - "trabalho"
+  - politicas_publicas
+  - trabalho
   endpoints:
-    - id: publico-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.publico.pt/api/feed/rss/economia"
-
+  - id: publico-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.publico.pt/api/feed/rss/economia
 - id: jornal_noticias
-  name: "Jornal de Notícias"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Jornal de Notícias
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "nacional"
-    - "laboral"
+  - nacional
+  - laboral
   endpoints:
-    - id: jn-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.jn.pt/rss"
-
+  - id: jn-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.jn.pt/rss
 - id: expresso
-  name: "Expresso"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Expresso
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "reformas"
-    - "economia"
+  - reformas
+  - economia
   endpoints:
-    - id: expresso-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://expresso.pt/rss"
-
+  - id: expresso-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://expresso.pt/rss
 - id: observador
-  name: "Observador"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Observador
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "politica"
-    - "seguranca_social"
+  - politica
+  - seguranca_social
   endpoints:
-    - id: observador-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://observador.pt/feed/"
-
+  - id: observador-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-09T00:00:00Z'
+    validated_by: nuno
+    url: https://observador.pt/feed/
 - id: cnn_portugal
-  name: "CNN Portugal"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: CNN Portugal
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "nacional"
-    - "governo"
+  - nacional
+  - governo
   endpoints:
-    - id: cnn-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://cnnportugal.iol.pt/rss"
-
+  - id: cnn-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://cnnportugal.iol.pt/rss
 - id: jornal_economico
-  name: "Jornal Económico"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Jornal Económico
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "salarios"
-    - "impostos"
+  - salarios
+  - impostos
   endpoints:
-    - id: je-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://jornaleconomico.sapo.pt/feed/"
-
+  - id: je-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-09T00:00:00Z'
+    validated_by: nuno
+    url: https://jornaleconomico.sapo.pt/feed/
 - id: lusa
-  name: "Agência Lusa"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Agência Lusa
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "anuncios_oficiais"
+  - anuncios_oficiais
   endpoints:
-    - id: lusa-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.lusa.pt/rss"
-
+  - id: lusa-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.lusa.pt/rss
 - id: diario_noticias
-  name: "Diário de Notícias"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Diário de Notícias
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "nacional"
+  - nacional
   endpoints:
-    - id: dn-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.dn.pt/rss"
-
+  - id: dn-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.dn.pt/rss
 - id: jornal_negocios
-  name: "Jornal de Negócios"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: Jornal de Negócios
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "empresas"
-    - "financas"
+  - empresas
+  - financas
   endpoints:
-    - id: negocios-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.jornaldenegocios.pt/rss"
-
+  - id: negocios-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-09T00:00:00Z'
+    validated_by: nuno
+    url: https://www.jornaldenegocios.pt/rss
 - id: eco_sapo
-  name: "ECO - Economia Online"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: ECO - Economia Online
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "economia"
-    - "impostos"
+  - economia
+  - impostos
   endpoints:
-    - id: eco-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://eco.sapo.pt/feed/"
-
+  - id: eco-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-09T00:00:00Z'
+    validated_by: nuno
+    url: https://eco.sapo.pt/feed/
 - id: jm_madeira
-  name: "JM Madeira"
-  entity_type: "press"
-  tier: "T3"
-  registry_status: "VALIDATED"
-  validated_at: "2026-10-09T00:00:00Z"
-  validated_by: "nuno"
+  name: JM Madeira
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-09T00:00:00Z'
+  validated_by: nuno
   categories:
-    - "regional_madeira"
+  - regional_madeira
   endpoints:
-    - id: jm-rss
-      endpoint_type: "rss"
-      endpoint_status: "ACTIVE"
-      validated_at: "2026-10-09T00:00:00Z"
-      validated_by: "nuno"
-      url: "https://www.jm-madeira.pt/rss"
+  - id: jm-rss
+    endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.jm-madeira.pt/rss

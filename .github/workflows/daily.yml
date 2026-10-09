@@ -1,8 +1,8 @@
 name: Daily pipeline
 
+# Manual only until durable, shared persistence (D8) is implemented.
+# A GitHub-hosted runner is ephemeral; scheduling it would discard SQLite state and reports.
 on:
-  schedule:
-    - cron: '0 8,13,18 * * *'
   workflow_dispatch:
 
 permissions:
@@ -28,6 +28,9 @@ jobs:
 
       - name: Install project
         run: uv sync --locked
+
+      - name: Validate configured sources
+        run: uv run tde sources validate
 
       - name: Run daily pipeline
         shell: bash
@@ -62,3 +65,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: uv run tde drafts sync-issues
+
+      - name: Preserve daily report as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tensdireito-daily-report-${{ github.run_id }}
+          path: data/reports/daily/*.txt
+          if-no-files-found: warn
+          retention-days: 14

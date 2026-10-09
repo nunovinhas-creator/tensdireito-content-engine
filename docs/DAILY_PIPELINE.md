@@ -41,22 +41,28 @@ Não há classificação semântica nesta entrega. “Selecionadas” significa 
 
 ## Fontes configuradas
 
-`config/sources.yaml` contém o Diário da República como fonte T1 validada e o feed RSS da 1.ª Série como endpoint `ACTIVE`. O respetivo registo de verificações está em [source_validation/dre.md](source_validation/dre.md). Não foram acrescentadas outras fontes sem validação dos respetivos endpoints.
+`config/sources.yaml` mantém o registo de fontes e endpoints. Os endpoints com erros persistentes no log de 09/10/2026 foram colocados em `INACTIVE` até serem descobertos e validados novamente; não se deve tentar contornar paywalls, respostas `403` ou protecções anti-bot. ACT permanece activo porque o log apenas indica timeout transitório ao consultar `robots.txt`, que deve ser reavaliado numa execução posterior.
 
-Verificações exploratórias feitas em 09/10/2026:
-
-| Candidato | Observação técnica | Política e estado |
+| Endpoint | Resultado no log de 09/10/2026 | Estado aplicado |
 |---|---|---|
-| Diário da República — `https://files.diariodarepublica.pt/rss/serie1-html.xml` | Feed RSS oficial da 1.ª Série, confirmado na página de notificações do Diário da República; detalhes das verificações V1–V5 em [source_validation/dre.md](source_validation/dre.md). | Fonte T1 `VALIDATED` e endpoint `ACTIVE` em `config/sources.yaml`. |
-| Observador — `https://observador.pt/feed/` | O próprio site declara o link RSS. HTTPS, sem redirect, HTTP 200, `text/xml`; RSS 2.0, 51 itens em duas recolhas e metadados estáveis. Os itens contêm título, URL, `pubDate` e descrição. `robots.txt` não proíbe o feed. | Os termos publicados dizem que o conteúdo não pode ser utilizado sem consentimento. Não foi encontrada autorização explícita para esta recolha e reutilização; não ativado. |
-| ECO — `https://eco.sapo.pt/feed/` | HTTPS e parser RSS 2.0 aceitam o feed; uma consulta devolveu 22 itens com título, URL, `pubDate` e descrição. O `robots.txt` permite o caminho `/feed/`. | O site não declarou esse feed no HTML consultado e não foi confirmada autorização aplicável. Não ativado. |
-| Segurança Social, IEFP, Portal do Governo e Assembleia da República | As páginas iniciais consultadas não declararam RSS/Atom. Os endpoints adivinhados para Segurança Social e Governo não responderam como feeds RSS válidos. | Não foi encontrado endpoint para validar ou ativar; nenhuma URL foi adicionada por suposição. |
+| Assembleia da República (`ar-rss`) | HTTP 404 | `INACTIVE` |
+| CNN Portugal (`cnn-rss`) | `text/html`, não um feed | `INACTIVE` |
+| Diário de Notícias (`dn-rss`) | HTTP 404 | `INACTIVE` |
+| Expresso (`expresso-rss`) | HTTP 403 | `INACTIVE` |
+| Portal do Governo (`governo-rss`) | Redirect 307 não seguido | `INACTIVE` |
+| IEFP (`iefp-rss`) | HTTP 404 | `INACTIVE` |
+| JM Madeira (`jm-rss`) | Redirect 301 não seguido | `INACTIVE` |
+| Jornal de Notícias (`jn-rss`) | HTTP 403 | `INACTIVE` |
+| Lusa (`lusa-rss`) | `text/html`, não um feed | `INACTIVE` |
+| Público (`publico-rss`) | HTTP 404 | `INACTIVE` |
+| Segurança Social (`ss-rss`) | Redirect 302 não seguido | `INACTIVE` |
+| ACT (`act-rss`) | Timeout ao consultar `robots.txt` | Mantido `ACTIVE` para nova tentativa; não contar como validado por este log |
 
-Os testes ponta a ponta usam `tests/fixtures/rss/valid.xml` e transporte HTTP falso, sem depender de rede ou de fontes reais.
+Os outros endpoints que não falharam nessa execução permanecem configurados. A ausência de erro num único pedido não substitui as verificações V1–V5 nem a revisão dos termos de utilização. Para reactivar um endpoint, confirmar a URL a partir do site oficial, os termos e `robots.txt`, e testar o contrato técnico do collector. Os redirects não são seguidos pelo transporte actual por decisão de segurança (DEC-033); actualize a URL para o destino canónico apenas depois de o confirmar manualmente.
 
-## Execução diária automatizada
+## Execução através de GitHub Actions
 
-O workflow [.github/workflows/daily.yml](../.github/workflows/daily.yml) executa `uv run tde daily` às 08:00, 13:00 e 18:00 UTC (`0 8,13,18 * * *`) e também pode ser iniciado manualmente. Depois do pipeline, executa `uv run tde drafts sync-issues`, autenticado com `GITHUB_TOKEN` e a permissão `issues: write`. O CI interpreta rigorosamente os códigos de saída de `daily`: `0` termina com sucesso; `1` falha o job; `2` acrescenta um aviso ao resumo do job sem o falhar, preservando o resultado parcial; qualquer outro código falha o passo. A falha na sincronização com o GitHub também falha o job, sem ocultar erros de autenticação ou da API. A implementação de D8 deve manter este contrato: indisponibilidade da base, migração ou falha ao persistir o relatório não pode ser mascarada como sucesso.
+O workflow [.github/workflows/daily.yml](../.github/workflows/daily.yml) é executado manualmente (`workflow_dispatch`) até existir persistência durável e partilhada. Uma execução num runner efémero não preserva a base SQLite nem o histórico entre execuções. O relatório é disponibilizado como artefacto de workflow durante 14 dias; os rascunhos não verificados podem ser sincronizados com GitHub Issues. O agendamento foi removido para não sugerir que a base de dados e os relatórios ficam preservados quando não ficam.
 
 ### Revisão através de GitHub Issues
 
