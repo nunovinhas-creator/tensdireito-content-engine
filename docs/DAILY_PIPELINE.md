@@ -16,13 +16,13 @@ uv run tde --config config --db data/tensdireito.sqlite3 daily \
   --date 2026-10-09 --report-dir data/reports/daily
 ```
 
-`--date AAAA-MM-DD` escolhe explicitamente o dia; por omissão usa a data atual em `Europe/Lisbon`. `--config DIR`, `--db PATH` e `--report-dir DIR` alteram os caminhos existentes. O código de saída é `0` quando todas as fontes consultadas terminam sem falha (incluindo zero fontes `ACTIVE`), `2` quando há falhas parciais e `1` em erro geral ou quando todas as fontes falham.
+`--date AAAA-MM-DD` escolhe explicitamente o dia; por omissão usa a data atual em `Europe/Lisbon`. `--config DIR`, `--db PATH` e `--report-dir DIR` alteram os caminhos existentes. O contrato dos códigos de saída é: `0` quando todas as fontes consultadas terminam sem falha (incluindo zero fontes `ACTIVE`); `2` quando há falhas parciais; e `1` em erro geral ou quando todas as fontes falham. Erros de configuração, ligação, migração ou escrita do relatório são falhas explícitas, nunca sucesso por omissão.
 
 ## Janela e repetição
 
 O dia é avaliado em `Europe/Lisbon`. Se NORMALIZE reconhecer `published_at`, essa data determina a janela. Caso contrário, `fetched_at` determina se o item entra no dia; o relatório escreve `Data: não indicada`, sem transformar a recolha numa data de publicação. O estado atual de NORMALIZE interpreta timestamps ISO 8601 com fuso explícito; o `pubDate` RFC 822 habitual em RSS e outros formatos permanecem desconhecidos até à decisão D13.
 
-A identidade já persistida por COLLECT impede reinserções do mesmo endpoint, URL e hash bruto. A deduplicação existente por texto normalizado também remove repetições do mesmo feed ou entre fontes na seleção. A ordenação é por data efetiva decrescente e, em empate, fonte, título e URL. Executar novamente no mesmo dia reescreve o mesmo relatório sem duplicar registos.
+A identidade já persistida por COLLECT impede reinserções do mesmo endpoint, URL e hash bruto. NORMALIZE não cria documentos duplicados para os itens já processados. A deduplicação existente por texto normalizado também remove repetições do mesmo feed ou entre fontes na seleção. A ordenação é por data efetiva decrescente e, em empate, fonte, título e URL. Executar novamente no mesmo dia reescreve o mesmo relatório determinístico, sem duplicar registos. Esta idempotência tem de ser preservada quando a persistência durável for implementada (D8).
 
 Não há classificação semântica nesta entrega. “Selecionadas” significa que os itens normalizados pertencem à janela diária e não são duplicados exatos; não significa relevância editorial confirmada.
 
@@ -43,6 +43,6 @@ Os testes ponta a ponta usam `tests/fixtures/rss/valid.xml` e transporte HTTP fa
 
 ## Execução diária automatizada
 
-O workflow [.github/workflows/daily.yml](../.github/workflows/daily.yml) executa `uv run tde daily` todos os dias às 06:00 UTC e também pode ser iniciado manualmente. O CI interpreta os códigos de saída do CLI da seguinte forma: `0` termina com sucesso; `1` falha o job; `2` acrescenta um aviso ao resumo do job sem o falhar.
+O workflow [.github/workflows/daily.yml](../.github/workflows/daily.yml) executa `uv run tde daily` todos os dias às 06:00 UTC e também pode ser iniciado manualmente. O CI interpreta rigorosamente os códigos de saída do CLI: `0` termina com sucesso; `1` falha o job; `2` acrescenta um aviso ao resumo do job sem o falhar, preservando o resultado parcial; qualquer outro código falha o passo. A implementação de D8 deve manter este contrato: indisponibilidade da base, migração ou falha ao persistir o relatório não pode ser mascarada como sucesso.
 
-O workflow usa um runner efémero: a base SQLite e os ficheiros do relatório não são preservados entre execuções. Assim, o agendamento invoca o pipeline, mas não fornece persistência durável nem partilha do estado e dos relatórios com a revisão editorial. A persistência durável e partilhada prevista em DEC-013/D8 continua a exigir uma solução própria.
+O workflow usa um runner efémero: a base SQLite e os ficheiros do relatório não são preservados entre execuções. Assim, o agendamento invoca o pipeline, mas não fornece persistência durável nem partilha do estado e dos relatórios com a revisão editorial. A proposta D8 (DEC-047) de PostgreSQL gerido + S3/R2 está **Em Avaliação / Pendente de Aprovação**; não está implementada e não fecha D8. Ver também a proposta e as salvaguardas de idempotência em [ARCHITECTURE.md](ARCHITECTURE.md#7-proposta-de-persistência-durável-d8).
