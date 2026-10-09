@@ -86,13 +86,14 @@ Um único executável, `tde`. Cada etapa é um subcomando independente e idempot
 | `tde check [--content ID]` | Corre as validações automáticas. | `content_piece.checks`, `review_status` |
 | `tde review list` | Lista conteúdos em `HUMAN_REVIEW_REQUIRED`. | — |
 | `tde review approve\|reject\|needs-revision ID --reviewer NOME [--note TEXTO]` | Revisão humana. | `content_piece.review_status`, `editorial_decision` |
+| `tde drafts list\|approve\|export` | Gere a fila WhatsApp local; `export` filtra aprovados por verificação e emite WhatsApp, JSON ou Markdown. `--mark-published` regista a publicação manual. | `whatsapp_draft` |
 | `tde event promote\|watch\|reject\|archive\|reopen\|merge ID --reviewer NOME [--note TEXTO]` | Decisões editoriais sobre eventos (nota obrigatória onde [DATA_MODEL.md](DATA_MODEL.md#37-editorial_decisiondecision) o exige). | `event.editorial_status`, `editorial_decision` |
 | `tde claim override\|add-evidence ...` | Override de verificação (nunca para `VERIFIED_OFFICIAL`) e evidência manual. | `claim`, `source_evidence`, `editorial_decision` |
 | `tde export --out DIR` | Exporta conteúdos `APPROVED` ainda não exportados (Markdown/JSON). Não publica. | ficheiros, `exported_at` |
 | `tde report [--run ID]` | Mostra o relatório de uma execução. | — |
 | `tde run` | Executa `collect → normalize → classify → cluster → verify → score` e produz relatório. | tudo acima até `score` |
 
-Não existe comando de publicação na V1.
+Não existe envio automatizado para um destino remoto na V1. `tde drafts export` gera uma saída local; `--mark-published` só actualiza o estado depois da publicação manual externa (DEC-049).
 
 Opções globais: `--db PATH`, `--config DIR`, `--dry-run` (não escreve), `--no-llm` (desactiva IA, usa só regras), `--verbose`.
 
@@ -107,6 +108,8 @@ Implementado (M2.10; DEC-035): `tde sources validate` recusa um endpoint `ACTIVE
 Implementado (M2.11; DEC-041): `tde [--db PATH] normalize` — normaliza os `raw_item` sem `source_document`, por ordem de `id`, e escreve `source_document` (migração `0002`), com `run` (`command = "normalize"`) no padrão de DEC-031; sem opções próprias, sem rede e sem leitura de `config/sources.yaml`; códigos `0` (nenhuma falha, incluindo zero pendentes), `2` (falhas parciais) e `1` (pré-condição, todos os itens com falha ou erro da `storage`). Contrato em [ROADMAP.md](ROADMAP.md#m211--persistência-da-etapa-normalize).
 
 Implementado: `tde [--config DIR] [--db PATH] ingest` — orquestra `sources sync → collect → normalize`, sempre com a mesma base de dados. Exige `tde init` previamente e não activa scheduler. Uma falha de `sources sync` interrompe o pipeline; falhas na recolha não impedem a normalização dos itens persistidos. O código final é `1` se alguma etapa posterior falhar, `2` se houver falhas parciais e nenhuma falha fatal, ou `0` sem falhas. `tde daily` mantém-se distinto: gera o relatório diário e não substitui a persistência de `tde normalize`.
+
+Implementado (DEC-048, DEC-049): `tde daily` persiste rascunhos WhatsApp em `whatsapp_draft`; `tde [--db PATH] drafts list` lista pendentes, `drafts approve ID --verification-status verified_editorial|verified_official` regista a revisão humana e `drafts export [--verification-status ...] [--format whatsapp|json|markdown] [--mark-published]` exporta apenas aprovados verificados. Sem `--mark-published`, exportar não altera estado; com a opção, os rascunhos exportados passam a `published` atomicamente. O envio permanece manual.
 
 Definido documentalmente no M2.12, ainda não implementado: `tde [--db PATH] [--config DIR] classify`. Lê apenas a configuração de regras `taxonomy.yaml` no directório de configuração e documentos normalizados do SQLite; não lê `sources.yaml`, não acede à rede nem usa IA. A execução, persistência, códigos de saída, auditoria e questões pendentes estão no [ROADMAP.md](ROADMAP.md#m212--classify-rules-only-definição-documental). DEC-042 a DEC-045 são propostas e Q12–Q16 permanecem abertas; não tratar esta linha como funcionalidade implementada.
 

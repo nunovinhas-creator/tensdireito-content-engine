@@ -455,12 +455,21 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Data:** 2026-10-09
 
 ### DEC-048 — WhatsApp como destino de publicação V1 (D10)
-- **Decisão:** O destino de publicação definido para a V1 é a geração de mensagens para canais e grupos de transmissão do WhatsApp. Cada mensagem contém um título apelativo iniciado por emoji, 2–3 pontos-chave sobre o direito/notícia, uma chamada à acção (CTA) e uma hiperligação HTTPS. A formatação usa `*texto*` para negrito e `_texto_` para itálico. Só é elegível um item com `editorial_score ≥ 65` (limiar `SELECT_THRESHOLD` de SCORING.md), verificação `VERIFIED_EDITORIAL` ou `VERIFIED_OFFICIAL`, estado editorial `APPROVED` após aprovação humana e sem duplicação. A implementação inicial gera uma pré-visualização local; não envia mensagens, não integra credenciais/API do WhatsApp e não atribui o estado `PUBLISHED`.
+- **Decisão:** O destino de publicação definido para a V1 é a geração de mensagens para canais e grupos de transmissão do WhatsApp. Cada mensagem contém um título apelativo iniciado por emoji, 2–3 pontos-chave sobre o direito/notícia, uma chamada à acção (CTA) e uma hiperligação HTTPS. A formatação usa `*texto*` para negrito e `_texto_` para itálico. Só é elegível um item com `editorial_score ≥ 65` (limiar `SELECT_THRESHOLD` de SCORING.md), verificação `VERIFIED_EDITORIAL` ou `VERIFIED_OFFICIAL`, estado editorial `APPROVED` após aprovação humana e sem duplicação. A V1 gera uma pré-visualização/exportação local; não envia mensagens nem integra credenciais/API do WhatsApp. O estado `PUBLISHED` só é atribuído por opção explícita após exportação/publicação manual (DEC-049).
 - **Razão:** Os canais e grupos de transmissão WhatsApp são o destino prioritário de conteúdo curto do TensDireito; uma estrutura concisa e regras deterministas preservam utilidade, rastreabilidade e controlo editorial.
 - **Alternativas consideradas:** Publicação automática directa por API (fora do âmbito e dependente de credenciais, configuração e regras operacionais ainda não aprovadas); manter o destino indefinido (não permite especificar nem validar o formato de saída).
 - **Impacto e salvaguardas:** A pré-visualização não substitui aprovação nem publicação e não altera o circuito editorial: só conteúdo aprovado pode ser formatado, e o envio continua manual/externo. O comando falha explicitamente para entradas inválidas ou inelegíveis. Integração de envio e integração com o TensDireito.com permanecem trabalho futuro.
 - **Documentos subordinados:** [ROADMAP.md](ROADMAP.md#decisão-d10--destino-de-publicação-whatsapp), [ARCHITECTURE.md](ARCHITECTURE.md#8-destino-de-publicação-d10).
 - **Estado:** Aceite — D10 fechada para o destino e formato V1; envio automatizado permanece fora do âmbito.
+- **Data:** 2026-10-09
+
+### DEC-049 — Ciclo de vida e exportação de rascunhos aprovados
+- **Decisão:** O ciclo operacional do conteúdo é **Recolha → Normalização → Scoring → Rascunhos (SQLite) → Revisão Humana → Exportação/Publicação**. `tde drafts export` selecciona apenas rascunhos com estado `approved` e verificação `verified_editorial` ou `verified_official`; permite filtrar por esses níveis e emitir texto WhatsApp pronto a copiar, JSON ou Markdown. Por omissão, exportar não altera a base de dados. Após publicação manual externa, `--mark-published` muda, numa transacção, apenas os rascunhos devolvidos nessa exportação para `published`; estes deixam de ser elegíveis em execuções seguintes. A opção não executa nem confirma por si só o envio externo.
+- **Razão:** A separação entre recolha, evidência/verificação, aprovação e publicação é uma regra de domínio (DEC-002, DEC-014). Uma fila SQLite permite revisão humana antes da saída; exportar não deve equivaler a publicar, e a transição explícita evita reexportação acidental depois de o responsável assinalar o envio.
+- **Alternativas consideradas:** publicar automaticamente por integração WhatsApp (fora do âmbito, requer credenciais e controlos operacionais); exportar todos os estados (permitiria distribuir conteúdo pendente ou ainda não verificado); marcar `published` em toda a exportação (confundiria geração de texto com publicação efectiva).
+- **Impacto:** `tde drafts export` não cria nem migra a base de dados. `--mark-published` actualiza `status` e `updated_at` atomicamente para os aprovados verificados incluídos na exportação; sem a opção, o estado continua `approved`. O estado `published` não volta a aparecer na fila de exportação.
+- **Documentos subordinados:** [DAILY_PIPELINE.md](DAILY_PIPELINE.md), [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#3-interface-de-linha-de-comandos), [DATA_MODEL.md](DATA_MODEL.md).
+- **Estado:** Aceite
 - **Data:** 2026-10-09
 
 ## 5. Estado das decisões pendentes
@@ -478,7 +487,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D7 — Quem revê e aprova | Parcial: formato do registo fechado (DEC-014); pessoas e autenticação OPEN |
 | D8 — Persistência durável e estado partilhado | OPEN — DEC-047 Em Avaliação / Pendente de Aprovação: PostgreSQL gerido + S3/R2 para relatórios; falta aprovação da arquitectura e confirmação do fornecedor/credenciais/custos (DEC-013, DEC-026, DEC-046) |
 | D9 — Frequência e agendamento das execuções | CLOSED (DEC-046) |
-| D10 — Destino de publicação | CLOSED (DEC-048; geração de pré-visualização WhatsApp, sem envio automático) |
+| D10 — Destino de publicação | CLOSED (DEC-048, DEC-049; exportação WhatsApp, sem envio automático) |
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |
 | D12 — Regra de `canonical_url` | OPEN (ver DEC-021). Sem lista documentada de parâmetros de tracking; até decisão, `canonical_url` fica nulo em `source_document` (DEC-037, M2.11). |
 | D13 — Formatos e fuso de `published_at_raw` | OPEN (ver DEC-021) |
