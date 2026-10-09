@@ -17,6 +17,7 @@ from tensdireito_content_engine.domain import RawItem
 from tensdireito_content_engine.storage.database import to_utc_iso, transaction
 from tensdireito_content_engine.storage.endpoints import mark_endpoint_success
 from tensdireito_content_engine.storage.errors import StorageError
+from tensdireito_content_engine.storage.interfaces import Connection
 from tensdireito_content_engine.storage.schema import open_existing_database
 
 
@@ -71,7 +72,7 @@ def list_raw_items(path: Path) -> tuple[StoredRawItem, ...]:
 
 
 def save_endpoint_items(
-    conn: sqlite3.Connection,
+    conn: Connection,
     endpoint_id: str,
     items: Sequence[RawItem],
     run_id: int,
@@ -98,7 +99,7 @@ def save_endpoint_items(
     return SavedItems(new=new, existing=existing)
 
 
-def _exists(conn: sqlite3.Connection, item: RawItem) -> bool:
+def _exists(conn: Connection, item: RawItem) -> bool:
     row = conn.execute(
         "SELECT 1 FROM raw_item WHERE source_endpoint_id = ? AND url = ? AND content_hash = ?",
         (item.source_endpoint_id, item.url, item.content_hash),
@@ -106,7 +107,7 @@ def _exists(conn: sqlite3.Connection, item: RawItem) -> bool:
     return row is not None
 
 
-def _insert(conn: sqlite3.Connection, item: RawItem, run_id: int, timestamp: str) -> None:
+def _insert(conn: Connection, item: RawItem, run_id: int, timestamp: str) -> None:
     conn.execute(
         "INSERT INTO raw_item (source_endpoint_id, url, external_id, title, raw_content, "
         "fetched_at, published_at_raw, content_hash, manual_note, created_in_run, "

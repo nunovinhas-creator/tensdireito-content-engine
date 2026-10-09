@@ -12,12 +12,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from tensdireito_content_engine.storage.errors import StorageError
+from tensdireito_content_engine.storage.interfaces import Connection
 
 DEFAULT_DB_PATH = Path("data") / "tde.sqlite3"
 DB_PATH_ENV = "TDE_DB_PATH"
-
-# Tipo da ligação, para quem a recebe de `storage` sem importar `sqlite3`.
-Connection = sqlite3.Connection
 
 _SQLITE_HEADER = b"SQLite format 3\x00"
 
@@ -64,7 +62,7 @@ def connect(path: Path) -> sqlite3.Connection:
 
 
 @contextmanager
-def transaction(conn: sqlite3.Connection, failure: str) -> Iterator[None]:
+def transaction(conn: Connection, failure: str) -> Iterator[None]:
     """Transacção explícita (`BEGIN` … `COMMIT`); qualquer erro → `ROLLBACK`.
 
     Um erro SQLite é relançado como `StorageError` com o prefixo `failure`, encadeado

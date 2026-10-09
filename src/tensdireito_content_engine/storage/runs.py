@@ -6,16 +6,16 @@ transacção própria.
 """
 
 import json
-import sqlite3
 from collections.abc import Mapping
 from datetime import datetime
 
 from tensdireito_content_engine.storage.database import to_utc_iso, transaction
+from tensdireito_content_engine.storage.interfaces import Connection
 
 RUN_STATUSES = ("success", "partial", "failed")
 
 
-def start_run(conn: sqlite3.Connection, command: str, started_at: datetime) -> int:
+def start_run(conn: Connection, command: str, started_at: datetime) -> int:
     """Insere um `run` em curso e devolve o seu `id`."""
     timestamp = to_utc_iso(started_at)
     with transaction(conn, "não foi possível criar o run"):
@@ -31,7 +31,7 @@ def start_run(conn: sqlite3.Connection, command: str, started_at: datetime) -> i
 
 
 def finish_run(
-    conn: sqlite3.Connection,
+    conn: Connection,
     run_id: int,
     status: str,
     stats: Mapping[str, object],

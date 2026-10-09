@@ -446,6 +446,14 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Aceite
 - **Data:** 2026-10-09
 
+### DEC-047 — Proposta para persistência durável no runner diário (D8)
+- **Decisão:** Propõe-se PostgreSQL gerido como fonte de verdade durável/partilhada dos dados e armazenamento de objectos compatível com S3 (por exemplo, S3 ou Cloudflare R2) para os relatórios diários, com chaves determinísticas por data. A camada `storage` deverá adaptar o driver e as migrações; o workflow deverá usar credenciais de privilégio mínimo, preferencialmente de curta duração, e um grupo de concorrência que reduza a sobreposição de jobs sem cancelar uma execução em curso. O workflow não é uma fila garantida. A proposta não altera os códigos do `tde daily`: `0` sucesso, `1` erro geral/fatal com falha do job e `2` falhas parciais com aviso visível e relatório preservado; códigos não previstos falham o job. Erros de infraestrutura não podem ser apresentados como sucesso nem activar fallback silencioso para uma base efémera.
+- **Razão:** Um serviço de base de dados gerido fornece persistência e acesso partilhado com transacções e concorrência; armazenamento de objectos dá aos relatórios uma localização durável acessível à revisão. A proposta segue a trajectória PostgreSQL de ADR-002/DEC-013.
+- **Alternativas consideradas:** Turso/libSQL pode manter maior compatibilidade SQLite, mas exige adaptar a ligação `sqlite3` e validar o seu modelo de transacções e concorrência. Download/upload de SQLite em S3/R2 deixa cada job numa cópia isolada e arrisca perder actualizações; serializar apenas os jobs não resolve o acesso partilhado. Commits de dados criam churn e misturam estado com código; artefactos GitHub Actions não garantem retenção nem acesso como fonte durável.
+- **Impacto e salvaguardas:** Antes de activar a persistência, migrar e testar `storage` e o esquema contra PostgreSQL, preservar a sincronização unidireccional YAML → base de dados e a idempotência de recolha (endpoint/URL/hash), normalização (sem duplicação de documentos) e escrita do relatório (mesma chave por data em repetições). Falhas de ligação, migração ou publicação têm de ser explícitas e não podem aparentar sucesso. Testar repetição, falhas parciais e indisponibilidade. O código actual continua local/SQLite até a decisão ser aprovada e a implementação validada.
+- **Estado:** Em Avaliação / Pendente de Aprovação — D8 permanece OPEN até aprovação da arquitectura e confirmação do fornecedor, custos e credenciais.
+- **Data:** 2026-10-09
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
@@ -459,7 +467,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
 | D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
 | D7 — Quem revê e aprova | Parcial: formato do registo fechado (DEC-014); pessoas e autenticação OPEN |
-| D8 — Persistência durável e estado partilhado | OPEN — bloqueante para execução agendada com estado persistente/partilhado (DEC-013); o SQLite local do M2.6 e o runner efémero não a resolvem (DEC-026, DEC-046) |
+| D8 — Persistência durável e estado partilhado | OPEN — DEC-047 Em Avaliação / Pendente de Aprovação: PostgreSQL gerido + S3/R2 para relatórios; falta aprovação da arquitectura e confirmação do fornecedor/credenciais/custos (DEC-013, DEC-026, DEC-046) |
 | D9 — Frequência e agendamento das execuções | CLOSED (DEC-046) |
 | D10 — Destino de publicação | OPEN |
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |

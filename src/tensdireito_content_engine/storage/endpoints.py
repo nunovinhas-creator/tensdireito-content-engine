@@ -17,6 +17,7 @@ from tensdireito_content_engine.domain import (
 )
 from tensdireito_content_engine.storage.database import to_utc_iso, transaction
 from tensdireito_content_engine.storage.errors import StorageError
+from tensdireito_content_engine.storage.interfaces import Connection
 
 _COLUMNS = (
     "id, source_id, endpoint_type, url, endpoint_status, validated_at, validated_by, "
@@ -24,7 +25,7 @@ _COLUMNS = (
 )
 
 
-def source_exists(conn: sqlite3.Connection, source_id: str) -> bool:
+def source_exists(conn: Connection, source_id: str) -> bool:
     try:
         row = conn.execute("SELECT 1 FROM source_registry WHERE id = ?", (source_id,)).fetchone()
     except sqlite3.Error as exc:
@@ -33,7 +34,7 @@ def source_exists(conn: sqlite3.Connection, source_id: str) -> bool:
 
 
 def active_endpoints(
-    conn: sqlite3.Connection, source_id: str | None = None
+    conn: Connection, source_id: str | None = None
 ) -> list[SourceEndpoint]:
     """Endpoints `ACTIVE`, por `id`; com `source_id`, só os dessa fonte."""
     sql = f"SELECT {_COLUMNS} FROM source_endpoint WHERE endpoint_status = ?"
@@ -48,7 +49,7 @@ def active_endpoints(
     return [_endpoint(row) for row in rows]
 
 
-def mark_endpoint_success(conn: sqlite3.Connection, endpoint_id: str, at: datetime) -> None:
+def mark_endpoint_success(conn: Connection, endpoint_id: str, at: datetime) -> None:
     """Sucesso: `last_success_at` actualizado e `last_error` nulo.
 
     Corre dentro da transacção do endpoint, aberta por quem chama.
@@ -59,7 +60,7 @@ def mark_endpoint_success(conn: sqlite3.Connection, endpoint_id: str, at: dateti
     )
 
 
-def record_endpoint_failure(conn: sqlite3.Connection, endpoint_id: str, error: str) -> None:
+def record_endpoint_failure(conn: Connection, endpoint_id: str, error: str) -> None:
     """Falha: `last_error` actualizado, `last_success_at` preservado; transacção própria."""
     with transaction(conn, f"não foi possível registar a falha do endpoint {endpoint_id}"):
         conn.execute("UPDATE source_endpoint SET last_error = ? WHERE id = ?", (error, endpoint_id))

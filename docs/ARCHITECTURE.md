@@ -126,7 +126,41 @@ Os ADR da especificação inicial mantêm-se, com as alterações do M1. O regis
 | ADR-007 | CLI primeiro, automação depois; a automação não contém lógica própria. | Aceite |
 | ADR-008 | Configuração (fontes, taxonomia, pesos, prompts) como ficheiros versionados revistos por pull request. | Aceite |
 
-## 7. Fora do âmbito (V1)
+## 7. Proposta de persistência durável (D8)
+
+> **Estado: Em Avaliação / Pendente de Aprovação.** A DEC-047 no [DECISION_LOG.md](DECISION_LOG.md) regista a recomendação para discussão; não é uma decisão aceite. D8 permanece OPEN até a proposta ser aprovada e os requisitos operacionais, fornecedor, credenciais e custos serem confirmados.
+
+### Recomendação
+
+Usar uma instância PostgreSQL gerida como fonte de verdade durável para os dados operacionais e editoriais, e armazenamento de objectos compatível com S3 (por exemplo, Cloudflare R2) para os relatórios diários. Esta abordagem serve tanto o runner efémero como o acesso partilhado pela revisão editorial, e está alinhada com a evolução PostgreSQL já prevista em ADR-002/DEC-013.
+
+O workflow deve obter credenciais de curta duração por OIDC quando o fornecedor o suportar; caso contrário, usar secrets dedicados, com privilégios mínimos, TLS e rotação. A configuração editorial (`config/sources.yaml`) continua versionada no Git e sincronizada de forma unidireccional para a base de dados. Não guardar conteúdo de base de dados em commits.
+
+### Fluxo e fronteiras
+
+1. O runner liga-se à base PostgreSQL remota, verifica/aplica apenas migrações suportadas pela aplicação e executa `tde daily` contra esse estado partilhado. A ligação tem de falhar explicitamente quando a configuração ou o serviço estão indisponíveis; não se cria nem usa silenciosamente uma base SQLite vazia como fallback.
+2. O relatório determinístico é escrito no armazenamento de objectos com uma chave estável por data (`daily/AAAA-MM-DD.txt`), permitindo que uma repetição do mesmo dia substitua o mesmo destino. Relatórios produzidos tanto em sucesso total como parcial são preservados; uma falha de publicação do relatório é uma falha de infraestrutura visível, não um sucesso.
+3. Os objectos não substituem a base de dados como fonte de verdade. Artefactos GitHub Actions podem ser usados para diagnóstico efémero, mas não como persistência: expiram e não oferecem o estado partilhado exigido.
+4. A camada `storage` isola driver, transacções e migrações. Como preparação, os repositórios e a lógica do pipeline usam agora o protocolo `storage.Connection`, em vez de expor `sqlite3.Connection`. Isto define apenas a superfície comum de execução/resultado: o adaptador actual, as migrações e o dialecto SQL continuam SQLite, pelo que ainda não existe intercambialidade com PostgreSQL. A implementação D8 terá de fornecer um adaptador e migrações PostgreSQL, mantendo SQL e decisões de fornecedor dentro de `storage`; validar todas as migrações e invariantes contra PostgreSQL antes de mudar o workflow de produção.
+
+### Alternativas avaliadas
+
+| Opção | Avaliação para D8 |
+|---|---|
+| PostgreSQL gerido + object storage para relatórios | **Recomendação.** Estado durável e partilhado, transacções e concorrência adequadas, acesso pela revisão editorial e alinhamento com ADR-002. Exige trabalho real no driver, migrações, credenciais e testes de integração; não é uma troca de URL. |
+| Turso/libSQL | Alternativa plausível se a prioridade for conservar semântica SQLite. Continua a exigir um adaptador (o código actual depende de `sqlite3.Connection` e `PRAGMA`), testes de transacções/concorrência e confirmação de compatibilidade das migrações e do modelo de ligação escolhido. Evita algum trabalho de dialecto, mas cria uma escolha de plataforma que não é a evolução PostgreSQL já registada. |
+| SQLite em S3/R2, com download/upload por execução | Não recomendado como fonte partilhada. O runner trabalha sobre uma cópia local; execuções concorrentes podem sobrescrever alterações, e o upload do ficheiro não oferece transacções partilhadas com a revisão editorial. Serializar o workflow reduz apenas a concorrência entre jobs, não resolve o acesso de outros clientes. |
+| Commits ou artefactos GitHub Actions | Não recomendado como persistência canónica. Commits de dados causam churn e misturam estado mutável com código/configuração; artefactos têm retenção e acesso orientados a execução, não a uma base de dados partilhada. |
+
+### Contratos do `tde daily`
+
+- Preservar rigorosamente os códigos do CLI: `0` indica sucesso; `1` indica erro geral/fatal e tem de falhar o job; `2` indica falhas parciais de fontes e tem de manter o aviso visível no resumo sem descartar o relatório parcial. Qualquer código não previsto tem de falhar o job. Não traduzir uma falha parcial para sucesso silencioso nem esconder erros de ligação, migração ou publicação do relatório; falhas de infraestrutura devem ser observáveis como erro fatal (`1`).
+- Manter as pré-condições e a ordem do pipeline existente. A configuração continua validada e sincronizada antes da recolha; falhas numa fonte não impedem o processamento das restantes.
+- Preservar a idempotência existente: identidade de recolha por endpoint/URL/hash, criação única dos documentos normalizados, transacções atómicas das operações e substituição determinística do relatório do mesmo dia. Repetir a execução não deve duplicar dados; a chave estável do relatório por data deve actualizar o mesmo objecto, sem criar versões que pareçam execuções diferentes.
+- Configurar um grupo de concorrência do workflow para reduzir sobreposição no mesmo ambiente, sem cancelar um job em curso. O GitHub Actions mantém no máximo uma execução pendente por grupo e pode substituir uma pendente por outra mais recente; por isso, esta configuração não é uma fila garantida. A base remota continua responsável pela integridade transaccional; o controlo de concorrência não substitui restrições nem idempotência.
+- Testar o mesmo comportamento com falhas parciais, repetição no mesmo dia, indisponibilidade da base, erro de migração e falha de upload. O workflow só deve passar quando o estado e o relatório tiverem sido persistidos conforme o resultado do CLI.
+
+## 8. Fora do âmbito (V1)
 
 - Publicação automática em qualquer canal (o sistema termina em `APPROVED → EXPORT`).
 - Interface web/dashboard e autenticação.
@@ -136,7 +170,7 @@ Os ADR da especificação inicial mantêm-se, com as alterações do M1. O regis
 - Execução agendada em produção antes da decisão sobre persistência durável.
 - Pesquisa semântica com base de dados vectorial.
 
-## 8. Documentos relacionados
+## 9. Documentos relacionados
 
 - [EDITORIAL_POLICY.md](EDITORIAL_POLICY.md) — política editorial, taxonomia, verificação, estados, revisão humana.
 - [STYLE_GUIDE.md](STYLE_GUIDE.md) — estilo editorial e regras por formato.
