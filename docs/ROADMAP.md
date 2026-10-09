@@ -784,6 +784,7 @@ Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os
 
 **Pré-requisito bloqueante:** antes de activar qualquer execução agendada via GitHub Actions, tem de ser tomada e registada no [DECISION_LOG.md](DECISION_LOG.md) uma decisão sobre **persistência durável e estado partilhado** (D8). Um SQLite local num runner efémero **não** é solução suficiente para produção: o estado perde-se entre execuções e não é partilhado com a revisão humana.
 
+- Preparação manual disponível: `tde ingest` executa `sources sync → collect → normalize` numa base de dados já inicializada. Isto não activa agendamento nem fecha D8 ou D9; a frequência continua por decidir.
 - Workflow GitHub Actions agendado para `tde run`.
 - Persistência conforme a decisão D8.
 - Notificação com o relatório da execução.

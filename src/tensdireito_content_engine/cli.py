@@ -164,6 +164,34 @@ def normalize(db_path: Path) -> tuple[int, list[str], list[str]]:
     return code, out, err
 
 
+def ingest(
+    db_path: Path, config_dir: Path, registry: CollectorRegistry
+) -> tuple[int, list[str], list[str]]:
+    """Sincroniza fontes, recolhe e normaliza, sem inicializar a base de dados."""
+    synced, sync_lines = sources_sync(sources_path(config_dir), db_path)
+    if not synced:
+        return 1, [], [*sync_lines, "ingest: ERRO — sources sync falhou"]
+
+    out = [*sync_lines]
+    errors: list[str] = []
+    collect_code, collect_out, collect_err = collect(db_path, registry, None)
+    out.extend(collect_out)
+    errors.extend(collect_err)
+
+    normalize_code, normalize_out, normalize_err = normalize(db_path)
+    out.extend(normalize_out)
+    errors.extend(normalize_err)
+
+    if 1 in (collect_code, normalize_code):
+        code, label = 1, "ERRO"
+    elif 2 in (collect_code, normalize_code):
+        code, label = 2, "PARCIAL"
+    else:
+        code, label = 0, "OK"
+    out.append(f"ingest: {label}")
+    return code, out, errors
+
+
 def daily(
     db_path: Path,
     config_dir: Path,
@@ -286,6 +314,14 @@ def build_parser() -> argparse.ArgumentParser:
         "acede à rede; não cria a base de dados nem aplica migrações. Códigos: 0 sem "
         "falhas, 2 falhas parciais, 1 erro ou todos os itens com falha.",
     )
+    subparsers.add_parser(
+        "ingest",
+        help="sincroniza fontes, recolhe e normaliza (exige tde init)",
+        description="Executa sources sync → collect → normalize na mesma base de dados. "
+        "Não inicializa a base de dados. Falhas em sources sync interrompem a execução; "
+        "falhas na recolha não impedem a normalização do que ficou persistido. Códigos: "
+        "0 sem falhas, 2 com falhas parciais, 1 em caso de erro.",
+    )
     daily_parser = subparsers.add_parser(
         "daily",
         help="recolhe, normaliza, deduplica e gera o relatório diário",
@@ -352,6 +388,18 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "normalize":
         code, out, err = normalize(resolve_db_path(args.db, os.environ))
+        for line in out:
+            print(line)
+        for line in err:
+            print(line, file=sys.stderr)
+        return code
+
+    if args.command == "ingest":
+        code, out, err = ingest(
+            resolve_db_path(args.db, os.environ),
+            args.config,
+            default_registry(),
+        )
         for line in out:
             print(line)
         for line in err:
