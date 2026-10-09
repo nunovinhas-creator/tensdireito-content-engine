@@ -6,9 +6,9 @@ from unicodedata import category
 from urllib.parse import urlsplit
 
 from tensdireito_content_engine.domain.enums import EditorialStatus, VerificationStatus
+from tensdireito_content_engine.domain.policy import MINIMUM_RELEVANCE_SCORE
 from tensdireito_content_engine.domain.validation import require_text
 
-MINIMUM_RELEVANCE_SCORE = 65.0
 ELIGIBLE_VERIFICATION_STATUSES = frozenset(
     {VerificationStatus.VERIFIED_EDITORIAL, VerificationStatus.VERIFIED_OFFICIAL}
 )

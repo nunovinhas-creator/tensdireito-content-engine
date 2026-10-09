@@ -26,7 +26,14 @@ from tensdireito_content_engine.storage.migrator import default_migrations_dir, 
 
 FIXED_NOW = datetime(2026, 10, 7, 12, 0, 0, tzinfo=UTC)
 MIGRATIONS_DIR = Path(str(default_migrations_dir()))
-BUSINESS_TABLES = {"run", "source_registry", "source_endpoint", "raw_item", "source_document"}
+BUSINESS_TABLES = {
+    "run",
+    "source_registry",
+    "source_endpoint",
+    "raw_item",
+    "source_document",
+    "whatsapp_draft",
+}
 ALL_TABLES = {"schema_migration", *BUSINESS_TABLES}
 
 
@@ -137,7 +144,7 @@ def test_cli_init_creates_database_and_reports(tmp_path, capsys):
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
         f"init: OK — {db}",
-        "migrações aplicadas: 0001_init, 0002_source_document",
+        "migrações aplicadas: 0001_init, 0002_source_document, 0003_whatsapp_draft",
     ]
     assert captured.err == ""
     assert db.is_file()
@@ -147,7 +154,7 @@ def test_cli_init_creates_database_and_reports(tmp_path, capsys):
 def test_init_registers_migrations_with_checksum(tmp_path):
     db = tmp_path / "tde.sqlite3"
     result = init_database(db, now=fixed_now)
-    assert result.applied == ("0001_init", "0002_source_document")
+    assert result.applied == ("0001_init", "0002_source_document", "0003_whatsapp_draft")
     applied_at = "2026-10-07T12:00:00.000000+00:00"
     assert migration_rows(db) == [
         (
@@ -158,6 +165,11 @@ def test_init_registers_migrations_with_checksum(tmp_path):
         (
             2,
             hashlib.sha256((MIGRATIONS_DIR / "0002_source_document.sql").read_bytes()).hexdigest(),
+            applied_at,
+        ),
+        (
+            3,
+            hashlib.sha256((MIGRATIONS_DIR / "0003_whatsapp_draft.sql").read_bytes()).hexdigest(),
             applied_at,
         ),
     ]
@@ -197,7 +209,11 @@ def test_second_init_is_idempotent(tmp_path, capsys):
 def test_init_accepts_existing_empty_file(tmp_path):
     db = tmp_path / "tde.sqlite3"
     db.touch()
-    assert init_database(db).applied == ("0001_init", "0002_source_document")
+    assert init_database(db).applied == (
+        "0001_init",
+        "0002_source_document",
+        "0003_whatsapp_draft",
+    )
 
 
 # --- Esquema da 0001 e da 0002 ------------------------------------------------
@@ -282,6 +298,17 @@ EXPECTED_COLUMNS = {
         "created_at": ("TEXT", True, 0),
         "updated_at": ("TEXT", True, 0),
     },
+    "whatsapp_draft": {
+        "id": ("INTEGER", True, 1),
+        "raw_item_id": ("INTEGER", True, 0),
+        "editorial_score": ("REAL", True, 0),
+        "verification_status": ("TEXT", True, 0),
+        "status": ("TEXT", True, 0),
+        "message": ("TEXT", True, 0),
+        "created_at": ("TEXT", True, 0),
+        "updated_at": ("TEXT", True, 0),
+        "approved_at": ("TEXT", False, 0),
+    },
 }
 
 
@@ -306,7 +333,10 @@ def test_no_indexes_beyond_pk_unique_and_text_hash(db):
         explicit = conn.execute(
             "SELECT tbl_name, name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
         ).fetchall()
-    assert explicit == [("source_document", "source_document_text_hash")]
+    assert explicit == [
+        ("source_document", "source_document_text_hash"),
+        ("whatsapp_draft", "whatsapp_draft_status"),
+    ]
 
 
 def test_foreign_keys_declared(db):
@@ -388,8 +418,12 @@ def test_text_primary_keys_reject_null(db):
 
 def test_load_migrations_reads_package_resource():
     migrations = load_migrations()
-    assert [m.name for m in migrations] == ["0001_init", "0002_source_document"]
-    assert [m.version for m in migrations] == [1, 2]
+    assert [m.name for m in migrations] == [
+        "0001_init",
+        "0002_source_document",
+        "0003_whatsapp_draft",
+    ]
+    assert [m.version for m in migrations] == [1, 2, 3]
 
 
 def test_migration_filenames_follow_convention():
@@ -453,12 +487,12 @@ def test_database_newer_than_code_fails(tmp_path, capsys):
     with sqlite3.connect(db) as conn:
         conn.execute(
             "INSERT INTO schema_migration (version, checksum, applied_at) "
-            "VALUES (3, 'abc', '2026-10-07T12:00:00.000000+00:00')"
+            "VALUES (4, 'abc', '2026-10-07T12:00:00.000000+00:00')"
         )
     assert main(["--db", str(db), "init"]) == 1
     assert capsys.readouterr().err.splitlines() == [
         f"init: ERRO — {db}",
-        "- a base de dados tem a migração 0003, desconhecida desta versão do código "
+        "- a base de dados tem a migração 0004, desconhecida desta versão do código "
         "(base de dados mais recente que o código)",
     ]
 

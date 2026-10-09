@@ -48,10 +48,12 @@ def item(
     *,
     raw: str = "<item>Texto exacto</item>",
     published: str | None = "2026-10-09T10:00:00+01:00",
+    title: str = "  Notícia   diária ",
+    url: str = "https://news.example/story",
 ) -> RawItem:
     return RawItem(
-        url="https://news.example/story",
-        title="  Notícia   diária ",
+        url=url,
+        title=title,
         raw_content=raw,
         fetched_at=T0,
         source_endpoint_id=endpoint_id,
@@ -155,6 +157,105 @@ def test_daily_first_and_repeated_execution_are_idempotent(monkeypatch, tmp_path
     assert repeated_report.read_bytes() == report.read_bytes()
     with sqlite3.connect(db) as connection:
         assert connection.execute("SELECT COUNT(*) FROM raw_item").fetchone() == (1,)
+        assert connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone() == (0,)
+
+
+def test_daily_generates_only_eligible_non_duplicate_drafts(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "feed_a", "feed_b")
+    eligible = item(
+        "feed_a",
+        title="Nova prestação aumenta para trabalhadores; prazo para pedir apoio",
+        raw=(
+            "<item><description>A nova prestação aumenta e cria direito para trabalhadores. "
+            "Deve requerer apoio até 31 de outubro.</description></item>"
+        ),
+    )
+    duplicate = item(
+        "feed_b",
+        title=eligible.title,
+        raw=eligible.raw_content,
+    )
+    low_score = item(
+        "feed_b",
+        title="Nota local",
+        raw="<item><description>Notas de cultura local.</description></item>",
+        url="https://news.example/local",
+    )
+    collector = FakeRss(
+        lambda endpoint_id: [eligible] if endpoint_id == "feed_a" else [duplicate, low_score]
+    )
+
+    code, db, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "duplicados na janela: 1" in output
+    assert "rascunhos WhatsApp gerados: 1" in output
+    with sqlite3.connect(db) as connection:
+        drafts = connection.execute(
+            "SELECT raw_item_id, editorial_score, verification_status, status, message "
+            "FROM whatsapp_draft"
+        ).fetchall()
+    assert len(drafts) == 1
+    assert drafts[0][1:4] == (74.0, "unverified", "pending")
+    assert drafts[0][4].startswith("📢 *Nova prestação aumenta")
+    assert "Resumo da fonte (por validar)" in drafts[0][4]
+    assert "Confirme os factos e o impacto antes de aprovar." in drafts[0][4]
+
+    code, _, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
+    capsys.readouterr()
+    assert code == 0
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone() == (1,)
+
+
+def test_daily_requires_validated_source_for_drafts(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    collector = FakeRss(
+        lambda endpoint_id: [
+            item(
+                endpoint_id,
+                title="Nova prestação aumenta para trabalhadores; prazo para pedir apoio",
+                raw=(
+                    "<item><description>A nova prestação aumenta e cria direito para "
+                    "trabalhadores. Deve requerer apoio até 31 de outubro.</description></item>"
+                ),
+            )
+        ]
+    )
+    monkeypatch.setattr(cli, "default_registry", lambda: CollectorRegistry([collector]))
+    db = tmp_path / "tde.sqlite3"
+    import tensdireito_content_engine.daily as daily_pipeline
+
+    original_collect = daily_pipeline.run_collect
+
+    def collect_then_unvalidate(*args, **kwargs):
+        result = original_collect(*args, **kwargs)
+        with sqlite3.connect(db) as connection:
+            connection.execute(
+                "UPDATE source_registry SET registry_status = 'candidate'"
+            )
+        return result
+
+    monkeypatch.setattr(daily_pipeline, "run_collect", collect_then_unvalidate)
+    report_dir = tmp_path / "reports"
+    assert cli.main(
+        [
+            "--config",
+            str(sources),
+            "--db",
+            str(db),
+            "daily",
+            "--date",
+            DAY.isoformat(),
+            "--report-dir",
+            str(report_dir),
+        ]
+    ) == 0
+    output = capsys.readouterr().out
+    assert "rascunhos WhatsApp gerados: 0" in output
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone() == (0,)
 
 
 def test_repeated_item_in_feed_is_saved_once_and_reported_once(monkeypatch, tmp_path, capsys):
