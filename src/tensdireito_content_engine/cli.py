@@ -5,6 +5,7 @@ introduzir dependências externas.
 """
 
 import argparse
+import json
 import os
 import platform
 import sys
@@ -17,7 +18,13 @@ from tensdireito_content_engine.collect import CollectError, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry, default_registry
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
 from tensdireito_content_engine.daily import DEFAULT_REPORT_DIR, DailyResult, run_daily
+from tensdireito_content_engine.domain.enums import EditorialStatus, VerificationStatus
 from tensdireito_content_engine.normalize_command import run_normalize
+from tensdireito_content_engine.publish.whatsapp import (
+    WhatsAppMessage,
+    check_whatsapp_eligibility,
+    format_whatsapp_message,
+)
 from tensdireito_content_engine.sources import SourceRegistryError, load_sources
 from tensdireito_content_engine.storage import (
     DB_PATH_ENV,
@@ -213,6 +220,69 @@ def daily(
     return _daily_lines(result)
 
 
+def publish_whatsapp(input_path: Path) -> tuple[bool, list[str]]:
+    """Gera uma pré-visualização WhatsApp apenas para conteúdo elegível."""
+    try:
+        data = json.loads(input_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return False, [f"publish: ERRO — {input_path}", f"- {exc}"]
+
+    try:
+        if not isinstance(data, dict):
+            raise ValueError("o manifesto tem de ser um objecto JSON")
+        required = {
+            "emoji",
+            "title",
+            "key_points",
+            "cta",
+            "url",
+            "editorial_score",
+            "verification_status",
+            "editorial_status",
+            "is_duplicate",
+        }
+        missing = required - data.keys()
+        extra = data.keys() - required
+        if missing or extra:
+            details = []
+            if missing:
+                details.append(f"campos em falta: {', '.join(sorted(missing))}")
+            if extra:
+                details.append(f"campos desconhecidos: {', '.join(sorted(extra))}")
+            raise ValueError("; ".join(details))
+
+        points = data["key_points"]
+        if not isinstance(points, list) or not all(isinstance(point, str) for point in points):
+            raise ValueError("key_points tem de ser uma lista de texto")
+        score = data["editorial_score"]
+        if isinstance(score, bool) or not isinstance(score, int | float):
+            raise ValueError("editorial_score tem de ser um número")
+        if not isinstance(data["is_duplicate"], bool):
+            raise ValueError("is_duplicate tem de ser booleano")
+
+        message = WhatsAppMessage(
+            emoji=data["emoji"],
+            title=data["title"],
+            key_points=tuple(points),
+            cta=data["cta"],
+            url=data["url"],
+        )
+        verification_status = VerificationStatus(data["verification_status"])
+        editorial_status = EditorialStatus(data["editorial_status"])
+        reasons = check_whatsapp_eligibility(
+            score,
+            verification_status,
+            editorial_status,
+            data["is_duplicate"],
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        return False, [f"publish: ERRO — {input_path}", f"- {exc}"]
+
+    if reasons:
+        return False, ["publish: NÃO ELEGÍVEL", *(f"- {reason}" for reason in reasons)]
+    return True, ["publish: PRÉ-VISUALIZAÇÃO — whatsapp", format_whatsapp_message(message)]
+
+
 def _daily_lines(result: DailyResult) -> tuple[int, list[str], list[str]]:
     collection = result.collection
     label, code = {"success": ("OK", 0), "partial": ("PARCIAL", 2), "failed": ("ERRO", 1)}[
@@ -343,6 +413,25 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help=f"directório dos relatórios (por defeito: {DEFAULT_REPORT_DIR})",
     )
+    publish_parser = subparsers.add_parser(
+        "publish",
+        help="pré-visualiza conteúdos elegíveis para um destino de publicação",
+        description="Formata uma mensagem WhatsApp a partir de um manifesto JSON. "
+        "É uma pré-visualização local: não envia mensagens nem altera o estado publicado.",
+    )
+    publish_parser.add_argument(
+        "--target",
+        choices=("whatsapp",),
+        required=True,
+        help="destino de publicação",
+    )
+    publish_parser.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        metavar="JSON",
+        help="manifesto JSON com conteúdo e estado editorial",
+    )
     return parser
 
 
@@ -419,6 +508,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in err:
             print(line, file=sys.stderr)
         return code
+
+    if args.command == "publish" and args.target == "whatsapp":
+        ok, lines = publish_whatsapp(args.input)
+        stream = sys.stdout if ok else sys.stderr
+        for line in lines:
+            print(line, file=stream)
+        return 0 if ok else 1
 
     parser.print_help()
     return 0

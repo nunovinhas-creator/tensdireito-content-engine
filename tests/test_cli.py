@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -36,6 +37,68 @@ def test_help_exits_zero(capsys):
         main(["--help"])
     assert exc.value.code == 0
     assert "doctor" in capsys.readouterr().out
+
+
+def test_publish_whatsapp_prints_eligible_preview(tmp_path, capsys):
+    manifest = tmp_path / "whatsapp.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "emoji": "📢",
+                "title": "Novo apoio às famílias",
+                "key_points": ["Quem pode pedir", "Qual o prazo"],
+                "cta": "Consulte os detalhes",
+                "url": "https://example.org/direito",
+                "editorial_score": 65,
+                "verification_status": "verified_official",
+                "editorial_status": "approved",
+                "is_duplicate": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(["publish", "--target", "whatsapp", "--input", str(manifest)]) == 0
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert captured.out.splitlines() == [
+        "publish: PRÉ-VISUALIZAÇÃO — whatsapp",
+        "📢 *Novo apoio às famílias*",
+        "",
+        "• Quem pode pedir",
+        "• Qual o prazo",
+        "",
+        "👉 *Consulte os detalhes*",
+        "_Saiba mais:_ https://example.org/direito",
+    ]
+
+
+def test_publish_whatsapp_rejects_ineligible_item(tmp_path, capsys):
+    manifest = tmp_path / "whatsapp.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "emoji": "📢",
+                "title": "Novo apoio às famílias",
+                "key_points": ["Quem pode pedir", "Qual o prazo"],
+                "cta": "Consulte os detalhes",
+                "url": "https://example.org/direito",
+                "editorial_score": 64,
+                "verification_status": "verified_official",
+                "editorial_status": "approved",
+                "is_duplicate": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(["publish", "--target", "whatsapp", "--input", str(manifest)]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.splitlines() == [
+        "publish: NÃO ELEGÍVEL",
+        "- score de relevância inferior a 65",
+    ]
 
 
 def test_unknown_command_exits_with_error():
