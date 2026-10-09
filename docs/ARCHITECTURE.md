@@ -30,6 +30,7 @@ O sistema **não é** um agregador de notícias nem um gerador automático de ar
 | P14 | Independência de fornecedor de IA | Interface `LLMProvider`; fornecedor e modelo definidos por configuração. |
 | P15 | Score ≠ verificação | `editorial_score` ordena; `verification_status` bloqueia. Um não altera o outro. |
 | P16 | Humano no circuito | Na V1, só uma pessoa aprova conteúdo; a V1 termina em `APPROVED → EXPORT`. |
+| P17 | Destino WhatsApp com gate editorial | A formatação para canais e grupos de transmissão só gera pré-visualizações de itens aprovados, validados, relevantes e não duplicados; não envia mensagens. |
 
 ## 3. Visão conceptual
 
@@ -104,10 +105,24 @@ Um único pacote Python, **`tensdireito_content_engine`**, com CLI **`tde`**, or
 | `checks` | Validações automáticas pós-geração. |
 | `review` | Revisão humana e restantes decisões editoriais. |
 | `export` | Exportação de conteúdo aprovado para ficheiros. |
+| `publish` | Formatação e verificação de elegibilidade para destinos definidos; na V1, pré-visualização de mensagens WhatsApp sem envio automático. |
 | `report` | Relatório de cada execução (incluindo "nada a publicar"). |
 | `llm` | Abstracção `LLMProvider`, registo de chamadas, prompts versionados. |
 | `storage` | Camada de repositório sobre SQLite (V1); todo o SQL vive aqui. |
 | `cli` | Ponto de entrada único (`tde`); um subcomando por etapa. |
+
+### Destino de publicação (D10)
+
+O destino definido para a V1 é a geração de mensagens para **canais e grupos de transmissão do WhatsApp** (DEC-048). `tde publish --target whatsapp --input <JSON>` produz uma pré-visualização local; não envia mensagens, não usa a API do WhatsApp e não atribui `PUBLISHED`. A publicação efectiva continua manual/externa, em conformidade com o circuito `APPROVED → EXPORT`.
+
+O manifesto de entrada fornece o título, emoji, 2–3 pontos-chave, CTA, hiperligação HTTPS, score, estados editorial e de verificação, e indicador de duplicação. A mensagem usa título em `*negrito*`, pontos-chave em lista, CTA e `_Saiba mais:_` em itálico junto à hiperligação. A elegibilidade exige simultaneamente:
+
+- `editorial_score ≥ 65` (`SELECT_THRESHOLD`);
+- `verification_status ∈ {VERIFIED_EDITORIAL, VERIFIED_OFFICIAL}`;
+- `editorial_status = APPROVED` (aprovação humana);
+- item não duplicado.
+
+Itens inválidos ou que falhem qualquer gate não produzem mensagem e dão erro visível no CLI.
 
 Especificação técnica em [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md).
 
@@ -122,7 +137,7 @@ Os ADR da especificação inicial mantêm-se, com as alterações do M1. O regis
 | ADR-003 | O `Event` é a unidade editorial. Complementado por DEC-010 (actualizar em vez de duplicar). | Aceite, complementado |
 | ADR-004 | Verificação baseada em evidência documental e regras deterministas, não em julgamento do modelo. Os estados passam a `VERIFIED_OFFICIAL`/`VERIFIED_EDITORIAL` (DEC-003). | Aceite, alterado |
 | ADR-005 | IA atrás de uma interface; opcional em todas as etapas. | Aceite |
-| ADR-006 | Humano no circuito; sem publicação automática na V1. Concretizado por DEC-012 e DEC-014. | Aceite, complementado |
+| ADR-006 | Humano no circuito; sem publicação automática na V1. Concretizado por DEC-012 e DEC-014; destino WhatsApp e gate de pré-visualização definidos por DEC-048. | Aceite, complementado |
 | ADR-007 | CLI primeiro, automação depois; a automação não contém lógica própria. | Aceite |
 | ADR-008 | Configuração (fontes, taxonomia, pesos, prompts) como ficheiros versionados revistos por pull request. | Aceite |
 

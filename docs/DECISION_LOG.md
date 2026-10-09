@@ -454,6 +454,15 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Em Avaliação / Pendente de Aprovação — D8 permanece OPEN até aprovação da arquitectura e confirmação do fornecedor, custos e credenciais.
 - **Data:** 2026-10-09
 
+### DEC-048 — WhatsApp como destino de publicação V1 (D10)
+- **Decisão:** O destino de publicação definido para a V1 é a geração de mensagens para canais e grupos de transmissão do WhatsApp. Cada mensagem contém um título apelativo iniciado por emoji, 2–3 pontos-chave sobre o direito/notícia, uma chamada à acção (CTA) e uma hiperligação HTTPS. A formatação usa `*texto*` para negrito e `_texto_` para itálico. Só é elegível um item com `editorial_score ≥ 65` (limiar `SELECT_THRESHOLD` de SCORING.md), verificação `VERIFIED_EDITORIAL` ou `VERIFIED_OFFICIAL`, estado editorial `APPROVED` após aprovação humana e sem duplicação. A implementação inicial gera uma pré-visualização local; não envia mensagens, não integra credenciais/API do WhatsApp e não atribui o estado `PUBLISHED`.
+- **Razão:** Os canais e grupos de transmissão WhatsApp são o destino prioritário de conteúdo curto do TensDireito; uma estrutura concisa e regras deterministas preservam utilidade, rastreabilidade e controlo editorial.
+- **Alternativas consideradas:** Publicação automática directa por API (fora do âmbito e dependente de credenciais, configuração e regras operacionais ainda não aprovadas); manter o destino indefinido (não permite especificar nem validar o formato de saída).
+- **Impacto e salvaguardas:** A pré-visualização não substitui aprovação nem publicação e não altera o circuito editorial: só conteúdo aprovado pode ser formatado, e o envio continua manual/externo. O comando falha explicitamente para entradas inválidas ou inelegíveis. Integração de envio e integração com o TensDireito.com permanecem trabalho futuro.
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md#decisão-d10--destino-de-publicação-whatsapp), [ARCHITECTURE.md](ARCHITECTURE.md#8-destino-de-publicação-d10).
+- **Estado:** Aceite — D10 fechada para o destino e formato V1; envio automatizado permanece fora do âmbito.
+- **Data:** 2026-10-09
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
@@ -469,7 +478,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D7 — Quem revê e aprova | Parcial: formato do registo fechado (DEC-014); pessoas e autenticação OPEN |
 | D8 — Persistência durável e estado partilhado | OPEN — DEC-047 Em Avaliação / Pendente de Aprovação: PostgreSQL gerido + S3/R2 para relatórios; falta aprovação da arquitectura e confirmação do fornecedor/credenciais/custos (DEC-013, DEC-026, DEC-046) |
 | D9 — Frequência e agendamento das execuções | CLOSED (DEC-046) |
-| D10 — Destino de publicação | OPEN |
+| D10 — Destino de publicação | CLOSED (DEC-048; geração de pré-visualização WhatsApp, sem envio automático) |
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |
 | D12 — Regra de `canonical_url` | OPEN (ver DEC-021). Sem lista documentada de parâmetros de tracking; até decisão, `canonical_url` fica nulo em `source_document` (DEC-037, M2.11). |
 | D13 — Formatos e fuso de `published_at_raw` | OPEN (ver DEC-021) |

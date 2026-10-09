@@ -796,11 +796,19 @@ Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os
 
 - Migração para PostgreSQL.
 - Formatos `newsletter` e `social_post`.
-- Integração de publicação (ex.: CMS do TensDireito.com) e uso do estado `PUBLISHED` — requer decisão.
+- Envio automatizado para WhatsApp e integração de publicação (ex.: CMS do TensDireito.com), incluindo eventual uso do estado `PUBLISHED` — requer decisões de integração e operação; D10 define apenas o destino e a pré-visualização.
 - Recolha automatizada de redes sociais — requer decisão (termos, custo, RGPD).
 - Calibração de pesos por categoria, audiência, histórico de desempenho e tipo de notícia.
 - Similaridade semântica (embeddings) para clustering.
 - Interface de revisão web com autenticação.
+
+### Decisão D10 — Destino de publicação WhatsApp
+
+**Estado:** fechada por DEC-048 para o destino e o formato inicial.
+
+O alvo V1 é a geração de mensagens para **canais e grupos de transmissão do WhatsApp**. `tde publish --target whatsapp --input <JSON>` valida a elegibilidade e imprime uma pré-visualização; não envia a mensagem nem altera o estado editorial. A integração de envio fica para evolução futura.
+
+Formato: título apelativo iniciado por emoji, em `*negrito*`; 2–3 pontos-chave sobre o direito/notícia; CTA em destaque; e hiperligação HTTPS com `_Saiba mais:_` em itálico. A elegibilidade requer `editorial_score ≥ 65` (limiar de selecção), `VERIFIED_EDITORIAL` ou `VERIFIED_OFFICIAL`, `APPROVED` por revisão humana e item não duplicado. Entradas inválidas ou inelegíveis não produzem pré-visualização publicável.
 
 ## Decisões pendentes
 
@@ -815,7 +823,7 @@ Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os
 | D7 | Quem revê e aprova | 4 | **Parcialmente fechada** — formato do registo de revisão definido (DEC-014); pessoas concretas e eventual autenticação a decidir. |
 | D8 | Persistência durável e estado partilhado em modo agendado (ex.: storage externo, PostgreSQL gerido) | **Antes da Fase 5** | **Em Avaliação / Pendente de Aprovação; não concluída.** A proposta DEC-047 recomenda PostgreSQL gerido + S3/R2 para relatórios, preservando a idempotência e o contrato rigoroso de exit codes do `tde daily` (`0` sucesso, `1` falha fatal, `2` parcial; código inesperado falha o job). Aguarda aprovação, confirmação de fornecedor/credenciais/custos e implementação/testes da camada `storage`. O M2.6 e o workflow diário em runner efémero não a resolvem. |
 | D9 | Frequência e agendamento das execuções | 5 | **Fechada (DEC-046).** `tde daily` é agendado diariamente às 06:00 UTC em `.github/workflows/daily.yml`; os códigos de saída `0`, `1` e `2` têm tratamento explícito. |
-| D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
+| D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Fechada para destino e formato V1 (DEC-048):** WhatsApp, canais e grupos de transmissão; pré-visualização elegível, sem envio automático. Integração de envio/API e CMS continuam futuras. |
 | D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |
 | D12 | Regra de `canonical_url`: que parâmetros são "de tracking" e se se normalizam esquema, domínio, barra final ou fragmento | 1 | **Pendente (OPEN).** DATA_MODEL.md exige `canonical_url` "sem parâmetros de tracking" sem os enumerar. Não se inventa nem assume nenhuma lista de parâmetros. Até decisão, o M2.3 não calcula `canonical_url` e preserva o URL tal como obtido (DEC-021). O projecto não tem nenhuma lista documentada de parâmetros de tracking; no M2.11, `source_document.canonical_url` fica nulo ("por calcular") até D12 ser decidida, segundo a orientação conservadora registada em DEC-037. |
 | D13 | Formatos aceites em `published_at_raw` e tratamento de data sem hora ou data/hora sem fuso | 1 | **Pendente (OPEN).** Nenhum fuso (incluindo `Europe/Lisbon`) é assumido silenciosamente. Até decisão, só ISO 8601 com fuso explícito é convertido para UTC; os restantes casos ficam nulos, com o original preservado (DEC-021). Com o M2.9, `published_at_raw` de itens RSS virá do `pubDate` (formato RFC 822 em RSS 2.0), que DEC-021 não converte: até D13, esses itens terão `published_at` nulo na normalização. |
