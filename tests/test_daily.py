@@ -2,6 +2,7 @@ import sqlite3
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import pytest
 from _fake_http import FEED_URL, HOST, NO_ROBOTS, FakeServer, feed
 
 from tensdireito_content_engine import cli
@@ -46,7 +47,7 @@ def item(
     endpoint_id: str,
     *,
     raw: str = "<item>Texto exacto</item>",
-    published: str | None = None,
+    published: str | None = "2026-10-09T10:00:00+01:00",
 ) -> RawItem:
     return RawItem(
         url="https://news.example/story",
@@ -54,7 +55,7 @@ def item(
         raw_content=raw,
         fetched_at=T0,
         source_endpoint_id=endpoint_id,
-        published_at_raw=published or "2026-10-09T10:00:00+01:00",
+        published_at_raw=published,
     )
 
 
@@ -128,7 +129,10 @@ def test_daily_runs_real_rss_parser_against_local_fixture(monkeypatch, tmp_path,
     assert code == 0
     assert "itens obtidos: 3" in output
     assert "notícias selecionadas: 3" in output
-    assert "1. Primeira notícia" in report.read_text(encoding="utf-8")
+    text = report.read_text(encoding="utf-8")
+    assert "1. Primeira notícia" in text
+    assert "Fonte: Fonte 0" in text
+    assert "URL: https://feed.example.org/noticias/1?utm_source=rss#topo" in text
     assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
 
 
@@ -197,6 +201,28 @@ def test_partial_source_failure_keeps_successful_items(monkeypatch, tmp_path, ca
     assert "1. Notícia diária" in report.read_text(encoding="utf-8")
 
 
+def test_all_source_failures_still_write_report_and_return_error(
+    monkeypatch, tmp_path, capsys
+):
+    sources = config_dir(tmp_path / "config", "feed_a", "feed_b")
+
+    def fail(_):
+        raise OSError("feed indisponível")
+
+    collector = FakeRss(fail)
+
+    code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
+    output = capsys.readouterr()
+
+    assert code == 1
+    assert "fontes consultadas: 2" in output.out
+    assert "notícias selecionadas: 0" in output.out
+    assert output.err.count("feed indisponível") == 2
+    assert "Não foram encontradas notícias na janela diária." in report.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_empty_feed_writes_a_zero_news_report(monkeypatch, tmp_path, capsys):
     sources = config_dir(tmp_path / "config", "news_feed")
 
@@ -207,6 +233,33 @@ def test_empty_feed_writes_a_zero_news_report(monkeypatch, tmp_path, capsys):
     assert "itens obtidos: 0" in output
     assert "notícias selecionadas: 0" in output
     assert "Não foram encontradas notícias na janela diária." in text
+
+
+def test_disabled_endpoint_is_not_collected(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    config_path = sources / "sources.yaml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            "endpoint_status: ACTIVE", "endpoint_status: VALIDATED"
+        ),
+        encoding="utf-8",
+    )
+
+    code, _, report = invoke_daily(
+        monkeypatch,
+        tmp_path,
+        sources,
+        FakeRss(lambda _: pytest.fail("non-active endpoint was collected")),
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "fontes consultadas: 0" in output
+    assert "itens obtidos: 0" in output
+    assert "notícias selecionadas: 0" in output
+    assert "Não foram encontradas notícias na janela diária." in report.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_zero_items_in_requested_publication_window(monkeypatch, tmp_path, capsys):
@@ -237,5 +290,22 @@ def test_unrecognized_publication_date_uses_collection_day_without_inventing_dat
     text = report.read_text(encoding="utf-8")
     assert code == 0
     assert normalize_published_at("Fri, 09 Oct 2026 09:00:00 GMT") is None
+    assert "1. Notícia diária" in text
+    assert "Data: não indicada" in text
+
+@pytest.mark.parametrize("published", [None, "not-a-date"])
+def test_missing_or_invalid_publication_date_uses_collection_day_without_inventing_date(
+    monkeypatch, tmp_path, capsys, published
+):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    collector = FakeRss(
+        lambda endpoint_id: [item(endpoint_id, published=published)]
+    )
+
+    code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
+    capsys.readouterr()
+    text = report.read_text(encoding="utf-8")
+
+    assert code == 0
     assert "1. Notícia diária" in text
     assert "Data: não indicada" in text
