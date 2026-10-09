@@ -15,6 +15,42 @@
       validated_by: "nuno"
       url: "https://files.diariodarepublica.pt/rss/serie1-html.xml"
 
+- id: governo_pt
+  name: "Portal do Governo de Portugal"
+  entity_type: "government"
+  tier: "T1"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "governo"
+    - "medidas"
+  endpoints:
+    - id: governo-rss
+      endpoint_type: "rss"
+      endpoint_status: "ACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://www.portugal.gov.pt/pt/comunicacao/noticias.rss"
+
+- id: seguranca_social
+  name: "Portal da Segurança Social"
+  entity_type: "public_body"
+  tier: "T1"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "seguranca_social"
+    - "apoios"
+  endpoints:
+    - id: ss-rss
+      endpoint_type: "rss"
+      endpoint_status: "ACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://www.seg-social.pt/noticias"
+
 - id: eco_sapo
   name: "ECO - Economia Online"
   entity_type: "press"
