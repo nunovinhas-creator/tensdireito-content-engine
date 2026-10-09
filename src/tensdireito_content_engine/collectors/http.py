@@ -183,7 +183,8 @@ class HttpsTransport:
             status, response = self._get(_Target(host, "/robots.txt"), _ROBOTS)
         except TransportError as exc:
             return exc
-        if 400 <= status < 500:  # RFC 9309: sem restrições.
+        if 400 <= status < 500 or status in (301, 302, 307, 308):
+            # 4xx segue RFC 9309; redirects são uma exceção de compatibilidade e não são seguidos.
             parser.parse([])
             return parser
         if status != 200:

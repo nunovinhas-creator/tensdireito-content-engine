@@ -16,6 +16,7 @@
 - Rate limiting por fonte (`rate_limit_seconds`); sem pedidos paralelos à mesma fonte.
 - Preferir feeds RSS/Atom e páginas públicas; não contornar paywalls, autenticação ou medidas anti-bot.
 - Transporte de rede (M2.9, DEC-033): um único módulo, só `https`, só destinos públicos, sem redirects, limites de tamanho e tempo, `DOCTYPE` recusado no XML; nenhum comando obtém um URL arbitrário — só o `url` de endpoints `ACTIVE` validados.
+- Excepção de `robots.txt` (DEC-033): respostas 301, 302, 307 ou 308 são tratadas como ausência de restrições; o destino indicado não é seguido. Redirects de feeds continuam a falhar.
 - Conteúdo de terceiros é guardado para análise e prova (evidência); os textos publicados são originais e citam a fonte — não reproduzir artigos de imprensa integralmente.
 
 ## 3. Conteúdo externo como entrada não confiável
