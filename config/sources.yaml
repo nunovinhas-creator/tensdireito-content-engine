@@ -18,7 +18,7 @@
     - id: dre-serie1-rss
       endpoint_type: rss
       url: "https://files.diariodarepublica.pt/rss/serie1-html.xml"
-      endpoint_status: VALIDATED
+      endpoint_status: ACTIVE
       fetch:
         frequency: daily
         rate_limit_seconds: 5
