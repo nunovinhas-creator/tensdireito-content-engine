@@ -1121,5 +1121,5 @@ def test_repository_sources_yaml_contains_validated_dre_source():
 
     text = (REPO_ROOT / "config" / "sources.yaml").read_text(encoding="utf-8")
     sources = yaml.safe_load(text)
-    assert [source["id"] for source in sources] == ["dre"]
+    assert "dre" in [source["id"] for source in sources]
     assert sources[0]["registry_status"] == "VALIDATED"

@@ -14,3 +14,58 @@
       validated_at: "2026-10-09T00:00:00Z"
       validated_by: "nuno"
       url: "https://files.diariodarepublica.pt/rss/serie1-html.xml"
+
+- id: eco_sapo
+  name: "ECO - Economia Online"
+  entity_type: "press"
+  tier: "T3"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "economia"
+    - "impostos"
+    - "trabalho"
+  endpoints:
+    - id: eco-rss
+      endpoint_type: "rss"
+      endpoint_status: "ACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://eco.sapo.pt/feed/"
+
+- id: rtp_noticias
+  name: "RTP Notícias"
+  entity_type: "press"
+  tier: "T3"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "sociedade"
+    - "economia"
+  endpoints:
+    - id: rtp-rss
+      endpoint_type: "rss"
+      endpoint_status: "ACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://www.rtp.pt/noticias/rss"
+
+- id: publico
+  name: "Público - Economia e Sociedade"
+  entity_type: "press"
+  tier: "T3"
+  registry_status: "VALIDATED"
+  validated_at: "2026-10-09T00:00:00Z"
+  validated_by: "nuno"
+  categories:
+    - "sociedade"
+    - "trabalho"
+  endpoints:
+    - id: publico-rss
+      endpoint_type: "rss"
+      endpoint_status: "ACTIVE"
+      validated_at: "2026-10-09T00:00:00Z"
+      validated_by: "nuno"
+      url: "https://www.publico.pt/api/feed/rss/economia"

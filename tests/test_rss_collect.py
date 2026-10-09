@@ -175,7 +175,7 @@ def test_production_collect_without_synced_sources_makes_no_request(tmp_path, mo
 def test_repository_sources_yaml_has_active_official_rss_endpoint():
     text = (REPO_ROOT / "config" / "sources.yaml").read_text(encoding="utf-8")
     sources = yaml.safe_load(text)
-    assert len(sources) == 1
+    assert len(sources) >= 1
     assert sources[0]["id"] == "dre"
     endpoint = sources[0]["endpoints"][0]
     assert endpoint["id"] == "dre-serie1-rss"
