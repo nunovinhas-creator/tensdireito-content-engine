@@ -473,12 +473,20 @@ def test_robots_4xx_means_no_restrictions(status):
     assert server.transport().fetch_feed(FEED_URL).body == BODY
 
 
+@pytest.mark.parametrize("status", [301, 302, 307, 308])
+def test_robots_redirect_means_no_restrictions_without_following_it(status):
+    redirect = Reply(status, {"Location": "https://outro.example.org/robots.txt"})
+    server = server_with(feed(BODY), redirect)
+    assert server.transport().fetch_feed(FEED_URL).body == BODY
+    assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
+
+
 @pytest.mark.parametrize(
     ("reply", "reason"),
     [
         (Reply(500, {"Content-Type": "text/plain"}), "HTTP 500"),
         (Reply(503, {"Content-Type": "text/plain"}), "HTTP 503"),
-        (Reply(301, {"Location": "https://o.example.org/r"}), "redirect não seguido: 301"),
+        (Reply(303, {"Location": "https://o.example.org/r"}), "redirect não seguido: 303"),
         (Reply(204), "HTTP 204"),
         (Reply(error=TimeoutError("timed out")), "tempo esgotado"),
         (Reply(error=ConnectionResetError(104, "reset")), "erro de ligação: ConnectionResetError"),
