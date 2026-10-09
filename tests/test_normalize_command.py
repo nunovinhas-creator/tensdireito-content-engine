@@ -1112,8 +1112,10 @@ def test_storage_does_not_import_normalize_collectors_or_sources():
                 assert not module.startswith(f"tensdireito_content_engine.{layer}"), (path, module)
 
 
-def test_repository_sources_yaml_is_still_empty():
+def test_repository_sources_yaml_contains_validated_dre_source():
     import yaml
 
     text = (REPO_ROOT / "config" / "sources.yaml").read_text(encoding="utf-8")
-    assert yaml.safe_load(text) == []
+    sources = yaml.safe_load(text)
+    assert [source["id"] for source in sources] == ["dre"]
+    assert sources[0]["registry_status"] == "VALIDATED"

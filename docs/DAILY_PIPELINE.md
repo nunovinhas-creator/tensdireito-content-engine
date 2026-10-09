@@ -28,20 +28,21 @@ Não há classificação semântica nesta entrega. “Selecionadas” significa 
 
 ## Fontes configuradas
 
-`config/sources.yaml` continua vazio: não há fontes `ACTIVE`. O registo aceita fontes e endpoints no formato existente; só configurar um endpoint `ACTIVE` depois de verificar origem, formato, comportamento HTTP, `robots.txt` e autorização aplicável.
+`config/sources.yaml` contém o Diário da República como fonte T1 validada e o feed RSS da 1.ª Série como endpoint `ACTIVE`. O respetivo registo de verificações está em [source_validation/dre.md](source_validation/dre.md). Não foram acrescentadas outras fontes sem validação dos respetivos endpoints.
 
 Verificações exploratórias feitas em 09/10/2026:
 
 | Candidato | Observação técnica | Política e estado |
 |---|---|---|
+| Diário da República — `https://files.diariodarepublica.pt/rss/serie1-html.xml` | Feed RSS oficial da 1.ª Série, confirmado na página de notificações do Diário da República; detalhes das verificações V1–V5 em [source_validation/dre.md](source_validation/dre.md). | Fonte T1 `VALIDATED` e endpoint `ACTIVE` em `config/sources.yaml`. |
 | Observador — `https://observador.pt/feed/` | O próprio site declara o link RSS. HTTPS, sem redirect, HTTP 200, `text/xml`; RSS 2.0, 51 itens em duas recolhas e metadados estáveis. Os itens contêm título, URL, `pubDate` e descrição. `robots.txt` não proíbe o feed. | Os termos publicados dizem que o conteúdo não pode ser utilizado sem consentimento. Não foi encontrada autorização explícita para esta recolha e reutilização; não ativado. |
 | ECO — `https://eco.sapo.pt/feed/` | HTTPS e parser RSS 2.0 aceitam o feed; uma consulta devolveu 22 itens com título, URL, `pubDate` e descrição. O `robots.txt` permite o caminho `/feed/`. | O site não declarou esse feed no HTML consultado e não foi confirmada autorização aplicável. Não ativado. |
-| Segurança Social, IEFP, Portal do Governo, Assembleia da República e Diário da República | As páginas iniciais consultadas não declararam RSS/Atom. Os endpoints adivinhados para Segurança Social, Governo e Diário da República não responderam como feeds RSS válidos. | Não foi encontrado endpoint para validar ou ativar; nenhuma URL foi adicionada por suposição. |
+| Segurança Social, IEFP, Portal do Governo e Assembleia da República | As páginas iniciais consultadas não declararam RSS/Atom. Os endpoints adivinhados para Segurança Social e Governo não responderam como feeds RSS válidos. | Não foi encontrado endpoint para validar ou ativar; nenhuma URL foi adicionada por suposição. |
 
 Os testes ponta a ponta usam `tests/fixtures/rss/valid.xml` e transporte HTTP falso, sem depender de rede ou de fontes reais.
 
 ## Execução diária automatizada
 
-Não existe workflow agendado, cron ou timer configurado neste repositório. A automatização não foi implementada: a base de dados SQLite e os relatórios são ficheiros locais, sem persistência durável nem partilha com a revisão editorial. DEC-013/D8 mantém a execução agendada bloqueada até ser decidida e implementada uma persistência durável; agendar num runner efémero poderia perder o estado entre execuções. Além disso, `config/sources.yaml` está vazio, pelo que uma execução diária apenas produziria um relatório sem notícias.
+O workflow [.github/workflows/daily.yml](../.github/workflows/daily.yml) executa `uv run tde daily` todos os dias às 06:00 UTC e também pode ser iniciado manualmente. O CI interpreta os códigos de saída do CLI da seguinte forma: `0` termina com sucesso; `1` falha o job; `2` acrescenta um aviso ao resumo do job sem o falhar.
 
-Até esses bloqueios serem resolvidos, executar manualmente `uv run tde daily` numa máquina com ambiente `uv` configurado. Para automatizar mais tarde, primeiro definir o armazenamento durável e partilhado, o anfitrião persistente, o fuso e hora pretendidos, retenção e acesso aos relatórios, registos/falhas e prevenção de execuções concorrentes; depois escolher o scheduler já disponível nesse ambiente para invocar o mesmo comando CLI. Não foi adicionado um serviço ou scheduler específico ao projecto.
+O workflow usa um runner efémero: a base SQLite e os ficheiros do relatório não são preservados entre execuções. Assim, o agendamento invoca o pipeline, mas não fornece persistência durável nem partilha do estado e dos relatórios com a revisão editorial. A persistência durável e partilhada prevista em DEC-013/D8 continua a exigir uma solução própria.

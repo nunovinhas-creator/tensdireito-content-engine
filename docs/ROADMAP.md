@@ -784,8 +784,9 @@ Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os
 
 **Pré-requisito bloqueante:** antes de activar qualquer execução agendada via GitHub Actions, tem de ser tomada e registada no [DECISION_LOG.md](DECISION_LOG.md) uma decisão sobre **persistência durável e estado partilhado** (D8). Um SQLite local num runner efémero **não** é solução suficiente para produção: o estado perde-se entre execuções e não é partilhado com a revisão humana.
 
-- Preparação manual disponível: `tde ingest` executa `sources sync → collect → normalize` numa base de dados já inicializada. Isto não activa agendamento nem fecha D8 ou D9; a frequência continua por decidir.
-- Workflow GitHub Actions agendado para `tde run`.
+- Preparação manual disponível: `tde ingest` executa `sources sync → collect → normalize` numa base de dados já inicializada.
+- Decisão D9 fechada: o workflow GitHub Actions executa `tde daily` diariamente às 06:00 UTC; os códigos `0`, `1` e `2` são tratados conforme DEC-046. O workflow usa runner efémero e não resolve D8 nem fornece persistência durável/partilhada.
+- Evolução futura: workflow persistente para `tde run`, depois de resolvida D8.
 - Persistência conforme a decisão D8.
 - Notificação com o relatório da execução.
 
@@ -812,8 +813,8 @@ Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os
 | D5 | Verificação na ausência de fonte oficial | 3 | **Fechada no M1** — máximo `VERIFIED_EDITORIAL`; override nunca produz `VERIFIED_OFFICIAL` (DEC-004). |
 | D6 | Guia de estilo por formato | 4 | **Fechada no M1** — [STYLE_GUIDE.md](STYLE_GUIDE.md) (DEC-008); nota de responsabilidade proporcional ao risco (DEC-018). |
 | D7 | Quem revê e aprova | 4 | **Parcialmente fechada** — formato do registo de revisão definido (DEC-014); pessoas concretas e eventual autenticação a decidir. |
-| D8 | Persistência durável e estado partilhado em modo agendado (ex.: storage externo, PostgreSQL gerido) | **Antes da Fase 5** | **Pendente e bloqueante** para qualquer execução agendada (DEC-013). O M2.6 (SQLite local) não a resolve. |
-| D9 | Frequência das execuções agendadas | 5 | **Pendente.** |
+| D8 | Persistência durável e estado partilhado em modo agendado (ex.: storage externo, PostgreSQL gerido) | **Antes da Fase 5** | **Pendente e bloqueante** para automação com estado partilhado/persistente (DEC-013). O M2.6 e o workflow diário em runner efémero não a resolvem. |
+| D9 | Frequência e agendamento das execuções | 5 | **Fechada (DEC-046).** `tde daily` é agendado diariamente às 06:00 UTC em `.github/workflows/daily.yml`; os códigos de saída `0`, `1` e `2` têm tratamento explícito. |
 | D10 | Destino de publicação e integração com o TensDireito.com | 6 | **Pendente.** Na V1 apenas exportação de ficheiros. |
 | D11 | Norma ortográfica do conteúdo publicado | 4 | **Fechada no M1 (CLOSED)** — AO1990, variante europeia, para todo o conteúdo público; documentação interna fora do âmbito; citações, legislação e nomes oficiais preservados (DEC-017). |
 | D12 | Regra de `canonical_url`: que parâmetros são "de tracking" e se se normalizam esquema, domínio, barra final ou fragmento | 1 | **Pendente (OPEN).** DATA_MODEL.md exige `canonical_url` "sem parâmetros de tracking" sem os enumerar. Não se inventa nem assume nenhuma lista de parâmetros. Até decisão, o M2.3 não calcula `canonical_url` e preserva o URL tal como obtido (DEC-021). O projecto não tem nenhuma lista documentada de parâmetros de tracking; no M2.11, `source_document.canonical_url` fica nulo ("por calcular") até D12 ser decidida, segundo a orientação conservadora registada em DEC-037. |

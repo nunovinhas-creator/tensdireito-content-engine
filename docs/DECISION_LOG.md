@@ -437,6 +437,15 @@ Os ADR-001 a ADR-008 da especificação inicial estão resumidos em [ARCHITECTUR
 - **Estado:** Proposta
 - **Data:** 2026-10-08
 
+### DEC-046 — Frequência e agendamento diário do pipeline (D9)
+- **Decisão:** O workflow `.github/workflows/daily.yml` executa `uv run tde daily` todos os dias às 06:00 UTC (`cron: "0 6 * * *"`), e pode também ser iniciado manualmente. A execução usa as fontes activas declaradas em `config/sources.yaml`. O CI trata os códigos de saída do CLI assim: `0` indica sucesso e mantém o job bem-sucedido; `1` indica erro fatal e falha o job; `2` indica falha parcial, acrescenta um aviso a `$GITHUB_STEP_SUMMARY` e não falha o job. Códigos não previstos falham o passo.
+- **Razão:** Estabelecer uma frequência operacional diária e garantir que falhas parciais ficam visíveis sem descartar o relatório produzido, mantendo falhas fatais como bloqueio do job.
+- **Alternativas consideradas:** Falhar o job para qualquer código diferente de zero (não distingue falha parcial recuperável); ignorar o código de saída (esconde falhas fatais e parciais); executar num serviço de scheduler externo (desnecessário para o agendamento inicial).
+- **Impacto:** Fecha D9. O workflow executa num runner GitHub efémero; a base SQLite e os relatórios locais não persistem entre execuções nem são partilhados com a revisão editorial. Não resolve D8, não estabelece armazenamento durável e não torna o pipeline integral `tde run` disponível para produção.
+- **Documentos subordinados:** [ROADMAP.md](ROADMAP.md#decisões-pendentes), [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#8-execução), [DAILY_PIPELINE.md](DAILY_PIPELINE.md).
+- **Estado:** Aceite
+- **Data:** 2026-10-09
+
 ## 5. Estado das decisões pendentes
 
 A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Resumo após o M1:
@@ -450,8 +459,8 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
 | D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
 | D7 — Quem revê e aprova | Parcial: formato do registo fechado (DEC-014); pessoas e autenticação OPEN |
-| D8 — Persistência durável e estado partilhado | OPEN — bloqueante para qualquer execução agendada (DEC-013); o SQLite local do M2.6 não a resolve (DEC-026) |
-| D9 — Frequência das execuções agendadas | OPEN |
+| D8 — Persistência durável e estado partilhado | OPEN — bloqueante para execução agendada com estado persistente/partilhado (DEC-013); o SQLite local do M2.6 e o runner efémero não a resolvem (DEC-026, DEC-046) |
+| D9 — Frequência e agendamento das execuções | CLOSED (DEC-046) |
 | D10 — Destino de publicação | OPEN |
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |
 | D12 — Regra de `canonical_url` | OPEN (ver DEC-021). Sem lista documentada de parâmetros de tracking; até decisão, `canonical_url` fica nulo em `source_document` (DEC-037, M2.11). |

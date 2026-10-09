@@ -16,7 +16,7 @@
 | Gestão de projecto e dependências | `uv` + `pyproject.toml` + `uv.lock` | Decidido (DEC-015). |
 | Pacote | `tensdireito_content_engine` | Decidido (DEC-015). |
 | CLI | `tde` | Decidido (DEC-015). |
-| Automação | GitHub Actions (fase posterior) | Apenas invoca comandos CLI; só depois da decisão de persistência durável (D8). |
+| Automação | GitHub Actions | `.github/workflows/daily.yml` executa `tde daily` às 06:00 UTC (D9, DEC-046). O runner é efémero: SQLite e relatórios locais não persistem entre execuções; armazenamento durável/partilhado continua pendente em D8. |
 | Arquitectura | Monólito modular | Sem microserviços (DEC-016). |
 
 ### Política de dependências
@@ -211,6 +211,7 @@ Dependências de execução: `pyyaml` (a CLI usa `argparse` da biblioteca padrã
 ## 8. Execução
 
 - **Manual (Fases 1–4):** `tde run`, seguido de `tde generate`, `tde check`, `tde review` e `tde export`, executados localmente.
-- **Ingestão manual:** `tde ingest` executa apenas `sources sync → collect → normalize` sobre a base já inicializada. Não é uma execução agendada e não resolve D8 nem D9.
-- **Agendada (Fase 5+):** workflow GitHub Actions que corre `tde run` em horário definido e notifica com o relatório. **Só pode ser activada depois de decidida a persistência durável e o estado partilhado** (D8 em [ROADMAP.md](ROADMAP.md#decisões-pendentes)): um SQLite local num runner efémero não persiste entre execuções e não é solução suficiente para produção.
+- **Ingestão manual:** `tde ingest` executa apenas `sources sync → collect → normalize` sobre a base já inicializada. Não é uma execução agendada e não resolve D8.
+- **Agendada (D9, DEC-046):** `.github/workflows/daily.yml` executa `uv run tde daily` diariamente às 06:00 UTC, com `workflow_dispatch` para execução manual. A configuração inclui o feed RSS oficial do Diário da República em `config/sources.yaml`. Código `0`: sucesso do job; `1`: erro fatal e job falhado; `2`: falha parcial, adiciona aviso a `$GITHUB_STEP_SUMMARY` e mantém o job bem-sucedido; códigos não previstos falham o passo.
+- **Persistência e âmbito (D8):** o runner GitHub é efémero; a base SQLite e os relatórios locais são descartados no fim da execução e não são partilhados com a revisão editorial. O agendamento diário não resolve D8 nem representa automação de produção com estado durável. A execução agendada do pipeline completo `tde run` e a persistência exigem resolver D8 primeiro.
 - Em nenhum modo o sistema publica conteúdo; a V1 termina em `APPROVED → EXPORT`.

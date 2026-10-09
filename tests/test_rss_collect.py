@@ -165,17 +165,23 @@ def test_endpoint_types_without_collector_still_fail_as_in_m28(tmp_path):
     assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
 
 
-def test_production_collect_without_active_endpoints_makes_no_request(tmp_path, monkeypatch):
-    # Com `config/sources.yaml` vazio (D1), não há endpoints ACTIVE e nada chega à rede;
-    # a salvaguarda de conftest.py faria falhar qualquer tentativa.
+def test_production_collect_without_synced_sources_makes_no_request(tmp_path, monkeypatch):
+    # `collect` lê o espelho SQLite; sem sincronizar o YAML, não há endpoints na base.
     path = tmp_path / "tde.sqlite3"
     init_database(path)
     assert cli.main(["--db", str(path), "collect"]) == 0
 
 
-def test_repository_sources_yaml_has_no_real_endpoints():
+def test_repository_sources_yaml_has_active_official_rss_endpoint():
     text = (REPO_ROOT / "config" / "sources.yaml").read_text(encoding="utf-8")
-    assert yaml.safe_load(text) == []
+    sources = yaml.safe_load(text)
+    assert len(sources) == 1
+    assert sources[0]["id"] == "dre"
+    endpoint = sources[0]["endpoints"][0]
+    assert endpoint["id"] == "dre-serie1-rss"
+    assert endpoint["endpoint_type"] == "rss"
+    assert endpoint["url"] == "https://files.diariodarepublica.pt/rss/serie1-html.xml"
+    assert endpoint["endpoint_status"] == "ACTIVE"
 
 
 # --- tde collect com endpoint rss ------------------------------------------------

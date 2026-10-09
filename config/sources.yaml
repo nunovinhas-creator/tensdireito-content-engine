@@ -1,7 +1,7 @@
 # Registo de fontes — formato em docs/SOURCES.md §4 (fonte de verdade: este ficheiro).
 #
-# Ainda sem endpoints ACTIVE: os candidatos RSS consultados não têm autorização de
-# reutilização suficientemente clara para recolha diária. Ver docs/DAILY_PIPELINE.md.
+# Diário da República: feed RSS oficial validado e activo, com verificações em
+# docs/source_validation/dre.md. Rever periodicamente os termos de utilização.
 # Acrescentar ou remover fontes aqui; validar com: uv run tde sources validate.
 #
 - id: dre
@@ -13,7 +13,7 @@
   registry_status: VALIDATED
   validated_at: "2026-10-09T11:17:10+01:00"
   validated_by: "João Silva"
-  notes: "Publicação oficial da Imprensa Nacional-Casa da Moeda / Diário da República. Feed da 1.ª Série em português (pt_PT); rever os termos de utilização antes de activar a recolha."
+  notes: "Publicação oficial da Imprensa Nacional-Casa da Moeda / Diário da República. Feed da 1.ª Série em português (pt_PT); rever periodicamente os termos de utilização."
   endpoints:
     - id: dre-serie1-rss
       endpoint_type: rss
