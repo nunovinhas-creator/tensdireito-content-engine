@@ -9,12 +9,14 @@ import os
 import platform
 import sys
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 
 from tensdireito_content_engine import __version__
 from tensdireito_content_engine.collect import CollectError, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry, default_registry
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
+from tensdireito_content_engine.daily import DEFAULT_REPORT_DIR, DailyResult, run_daily
 from tensdireito_content_engine.normalize_command import run_normalize
 from tensdireito_content_engine.sources import SourceRegistryError, load_sources
 from tensdireito_content_engine.storage import (
@@ -162,6 +164,51 @@ def normalize(db_path: Path) -> tuple[int, list[str], list[str]]:
     return code, out, err
 
 
+def daily(
+    db_path: Path,
+    config_dir: Path,
+    report_dir: Path,
+    registry: CollectorRegistry,
+    day: date | None,
+) -> tuple[int, list[str], list[str]]:
+    """Executa o pipeline diário e traduz o resultado para a CLI."""
+    try:
+        result = run_daily(
+            db_path,
+            sources_path(config_dir),
+            report_dir,
+            registry,
+            day=day,
+        )
+    except (StorageError, CollectError, SourceRegistryError, OSError, ValueError) as exc:
+        return 1, [], [f"daily: ERRO — {exc}"]
+    return _daily_lines(result)
+
+
+def _daily_lines(result: DailyResult) -> tuple[int, list[str], list[str]]:
+    collection = result.collection
+    label, code = {"success": ("OK", 0), "partial": ("PARCIAL", 2), "failed": ("ERRO", 1)}[
+        collection.status
+    ]
+    out = [
+        f"COLLECT: {label}",
+        f"  fontes consultadas: {len(collection.endpoints)}",
+        f"  itens obtidos: {collection.new + collection.existing}",
+        "NORMALIZE",
+        f"  documentos normalizados: {result.normalized}",
+        f"  duplicados na janela: {result.duplicates}",
+        "DAILY",
+        f"  notícias selecionadas: {len(result.articles)}",
+        f"relatório gerado: {result.report_path}",
+    ]
+    errors = [
+        f"- {outcome.id}: {outcome.error}"
+        for outcome in collection.endpoints
+        if outcome.error
+    ]
+    return code, out, errors
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=PROG,
@@ -239,6 +286,27 @@ def build_parser() -> argparse.ArgumentParser:
         "acede à rede; não cria a base de dados nem aplica migrações. Códigos: 0 sem "
         "falhas, 2 falhas parciais, 1 erro ou todos os itens com falha.",
     )
+    daily_parser = subparsers.add_parser(
+        "daily",
+        help="recolhe, normaliza, deduplica e gera o relatório diário",
+        description="Inicializa a base de dados se necessário, sincroniza as fontes, recolhe "
+        "endpoints RSS ACTIVE, normaliza e deduplica os itens persistidos e escreve um "
+        "relatório diário determinístico.",
+    )
+    daily_parser.add_argument(
+        "--date",
+        type=date.fromisoformat,
+        default=None,
+        metavar="AAAA-MM-DD",
+        help="dia da janela (por defeito, hoje em Europe/Lisbon)",
+    )
+    daily_parser.add_argument(
+        "--report-dir",
+        type=Path,
+        default=DEFAULT_REPORT_DIR,
+        metavar="DIR",
+        help=f"directório dos relatórios (por defeito: {DEFAULT_REPORT_DIR})",
+    )
     return parser
 
 
@@ -284,6 +352,20 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "normalize":
         code, out, err = normalize(resolve_db_path(args.db, os.environ))
+        for line in out:
+            print(line)
+        for line in err:
+            print(line, file=sys.stderr)
+        return code
+
+    if args.command == "daily":
+        code, out, err = daily(
+            resolve_db_path(args.db, os.environ),
+            args.config,
+            args.report_dir,
+            default_registry(),
+            args.date,
+        )
         for line in out:
             print(line)
         for line in err:

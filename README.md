@@ -93,6 +93,10 @@ uv run tde doctor    # diagnóstico: confirma que a aplicação está instalada 
 
 `tde doctor` é determinístico: não acede à Internet, a APIs externas, a variáveis de ambiente nem a base de dados.
 
+## Pipeline diário
+
+`uv run tde daily` inicializa a base de dados se necessário, sincroniza `config/sources.yaml`, recolhe endpoints RSS `ACTIVE`, normaliza e deduplica os itens persistidos e escreve `data/reports/daily/AAAA-MM-DD.txt`. A janela usa `Europe/Lisbon`; usa a data de publicação quando a normalização existente a reconhece e, se não, a data de recolha para selecionar sem apresentar uma publicação inventada. Repetir o comando não duplica itens nem notícias. Opções: `--date AAAA-MM-DD`, `--config DIR`, `--db PATH` e `--report-dir DIR`. Estado e validação das fontes: [docs/DAILY_PIPELINE.md](docs/DAILY_PIPELINE.md).
+
 ## Documentação
 
 | Documento | Conteúdo |
