@@ -4,4 +4,24 @@
 # reutilização suficientemente clara para recolha diária. Ver docs/DAILY_PIPELINE.md.
 # Acrescentar ou remover fontes aqui; validar com: uv run tde sources validate.
 #
-[]
+- id: dre
+  name: "Diário da República"
+  entity_type: official_journal
+  tier: T1
+  categories: [seguranca_social, pensoes_reformas, emprego_desemprego, salarios_rendimento, fiscalidade_particulares, habitacao_arrendamento, apoios_familias, educacao_estudantes, saude_apoios, energia_agua, consumo, deficiencia_inclusao, idosos_cuidadores, justica_direitos]
+  domains: [diariodarepublica.pt, files.diariodarepublica.pt]
+  registry_status: VALIDATED
+  validated_at: "2026-10-09T11:17:10+01:00"
+  validated_by: "João Silva"
+  notes: "Publicação oficial da Imprensa Nacional-Casa da Moeda / Diário da República. Feed da 1.ª Série em português (pt_PT); rever os termos de utilização antes de activar a recolha."
+  endpoints:
+    - id: dre-serie1-rss
+      endpoint_type: rss
+      url: "https://files.diariodarepublica.pt/rss/serie1-html.xml"
+      endpoint_status: VALIDATED
+      fetch:
+        frequency: daily
+        rate_limit_seconds: 5
+        max_items: 50
+      validated_at: "2026-10-09T11:17:10+01:00"
+      validated_by: "João Silva"
