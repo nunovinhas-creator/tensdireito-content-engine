@@ -56,6 +56,23 @@ Os testes ponta a ponta usam `tests/fixtures/rss/valid.xml` e transporte HTTP fa
 
 ## Execução diária automatizada
 
-O workflow [.github/workflows/daily.yml](../.github/workflows/daily.yml) executa `uv run tde daily` todos os dias às 06:00 UTC e também pode ser iniciado manualmente. O CI interpreta rigorosamente os códigos de saída do CLI: `0` termina com sucesso; `1` falha o job; `2` acrescenta um aviso ao resumo do job sem o falhar, preservando o resultado parcial; qualquer outro código falha o passo. A implementação de D8 deve manter este contrato: indisponibilidade da base, migração ou falha ao persistir o relatório não pode ser mascarada como sucesso.
+O workflow [.github/workflows/daily.yml](../.github/workflows/daily.yml) executa `uv run tde daily` às 08:00, 13:00 e 18:00 UTC (`0 8,13,18 * * *`) e também pode ser iniciado manualmente. Depois do pipeline, executa `uv run tde drafts sync-issues`, autenticado com `GITHUB_TOKEN` e a permissão `issues: write`. O CI interpreta rigorosamente os códigos de saída de `daily`: `0` termina com sucesso; `1` falha o job; `2` acrescenta um aviso ao resumo do job sem o falhar, preservando o resultado parcial; qualquer outro código falha o passo. A falha na sincronização com o GitHub também falha o job, sem ocultar erros de autenticação ou da API. A implementação de D8 deve manter este contrato: indisponibilidade da base, migração ou falha ao persistir o relatório não pode ser mascarada como sucesso.
+
+### Revisão através de GitHub Issues
+
+```text
+tde daily
+  └─ cria rascunhos elegíveis na fila SQLite (pending / unverified)
+      └─ tde drafts sync-issues
+          ├─ encontra issue associada à referência da fonte → não duplica
+          └─ sem referência existente → cria issue [Rascunho WhatsApp] <Título>
+                label: draft-whatsapp
+                corpo: texto WhatsApp + score + fonte + instruções
+                └─ revisão humana → copiar para WhatsApp → publicar → fechar issue
+```
+
+O identificador estável é o URL da fonte original, incluído como referência oculta no corpo da issue. A sincronização consulta issues abertas e fechadas, pelo que uma issue já resolvida também impede que a mesma fonte volte a ser criada em execuções posteriores. Só são sincronizados rascunhos ainda pendentes e `unverified`; aprovação editorial continua a exigir os comandos de revisão locais e uma indicação explícita de verificação.
+
+Fechar a issue após publicação é um registo operacional visível no GitHub, não uma atualização do estado SQLite: a base continua local e efémera no runner, e não existe neste fluxo uma aprovação automática nem histórico durável de publicação no SQLite. O workflow de fecho que faria `tde drafts approve` e `--mark-published` não está ativado por essa razão. Fechar a issue só depois de copiar e publicar manualmente o texto.
 
 O workflow usa um runner efémero: a base SQLite e os ficheiros do relatório não são preservados entre execuções. Assim, o agendamento invoca o pipeline, mas não fornece persistência durável nem partilha do estado e dos relatórios com a revisão editorial. A proposta D8 (DEC-047) de PostgreSQL gerido + S3/R2 está **Em Avaliação / Pendente de Aprovação**; não está implementada e não fecha D8. Ver também a proposta e as salvaguardas de idempotência em [ARCHITECTURE.md](ARCHITECTURE.md#7-proposta-de-persistência-durável-d8).
