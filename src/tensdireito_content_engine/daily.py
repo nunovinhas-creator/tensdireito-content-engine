@@ -3,7 +3,7 @@
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
@@ -19,7 +19,7 @@ from tensdireito_content_engine.normalize import (
     normalize_raw_item,
 )
 from tensdireito_content_engine.publish.whatsapp import WhatsAppMessage, format_whatsapp_message
-from tensdireito_content_engine.scoring import score_item
+from tensdireito_content_engine.scoring import load_topic_terms, score_item
 from tensdireito_content_engine.sources import load_sources
 from tensdireito_content_engine.storage import (
     StoredRawItem,
@@ -77,14 +77,17 @@ def run_daily(
     sync_sources(db_path, loaded.sources, loaded.endpoints, now=fixed_now)
     collection = run_collect(db_path, registry, now=fixed_now)
     selected_day = day or instant.astimezone(LISBON).date()
+    # DEC-056: inclui o dia anterior, para apanhar o que saiu depois do último run.
+    window = {selected_day, selected_day - timedelta(days=1)}
+    topics = load_topic_terms(Path(config_path).parent / TOPICS_FILENAME)
 
     candidates: list[tuple[StoredRawItem, NormalizedItem]] = []
     scores_by_raw_item: dict[int, float] = {}
     for stored in list_raw_items(db_path):
         normalized = normalize_raw_item(stored.item)
-        scores_by_raw_item[stored.id] = score_item(normalized).value
+        scores_by_raw_item[stored.id] = score_item(normalized, topics).value
         relevant_date = normalized.published_at or stored.item.fetched_at
-        if relevant_date.astimezone(LISBON).date() == selected_day:
+        if relevant_date.astimezone(LISBON).date() in window:
             candidates.append((stored, normalized))
 
     deduplicated = deduplicate_exact(normalized for _, normalized in candidates)
@@ -196,6 +199,7 @@ def _is_https_url(value: str) -> bool:
     )
 
 
+TOPICS_FILENAME = "apoios.yaml"
 TITLE_MAX_CHARS = 90
 POINT_MAX_CHARS = 160
 POINTS_MAX = 3

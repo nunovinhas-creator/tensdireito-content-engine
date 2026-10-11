@@ -360,7 +360,7 @@ def test_disabled_endpoint_is_not_collected(monkeypatch, tmp_path, capsys):
 
 def test_zero_items_in_requested_publication_window(monkeypatch, tmp_path, capsys):
     sources = config_dir(tmp_path / "config", "news_feed")
-    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published="2026-10-08T12:00:00Z")])
+    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published="2026-10-07T12:00:00Z")])
 
     code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
     output = capsys.readouterr().out
@@ -422,3 +422,12 @@ def test_draft_without_excerpt_still_has_two_points():
 
     article = SimpleNamespace(title="Apoio", excerpt=None, url="https://example.org/a")
     assert "👉 Veja todos os detalhes na notícia completa." in _render_draft(article)
+
+
+def test_window_includes_previous_day(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published="2026-10-08T21:30:00Z")])
+
+    code, _, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
+    assert code == 0
+    assert "notícias selecionadas: 1" in capsys.readouterr().out

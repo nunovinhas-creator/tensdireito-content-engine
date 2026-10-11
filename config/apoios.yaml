@@ -1,7 +1,7 @@
 # Mapa de apoios sociais e palavras-chave (DEC-054).
 #
 # Uso: cobertura editorial e geração das pesquisas por tema (endpoints `bn-*` em
-# sources.yaml). Ainda não é lido pelo código. Áreas alinhadas com tensdireito.com.
+# sources.yaml) e scoring por tema (DEC-056). Áreas alinhadas com tensdireito.com.
 #
 # Cada área tem: `apoios` (nomes oficiais e populares) e `palavras_chave` (termos
 # soltos que aparecem nas notícias). `pesquisas` são as consultas usadas nos feeds.

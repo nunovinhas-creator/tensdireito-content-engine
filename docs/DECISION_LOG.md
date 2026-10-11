@@ -560,3 +560,10 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** 31 fontes, 91 endpoints, 81 `ACTIVE`. Não altera o esquema nem a CLI.
 - **Estado:** Aceite
 - **Data:** 2026-10-11
+
+### DEC-056 — Scoring por tema e janela de dois dias
+- **Problema:** Os itens das pesquisas por tema (Bing) trazem só título e uma frase e raramente atingiam o limiar; `novelty` e `interest` valiam sempre 0. A janela diária só incluía o próprio dia, e o que saía depois do último run (18:00 UTC) nunca entrava.
+- **Decisão:** (1) `score_item` passa a receber os termos de `config/apoios.yaml`: `interest` conta palavras-chave, nomes de apoios e pesquisas no título e texto; `novelty` conta nomes de apoios e pesquisas no título. Casam palavras inteiras com plural opcional. É uma medida provisória até haver histórico de eventos e agrupamento. (2) `tde daily` selecciona itens publicados no dia do run ou no dia anterior (Lisboa). A deduplicação de issues pelo URL evita repetições entre runs.
+- **Impacto:** Até +15 pontos para notícias sobre apoios concretos; o limiar (65) e os pesos não mudam. Não altera o esquema nem a CLI.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
