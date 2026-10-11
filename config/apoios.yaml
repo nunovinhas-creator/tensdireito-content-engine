@@ -1,0 +1,266 @@
+# Mapa de apoios sociais e palavras-chave (DEC-054).
+#
+# Uso: cobertura editorial e geração das pesquisas por tema (endpoints `gn-*` em
+# sources.yaml). Ainda não é lido pelo código. Áreas alinhadas com tensdireito.com.
+#
+# Cada área tem: `apoios` (nomes oficiais e populares) e `palavras_chave` (termos
+# soltos que aparecem nas notícias). `pesquisas` são as consultas usadas nos feeds.
+
+areas:
+  prestacao_social_unica:
+    nome: Prestação Social Única
+    apoios:
+      - Prestação Social Única (PSU)
+      - Decreto-Lei 166/2026
+      - 13 prestações substituídas pela PSU
+      - Trabalho social obrigatório da PSU
+      - Calendário de pagamentos da PSU
+    palavras_chave: [PSU, prestação social única, prestações não contributivas, condição de recursos, trabalho social]
+    pesquisas:
+      - prestação social única
+
+  familia_criancas:
+    nome: Família e Crianças
+    apoios:
+      - Abono de família para crianças e jovens
+      - Abono de família pré-natal
+      - Bonificação por deficiência
+      - Subsídio parental inicial
+      - Subsídio parental alargado
+      - Subsídio parental exclusivo do pai
+      - Licença parental
+      - Subsídio para assistência a filho
+      - Subsídio para assistência a neto
+      - Subsídio para assistência a filho com deficiência ou doença crónica
+      - Subsídio por riscos específicos e gravidez de risco
+      - Subsídio de educação especial
+      - Creche gratuita (Creche Feliz)
+      - Garantia para a Infância
+      - Prestação de garantia para a infância
+      - Subsídio de funeral
+      - Apoio a famílias numerosas
+    palavras_chave: [abono, escalão do abono, parentalidade, licença de maternidade, licença de paternidade, creche, pré-escolar, berçário, gémeos, adoção, família monoparental]
+    pesquisas:
+      - abono de família
+      - subsídio parental
+      - licença parental
+      - creche gratuita
+      - garantia para a infância
+
+  apoios_escolares:
+    nome: Apoios Escolares
+    apoios:
+      - Ação Social Escolar (ASE)
+      - Escalões A, B e C da ASE
+      - Bolsa de mérito (ensino secundário)
+      - Manuais escolares gratuitos (MEGA)
+      - Refeições escolares
+      - Transporte escolar
+      - Bolsa de estudo do ensino superior (DGES)
+      - Complemento de alojamento para estudantes
+      - Programa +Superior
+      - Propinas do ensino superior
+      - Passe sub-23
+      - Prova escolar (Segurança Social)
+      - Calendário escolar
+    palavras_chave: [ação social escolar, ASE, manuais escolares, vales MEGA, bolsa de estudo, bolsa de mérito, DGES, propinas, residências universitárias, alojamento estudantil, cantina escolar, ano letivo]
+    pesquisas:
+      - ação social escolar
+      - bolsa de estudo ensino superior
+      - manuais escolares gratuitos
+      - propinas ensino superior
+      - passe sub-23
+
+  trabalho_rendimento:
+    nome: Trabalho e Rendimento
+    apoios:
+      - Subsídio de desemprego
+      - Subsídio social de desemprego
+      - Majoração do subsídio de desemprego
+      - Rendimento Social de Inserção (RSI)
+      - Subsídio de doença (baixa médica)
+      - Baixa por autodeclaração de doença
+      - Salário mínimo nacional
+      - Indexante dos Apoios Sociais (IAS)
+      - IRS Jovem
+      - Garantia Jovem
+      - Estágios ATIVAR.PT
+      - Apoios à contratação (IEFP)
+      - Compromisso Emprego Sustentável
+      - Fundo de Garantia Salarial
+      - Compensação por despedimento
+      - Lay-off
+      - Apoios a trabalhadores independentes
+      - Formação profissional (IEFP)
+    palavras_chave: [desemprego, desempregados, IEFP, RSI, salário mínimo, SMN, IAS, baixa médica, despedimento, lay-off, estágio profissional, recibos verdes, trabalhadores independentes, Código do Trabalho, Agenda do Trabalho Digno, contratação coletiva, horas extra, férias, teletrabalho]
+    pesquisas:
+      - subsídio de desemprego
+      - rendimento social de inserção
+      - subsídio de doença baixa médica
+      - salário mínimo nacional
+      - indexante dos apoios sociais
+      - IRS Jovem
+      - IEFP apoios
+      - trabalhadores independentes segurança social
+      - lei laboral código do trabalho
+
+  habitacao:
+    nome: Habitação
+    apoios:
+      - Porta 65 Jovem
+      - Porta 65+
+      - Apoio extraordinário à renda
+      - 1.º Direito
+      - IMT Jovem
+      - Isenção de imposto do selo (jovens)
+      - Garantia pública no crédito à habitação
+      - Dedução de rendas no IRS
+      - Programa de Arrendamento Acessível
+      - Bonificação de juros do crédito à habitação
+      - Atualização das rendas (coeficiente anual)
+      - Balcão do Arrendatário e do Senhorio
+      - Isenção de IMI
+      - IMI familiar
+    palavras_chave: [renda, arrendamento, senhorio, inquilino, despejo, IHRU, Porta 65, crédito à habitação, Euribor, prestação da casa, IMT, IMI, habitação pública, renda acessível, casa própria]
+    pesquisas:
+      - Porta 65
+      - apoio à renda
+      - crédito habitação jovens garantia pública
+      - IMT jovem
+      - atualização das rendas
+      - IMI isenção
+
+  energia_consumo:
+    nome: Energia e Consumo
+    apoios:
+      - Tarifa social de energia (eletricidade e gás natural)
+      - Tarifa social da água
+      - Tarifa social de internet
+      - Vale Eficiência
+      - Programa de apoio a edifícios mais sustentáveis
+      - Apoio às famílias vulneráveis
+      - IVA dos bens alimentares
+    palavras_chave: [tarifa social, fatura da luz, eletricidade, gás, botija de gás, ERSE, preço dos combustíveis, cabaz alimentar, inflação, consumidores, DECO]
+    pesquisas:
+      - tarifa social de energia
+      - apoio famílias vulneráveis
+      - fatura da luz preço eletricidade
+
+  idosos_incapacidade_cuidadores:
+    nome: Idosos, Incapacidade e Cuidadores
+    apoios:
+      - Complemento Solidário para Idosos (CSI)
+      - Prestação Social para a Inclusão (PSI)
+      - Complemento da PSI
+      - Atestado Médico de Incapacidade Multiuso (AMIM)
+      - Benefícios fiscais para pessoas com deficiência
+      - Estatuto do Cuidador Informal
+      - Subsídio de apoio ao cuidador informal
+      - Complemento por dependência
+      - Subsídio por assistência de terceira pessoa
+      - Cartão Europeu de Estacionamento
+      - Cartão Europeu da Deficiência
+      - Respostas sociais (ERPI, lares, centro de dia, apoio domiciliário)
+      - Modelo de Apoio à Vida Independente (MAVI)
+    palavras_chave: [idosos, terceira idade, lar, lares, ERPI, apoio domiciliário, deficiência, incapacidade, atestado multiuso, AMIM, cuidador informal, dependência, envelhecimento, inclusão]
+    pesquisas:
+      - complemento solidário para idosos
+      - prestação social para a inclusão
+      - cuidador informal
+      - atestado multiuso incapacidade
+      - pessoas com deficiência apoios
+      - lares ERPI idosos
+
+  reformas_pensoes:
+    nome: Reformas e Pensões
+    apoios:
+      - Pensão de velhice
+      - Idade normal de acesso à reforma
+      - Idade pessoal de reforma
+      - Reforma antecipada e carreiras muito longas
+      - Fator de sustentabilidade
+      - Pensão de invalidez (relativa e absoluta)
+      - Pensão de sobrevivência
+      - Subsídio por morte
+      - Pensão social de velhice
+      - Pensões mínimas
+      - Atualização anual das pensões
+      - Suplemento extraordinário de pensões
+      - Caixa Geral de Aposentações (CGA)
+      - Pensão unificada
+      - Carreiras contributivas no estrangeiro
+    palavras_chave: [pensões, pensionistas, reformados, reforma, idade da reforma, aumento das pensões, CGA, aposentação, sobrevivência, viuvez, invalidez, carreira contributiva, sustentabilidade da Segurança Social]
+    pesquisas:
+      - aumento das pensões
+      - idade da reforma
+      - reforma antecipada
+      - pensão de sobrevivência
+      - suplemento extraordinário pensões
+      - Caixa Geral de Aposentações
+
+  saude:
+    nome: Saúde
+    apoios:
+      - Isenção de taxas moderadoras
+      - Cheque-dentista
+      - Comparticipação de medicamentos
+      - Transporte não urgente de doentes
+      - Médico de família
+      - SNS 24
+    palavras_chave: [SNS, Serviço Nacional de Saúde, taxas moderadoras, cheque-dentista, medicamentos, comparticipação, médico de família, utentes, urgências]
+    pesquisas:
+      - SNS utentes apoio
+      - cheque-dentista
+      - comparticipação medicamentos
+
+  impostos:
+    nome: Impostos e Orçamento
+    apoios:
+      - IRS (declaração, escalões, reembolsos, deduções)
+      - IRS automático
+      - Retenção na fonte
+      - Orçamento do Estado 2027
+      - Dedução de despesas de educação, saúde e habitação
+    palavras_chave: [IRS, escalões de IRS, reembolso, deduções, retenção na fonte, Portal das Finanças, Autoridade Tributária, OE2027, Orçamento do Estado, IVA, IUC, IMI]
+    pesquisas:
+      - IRS escalões reembolso
+      - Orçamento do Estado 2027
+      - retenção na fonte
+
+  seguranca_social_servicos:
+    nome: Segurança Social e Serviços
+    apoios:
+      - Calendário de pagamentos da Segurança Social
+      - Segurança Social Direta
+      - Contribuições e taxa social única
+      - Dívidas à Segurança Social
+      - Chave Móvel Digital
+      - Cartão de Cidadão
+    palavras_chave: [Segurança Social, Segurança Social Direta, pagamentos, contribuições, TSU, NISS, prestações sociais, apoios sociais, ISS, Instituto da Segurança Social]
+    pesquisas:
+      - Segurança Social pagamentos
+      - apoios sociais Portugal
+      - prestações sociais
+
+  igualdade_vitimas:
+    nome: Igualdade e Proteção
+    apoios:
+      - Estatuto de vítima de violência doméstica
+      - Apoios a vítimas de violência doméstica
+      - Igualdade salarial (Diretiva (UE) 2023/970)
+    palavras_chave: [violência doméstica, vítimas, igualdade de género, CIG, CITE, transparência salarial, discriminação]
+    pesquisas:
+      - violência doméstica apoio vítimas
+      - igualdade salarial transparência
+
+# Pesquisas por organismo: notícias indexadas a partir dos sites oficiais.
+pesquisas_por_site:
+  - seg-social.pt
+  - portugal.gov.pt
+  - iefp.pt
+  - portaldasfinancas.gov.pt
+  - sns.gov.pt
+  - dges.gov.pt
+  - portaldahabitacao.pt
+  - cga.pt
+  - parlamento.pt

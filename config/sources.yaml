@@ -435,3 +435,431 @@
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: https://www.cgtp.pt/?format=feed&type=rss
+- id: google_news
+  name: Google Notícias - pesquisas por tema de apoios sociais
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - agregador
+  - apoios
+  endpoints:
+  - id: gn-prestacao-social-unica
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=presta%C3%A7%C3%A3o+social+%C3%BAnica+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-abono-de-familia
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=abono+de+fam%C3%ADlia+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-subsidio-parental
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=subs%C3%ADdio+parental+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-licenca-parental
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=licen%C3%A7a+parental+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-creche-gratuita
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=creche+gratuita+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-garantia-para-a-infancia
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=garantia+para+a+inf%C3%A2ncia+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-acao-social-escolar
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=a%C3%A7%C3%A3o+social+escolar+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-bolsa-de-estudo-ensino-superior
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=bolsa+de+estudo+ensino+superior+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-manuais-escolares-gratuitos
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=manuais+escolares+gratuitos+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-propinas-ensino-superior
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=propinas+ensino+superior+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-passe-sub-23
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=passe+sub-23+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-subsidio-de-desemprego
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=subs%C3%ADdio+de+desemprego+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-rendimento-social-de-insercao
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=rendimento+social+de+inser%C3%A7%C3%A3o+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-subsidio-de-doenca-baixa-medica
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=subs%C3%ADdio+de+doen%C3%A7a+baixa+m%C3%A9dica+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-salario-minimo-nacional
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=sal%C3%A1rio+m%C3%ADnimo+nacional+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-indexante-dos-apoios-sociais
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=indexante+dos+apoios+sociais+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-irs-jovem
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=IRS+Jovem+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-iefp-apoios
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=IEFP+apoios+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-trabalhadores-independentes-seguranca-so
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=trabalhadores+independentes+seguran%C3%A7a+social+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-lei-laboral-codigo-do-trabalho
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=lei+laboral+c%C3%B3digo+do+trabalho+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-porta-65
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=Porta+65+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-apoio-a-renda
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=apoio+%C3%A0+renda+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-credito-habitacao-jovens-garantia-public
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=cr%C3%A9dito+habita%C3%A7%C3%A3o+jovens+garantia+p%C3%BAblica+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-imt-jovem
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=IMT+jovem+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-atualizacao-das-rendas
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=atualiza%C3%A7%C3%A3o+das+rendas+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-imi-isencao
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=IMI+isen%C3%A7%C3%A3o+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-tarifa-social-de-energia
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=tarifa+social+de+energia+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-apoio-familias-vulneraveis
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=apoio+fam%C3%ADlias+vulner%C3%A1veis+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-fatura-da-luz-preco-eletricidade
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=fatura+da+luz+pre%C3%A7o+eletricidade+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-complemento-solidario-para-idosos
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=complemento+solid%C3%A1rio+para+idosos+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-prestacao-social-para-a-inclusao
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=presta%C3%A7%C3%A3o+social+para+a+inclus%C3%A3o+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-cuidador-informal
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=cuidador+informal+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-atestado-multiuso-incapacidade
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=atestado+multiuso+incapacidade+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-pessoas-com-deficiencia-apoios
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=pessoas+com+defici%C3%AAncia+apoios+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-lares-erpi-idosos
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=lares+ERPI+idosos+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-aumento-das-pensoes
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=aumento+das+pens%C3%B5es+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-idade-da-reforma
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=idade+da+reforma+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-reforma-antecipada
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=reforma+antecipada+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-pensao-de-sobrevivencia
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=pens%C3%A3o+de+sobreviv%C3%AAncia+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-suplemento-extraordinario-pensoes
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=suplemento+extraordin%C3%A1rio+pens%C3%B5es+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-caixa-geral-de-aposentacoes
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=Caixa+Geral+de+Aposenta%C3%A7%C3%B5es+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-sns-utentes-apoio
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=SNS+utentes+apoio+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-cheque-dentista
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=cheque-dentista+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-comparticipacao-medicamentos
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=comparticipa%C3%A7%C3%A3o+medicamentos+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-irs-escaloes-reembolso
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=IRS+escal%C3%B5es+reembolso+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-orcamento-do-estado-2027
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=Or%C3%A7amento+do+Estado+2027+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-retencao-na-fonte
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=reten%C3%A7%C3%A3o+na+fonte+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-seguranca-social-pagamentos
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=Seguran%C3%A7a+Social+pagamentos+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-apoios-sociais-portugal
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=apoios+sociais+Portugal+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-prestacoes-sociais
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=presta%C3%A7%C3%B5es+sociais+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-violencia-domestica-apoio-vitimas
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=viol%C3%AAncia+dom%C3%A9stica+apoio+v%C3%ADtimas+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-igualdade-salarial-transparencia
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=igualdade+salarial+transpar%C3%AAncia+when%3A7d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-seg-social
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Aseg-social.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-portugal
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Aportugal.gov.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-iefp
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Aiefp.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-financas
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Aportaldasfinancas.gov.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-sns
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Asns.gov.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-dges
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Adges.gov.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-portaldahabitacao
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Aportaldahabitacao.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-cga
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Acga.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+  - id: gn-site-parlamento
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: 'https://news.google.com/rss/search?q=site%3Aparlamento.pt+when%3A30d&hl=pt-PT&gl=PT&ceid=PT%3Apt'
+- id: eduqa
+  name: EduQA - Educação e Qualidade (ex-DGE)
+  entity_type: public_body
+  tier: T2
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - educacao
+  - apoios_escolares
+  endpoints:
+  - id: eduqa-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://eduqa.pt/feed/
+- id: hr_portugal
+  name: Human Resources Portugal
+  entity_type: specialised
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - trabalho
+  - salarios
+  endpoints:
+  - id: hrportugal-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://hrportugal.sapo.pt/feed/
+- id: economia_financas
+  name: Economia e Finanças
+  entity_type: specialised
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - financas_pessoais
+  - impostos
+  endpoints:
+  - id: economiafinancas-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://economiafinancas.com/feed/

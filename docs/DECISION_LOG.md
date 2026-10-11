@@ -544,3 +544,11 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** Mensagens com cerca de 500–800 caracteres. Aplica-se a `tde daily`, `tde publish` e `tde drafts export`. Não altera o esquema, a elegibilidade nem os códigos de saída.
 - **Estado:** Aceite
 - **Data:** 2026-10-11
+
+### DEC-054 — Mapa de apoios sociais e pesquisas por tema no Google Notícias
+- **Problema:** Os portais do Governo, Segurança Social, IEFP, AT, SNS e IHRU não publicam feeds RSS, e a cobertura dependia de feeds gerais de jornais.
+- **Decisão:** (1) Criar `config/apoios.yaml`, com 12 áreas alinhadas com tensdireito.com (PSU, família, escola, trabalho, habitação, energia, idosos/incapacidade/cuidadores, reformas, saúde, impostos, Segurança Social, igualdade), com apoios, palavras-chave e pesquisas. (2) Acrescentar a fonte `google_news` com 61 endpoints RSS de pesquisa: 52 por tema (`when:7d`) e 9 por site oficial (`site:<domínio> when:30d`), no mesmo formato que o tensdireito.com já usa. (3) Acrescentar EduQA (sucessora da DGE), Human Resources Portugal e Economia e Finanças.
+- **Limitações:** As ligações do Google Notícias são de redireccionamento (`news.google.com/rss/articles/…`), não o URL final do artigo. O acesso depende do robots.txt de news.google.com, verificado pelo collector. `config/apoios.yaml` ainda não é lido pelo código; os endpoints foram gerados a partir dele.
+- **Impacto:** 31 fontes, 91 endpoints, 82 `ACTIVE`. Cerca de 5 minutos adicionais por execução (intervalo de 5 s entre pedidos ao mesmo anfitrião).
+- **Estado:** Aceite
+- **Data:** 2026-10-11
