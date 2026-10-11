@@ -100,10 +100,46 @@ def test_source_is_truncated_and_delimited():
     assert len(user) < 4100
 
 
-def test_load_provider_requires_key_and_config(tmp_path):
+def test_load_provider_uses_free_github_models_by_default(tmp_path):
+    from tensdireito_content_engine.llm import AnthropicProvider, GitHubModelsProvider
+
     config = Path(__file__).resolve().parents[1] / "config"
     assert load_provider(config, {}) is None
-    assert load_provider(tmp_path, {"ANTHROPIC_API_KEY": "k"}) is None
-    loaded = load_provider(config, {"ANTHROPIC_API_KEY": "k"})
-    assert loaded is not None
-    assert loaded.tasks["whatsapp_draft"].model == "claude-haiku-5-5"
+    assert load_provider(tmp_path, {"GITHUB_TOKEN": "t"}) is None
+    loaded = load_provider(config, {"GITHUB_TOKEN": "t"})
+    assert isinstance(loaded.provider, GitHubModelsProvider)
+    assert loaded.tasks["whatsapp_draft"].model == "openai/gpt-4.1-mini"
+
+    (tmp_path / "llm.yaml").write_text(
+        "provider: anthropic\ntasks:\n  whatsapp_draft:\n    model: claude-haiku-5-5\n",
+        encoding="utf-8",
+    )
+    assert load_provider(tmp_path, {"GITHUB_TOKEN": "t"}) is None
+    assert isinstance(
+        load_provider(tmp_path, {"ANTHROPIC_API_KEY": "k"}).provider, AnthropicProvider
+    )
+
+
+def test_github_models_request_and_response(monkeypatch):
+    from tensdireito_content_engine import llm as llm_module
+
+    sent = {}
+
+    def fake_post(url, headers, payload):
+        sent.update(url=url, headers=headers, payload=payload)
+        return {"choices": [{"message": {"content": "olá"}}]}
+
+    monkeypatch.setattr(llm_module, "_post_json", fake_post)
+    provider = llm_module.GitHubModelsProvider(token="tok")
+    assert provider.complete(TASK, "sistema", "utilizador") == "olá"
+    assert sent["url"] == "https://models.github.ai/inference/chat/completions"
+    assert sent["headers"]["authorization"] == "Bearer tok"
+    assert [m["role"] for m in sent["payload"]["messages"]] == ["system", "user"]
+
+
+def test_github_models_empty_answer_is_an_error(monkeypatch):
+    from tensdireito_content_engine import llm as llm_module
+
+    monkeypatch.setattr(llm_module, "_post_json", lambda *a: {"choices": []})
+    with pytest.raises(LLMError):
+        llm_module.GitHubModelsProvider(token="t").complete(TASK, "s", "u")

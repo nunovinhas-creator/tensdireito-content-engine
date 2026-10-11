@@ -480,7 +480,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 |---|--------|
 | D1 — Fontes T1 prioritárias e endpoints | **OPEN.** Fecha quando as fontes prioritárias e os respectivos endpoints forem validados manualmente, segundo o protocolo de DEC-034. Nenhum URL, feed, RSS ou API é assumido. |
 | D2 — Fontes T2/T3 | OPEN |
-| D3 — Fornecedor de IA e orçamento | Parcial: Anthropic `claude-haiku-5-5` para `generate:whatsapp` (DEC-059); restantes tarefas OPEN |
+| D3 — Fornecedor de IA e orçamento | Parcial: GitHub Models gratuito para `generate:whatsapp` (DEC-060); restantes tarefas OPEN |
 | D4 — Taxonomia | CLOSED (DEC-006) |
 | D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
 | D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
@@ -587,5 +587,13 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Decisão:** (1) **Agrupamento:** `similarity.py` compara títulos por palavras significativas (Jaccard ≥ 0,5 com ≥ 3 palavras em comum, ou ≥ 0,3 com ≥ 4); `tde daily` mantém só o rascunho de maior score de cada grupo, e `sync-issues` não abre issue se uma issue criada nos últimos 3 dias tem título do mesmo tema (contado como "do mesmo tema"). (2) **Nível da fonte:** bónus de +10 (T1) e +5 (T2) ao score, até 100. (3) **IA:** tarefa `generate:whatsapp` com `LLMProvider`/`AnthropicProvider` (biblioteca padrão), configurada em `config/llm.yaml` (`claude-haiku-5-5`, temperatura 0,3). O modelo recebe só título e texto da fonte e devolve emoji, título e 2–3 pontos em JSON; validação local, incluindo números suportados pela fonte; uma nova tentativa e depois fallback para regras. A chave vem do secret `ANTHROPIC_API_KEY`; sem ele, só regras. Fecha D3 para esta tarefa.
 - **Razão:** Uma mensagem por tema, prioridade às fontes oficiais e textos no formato do canal, mantendo revisão humana obrigatória e sem factos fora da fonte.
 - **Impacto:** Novos módulos `similarity.py`, `llm.py` e `ai_draft.py`; `llm.py` é o segundo módulo com rede (só `api.anthropic.com`). Custo estimado: cêntimos por dia (≈10–30 chamadas). Sem alteração ao esquema nem aos códigos de saída.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
+
+### DEC-060 — Redacção com IA gratuita via GitHub Models
+- **Problema:** A API da Anthropic (DEC-059) é paga com créditos pré-pagos; o responsável quer a ferramenta sem custos.
+- **Decisão:** O fornecedor por defeito de `generate:whatsapp` passa a ser o GitHub Models (`https://models.github.ai/inference/chat/completions`, compatível com OpenAI), com o modelo `openai/gpt-4.1-mini` e o `GITHUB_TOKEN` do workflow (permissão `models: read`); não é preciso chave nem secret. A Anthropic mantém-se como alternativa configurável em `config/llm.yaml`. O resumo do run passa a indicar quantos rascunhos foram redigidos por IA.
+- **Limitações:** O plano gratuito tem limites diários de pedidos; quando são excedidos, ou se o modelo deixar de estar disponível, o pipeline usa só regras, sem falhar.
+- **Impacto:** Substitui DEC-059 quanto ao fornecedor; validações e fallback mantêm-se. Sem custos.
 - **Estado:** Aceite
 - **Data:** 2026-10-11

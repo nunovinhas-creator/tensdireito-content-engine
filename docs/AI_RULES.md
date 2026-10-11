@@ -1,6 +1,6 @@
 # Regras de Utilização de IA
 
-> Estado: **especificação (M1)**, com uma primeira tarefa implementada: `generate:whatsapp` (DEC-059), via Anthropic (`config/llm.yaml`). Aplica-se a qualquer modelo de linguagem utilizado pelo sistema, independentemente do fornecedor.
+> Estado: **especificação (M1)**, com uma primeira tarefa implementada: `generate:whatsapp` (DEC-059), por defeito via GitHub Models, gratuito (DEC-060; `config/llm.yaml`). Aplica-se a qualquer modelo de linguagem utilizado pelo sistema, independentemente do fornecedor.
 
 ## 1. Princípio
 
@@ -76,11 +76,11 @@ As validações heurísticas bloqueantes (números, datas, referências legais, 
 - Todas as chamadas passam pela interface `LLMProvider` (ver [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md#42-llmprovider)).
 - `config/llm.yaml` define fornecedor e modelo **por tarefa**.
 - Prompts não usam funcionalidades exclusivas de um fornecedor; saída estruturada via esquema JSON + validação local.
-- D3 fechada parcialmente (DEC-059): Anthropic, modelo `claude-haiku-5-5`, só para `generate:whatsapp`. As restantes tarefas continuam sem fornecedor.
+- D3 fechada parcialmente (DEC-060): GitHub Models (`openai/gpt-4.1-mini`, plano gratuito, `GITHUB_TOKEN` com `models: read`) para `generate:whatsapp`; a Anthropic (`claude-haiku-5-5`, paga) fica disponível por configuração. As restantes tarefas continuam sem fornecedor.
 
 ## 8. Implementação de `generate:whatsapp` (DEC-059)
 
-Enquanto não existem claims e evidências (CLUSTER/VERIFY), a geração de rascunhos WhatsApp usa como material **apenas o título e o texto do item da fonte**, delimitados em `<fonte>` como dados não confiáveis. O resultado é sempre `unverified` e segue para revisão humana nas issues; não é aprovação nem publicação. Validações locais: JSON com emoji de lista fechada, título ≤ 90 caracteres, 2–3 pontos ≤ 160 caracteres; **todo o número gerado tem de existir na fonte**. Resposta inválida → uma nova tentativa → rascunho por regras. Sem `ANTHROPIC_API_KEY`, só regras. O cliente (`llm.py`) é o segundo módulo com acesso à rede, apenas para `api.anthropic.com`.
+Enquanto não existem claims e evidências (CLUSTER/VERIFY), a geração de rascunhos WhatsApp usa como material **apenas o título e o texto do item da fonte**, delimitados em `<fonte>` como dados não confiáveis. O resultado é sempre `unverified` e segue para revisão humana nas issues; não é aprovação nem publicação. Validações locais: JSON com emoji de lista fechada, título ≤ 90 caracteres, 2–3 pontos ≤ 160 caracteres; **todo o número gerado tem de existir na fonte**. Resposta inválida → uma nova tentativa → rascunho por regras. Sem credencial, ou se o fornecedor falhar ou exceder o limite gratuito, só regras. O cliente (`llm.py`) é o segundo módulo com acesso à rede, apenas para `models.github.ai` ou `api.anthropic.com`.
 
 ## 8. Prompts
 

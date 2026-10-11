@@ -1,10 +1,12 @@
-# Fornecedor e modelo por tarefa (AI_RULES.md §7; DEC-059).
-# A chave é lida de ANTHROPIC_API_KEY (secret do repositório). Sem chave, o pipeline
-# usa só regras e os rascunhos mantêm as frases da fonte.
-provider: anthropic
+# Fornecedor e modelo por tarefa (AI_RULES.md §7; DEC-059, DEC-060).
+# GitHub Models: gratuito, usa o GITHUB_TOKEN do workflow (permissão `models: read`),
+# com limites diários do plano grátis. Se falhar ou exceder o limite, os rascunhos
+# usam só regras. Para a API paga da Anthropic: provider: anthropic, model:
+# claude-haiku-5-5 e o secret ANTHROPIC_API_KEY.
+provider: github_models
 tasks:
   whatsapp_draft:
-    model: claude-haiku-5-5
+    model: openai/gpt-4.1-mini
     temperature: 0.3
     max_tokens: 600
     prompt_id: llm:whatsapp_draft_v1

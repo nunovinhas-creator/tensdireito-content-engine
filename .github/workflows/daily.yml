@@ -22,6 +22,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      models: read
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -43,8 +44,8 @@ jobs:
       - name: Run daily pipeline
         shell: bash
         env:
-          # DEC-059: opcional; sem o secret, os rascunhos usam só regras.
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # DEC-060: redacção com IA grátis via GitHub Models; sem acesso, só regras.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
           uv run tde daily --summary-md "$GITHUB_STEP_SUMMARY"

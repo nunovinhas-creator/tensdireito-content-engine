@@ -59,6 +59,7 @@ class DailyResult:
     articles: tuple[DailyArticle, ...]
     report_path: Path
     drafts_created: int
+    ai_drafts: int = 0
 
 
 def run_daily(
@@ -133,10 +134,13 @@ def run_daily(
     for article in sorted(eligible, key=lambda a: (-a.editorial_score, _article_order(a))):
         if not any(same_topic(article.title, kept.title) for kept in representatives):
             representatives.append(article)
-    draft_candidates = [
-        (article.raw_item_id, article.editorial_score, _render_draft(article, topic_map, writer))
-        for article in representatives
+    composed = [
+        (article, *_compose_draft(article, topic_map, writer)) for article in representatives
     ]
+    draft_candidates = [
+        (article.raw_item_id, article.editorial_score, message) for article, message, _ in composed
+    ]
+    ai_drafts = sum(1 for _, _, used_ai in composed if used_ai)
     report_dir = Path(report_dir)
     report_path = report_dir / f"{selected_day.isoformat()}.txt"
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -153,6 +157,7 @@ def run_daily(
         articles=tuple(articles),
         report_path=report_path,
         drafts_created=drafts_created,
+        ai_drafts=ai_drafts,
     )
 
 
@@ -280,6 +285,13 @@ def _key_points(excerpt: str | None) -> tuple[str, ...]:
 def _render_draft(
     article: DailyArticle, topic_map: TopicMap | None = None, writer: LoadedLLM | None = None
 ) -> str:
+    return _compose_draft(article, topic_map, writer)[0]
+
+
+def _compose_draft(
+    article: DailyArticle, topic_map: TopicMap | None, writer: LoadedLLM | None
+) -> tuple[str, bool]:
+    """Mensagem do rascunho e se foi redigida por IA (DEC-059/DEC-060)."""
     # DEC-058: se o título refere um apoio com guia no tensdireito.com, o link é o guia;
     # a fonte original continua registada no rascunho e na issue.
     guide = (topic_map or TopicMap()).guide_for(article.title)
@@ -293,4 +305,4 @@ def _render_draft(
         cta="Saiba quem tem direito e como pedir" if guide else "Saiba mais",
         url=guide or article.url,
     )
-    return format_whatsapp_message(message)
+    return format_whatsapp_message(message), proposal is not None

@@ -250,6 +250,7 @@ def daily_summary_markdown(result: DailyResult) -> str:
         f"| Notícias do dia | {len(result.articles)} |",
         f"| Duplicados | {result.duplicates} |",
         f"| Rascunhos novos | {result.drafts_created} |",
+        f"| Redigidos por IA | {result.ai_drafts} |",
         "",
     ]
     if failed:
