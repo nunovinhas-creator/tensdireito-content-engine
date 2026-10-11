@@ -156,7 +156,7 @@ def test_published_at_with_explicit_offset_is_converted_to_utc(raw, expected):
         "2026-10-01",  # data sem hora: não se inventa hora
         "2026-10-01T09:00:00",  # sem fuso: não se assume o fuso local
         "1 de Outubro de 2026",
-        "Thu, 01 Oct 2026 09:00:00 GMT",  # formato não documentado
+        "Thu, 01 Oct 2026 09:00:00 -0000",  # RFC 822 com fuso desconhecido
         "ontem",
         "",
     ],
@@ -295,3 +295,15 @@ def test_fingerprint_is_not_an_event_id():
 def test_fingerprint_rejects_non_normalized_item(value):
     with pytest.raises(TypeError):
         fingerprint(value)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Thu, 01 Oct 2026 09:00:00 GMT", datetime(2026, 10, 1, 9, 0, tzinfo=UTC)),
+        ("Thu, 01 Oct 2026 10:00:00 +0100", datetime(2026, 10, 1, 9, 0, tzinfo=UTC)),
+        ("01 Oct 2026 09:00:00 +0000", datetime(2026, 10, 1, 9, 0, tzinfo=UTC)),
+    ],
+)
+def test_rfc822_pubdate_with_timezone_is_converted_to_utc(raw, expected):
+    assert normalize_published_at(raw) == expected

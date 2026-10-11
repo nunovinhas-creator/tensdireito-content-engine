@@ -510,7 +510,7 @@ def test_rss_item_becomes_a_source_document(db, capsys):
             "title": "Título do item",
             "text": text,
             "language": "pt",
-            "published_at": None,
+            "published_at": "2026-10-07T09:00:00.000000+00:00",
             "source_tier": "T1",
             "document_kind": None,
             "text_hash": hashlib.sha256(text.encode("utf-8")).hexdigest(),
@@ -597,8 +597,9 @@ def test_raw_item_is_unchanged(db):
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("Wed, 07 Oct 2026 10:00:00 +0100", None),
-        ("Tue, 06 Oct 2026 09:30:00 GMT", None),
+        ("Wed, 07 Oct 2026 10:00:00 +0100", "2026-10-07T09:00:00.000000+00:00"),
+        ("Tue, 06 Oct 2026 09:30:00 GMT", "2026-10-06T09:30:00.000000+00:00"),
+        ("Tue, 06 Oct 2026 09:30:00 -0000", None),
         ("2026-10-07T10:00:00+01:00", "2026-10-07T09:00:00.000000+00:00"),
         ("2026-10-07T10:00:00Z", "2026-10-07T10:00:00.000000+00:00"),
         ("2026-10-07T10:00:00", None),
@@ -1055,7 +1056,11 @@ def test_collect_then_normalize_with_fake_transport(tmp_path, monkeypatch, capsy
     ]
     assert [doc["text"] for doc in docs] == ["Resumo da primeira notícia.", "Corpo completo.", None]
     assert {doc["canonical_url"] for doc in docs} == {None}
-    assert {doc["published_at"] for doc in docs} == {None}  # pubDate RFC 822 (D13)
+    assert [doc["published_at"] for doc in docs] == [
+        "2026-10-07T09:00:00.000000+00:00",
+        "2026-10-06T09:30:00.000000+00:00",
+        None,
+    ]  # pubDate RFC 822 (DEC-057)
     assert {doc["language"] for doc in docs} == {None}
     assert {doc["source_tier"] for doc in docs} == {"T1"}
     assert {doc["source_id"] for doc in docs} == {"fonte_sintetica"}

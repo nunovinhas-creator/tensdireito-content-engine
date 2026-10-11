@@ -567,3 +567,10 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** Até +15 pontos para notícias sobre apoios concretos; o limiar (65) e os pesos não mudam. Não altera o esquema nem a CLI.
 - **Estado:** Aceite
 - **Data:** 2026-10-11
+
+### DEC-057 — Só notícias do próprio dia; datas RFC 822
+- **Problema:** `normalize_published_at` só aceitava ISO 8601. O `pubDate` dos feeds RSS (RFC 822, p. ex. `Fri, 09 Oct 2026 09:00:00 GMT`) ficava nulo e o item contava como sendo do dia da recolha, deixando entrar notícias antigas (p. ex. um artigo de 14 de Agosto via Bing).
+- **Decisão:** (1) Datas RFC 822 com fuso explícito passam a ser convertidas para UTC; `-0000` (fuso desconhecido) continua nulo. (2) `tde daily` só selecciona itens cuja data de publicação, em Lisboa, é o dia do run; itens sem data fiável são descartados. (3) Um item cujo URL contém uma data (`AAAA/MM/DD` ou `AAAA-MM-DD`) diferente do dia é descartado. (4) Revoga a janela de dois dias da DEC-056; o scoring por tema mantém-se.
+- **Impacto:** Feeds sem `pubDate` (p. ex. DECO Proteste) deixam de gerar rascunhos. Fecha D13 quanto a RFC 822. Não altera o esquema nem a CLI.
+- **Estado:** Aceite
+- **Data:** 2026-10-11

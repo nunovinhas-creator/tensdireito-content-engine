@@ -130,11 +130,9 @@ def test_daily_runs_real_rss_parser_against_local_fixture(monkeypatch, tmp_path,
 
     assert code == 0
     assert "itens obtidos: 3" in output
-    assert "notícias selecionadas: 3" in output
-    text = report.read_text(encoding="utf-8")
-    assert "1. Primeira notícia" in text
-    assert "Fonte: Fonte 0" in text
-    assert "URL: https://feed.example.org/noticias/1?utm_source=rss#topo" in text
+    # DEC-057: os itens da fixture são de 6 e 7 de Outubro ou não têm data; o dia é 9.
+    assert "notícias selecionadas: 0" in output
+    assert "Não foram encontradas notícias na janela diária." in report.read_text(encoding="utf-8")
     assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
 
 
@@ -360,7 +358,7 @@ def test_disabled_endpoint_is_not_collected(monkeypatch, tmp_path, capsys):
 
 def test_zero_items_in_requested_publication_window(monkeypatch, tmp_path, capsys):
     sources = config_dir(tmp_path / "config", "news_feed")
-    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published="2026-10-07T12:00:00Z")])
+    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published="2026-10-08T12:00:00Z")])
 
     code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
     output = capsys.readouterr().out
@@ -369,9 +367,7 @@ def test_zero_items_in_requested_publication_window(monkeypatch, tmp_path, capsy
     assert "0 normalizadas; 0 duplicadas" in report.read_text(encoding="utf-8")
 
 
-def test_unrecognized_publication_date_uses_collection_day_without_inventing_date(
-    monkeypatch, tmp_path, capsys
-):
+def test_rfc822_publication_date_of_the_day_is_selected(monkeypatch, tmp_path, capsys):
     sources = config_dir(tmp_path / "config", "news_feed")
     collector = FakeRss(
         lambda endpoint_id: [item(endpoint_id, published="Fri, 09 Oct 2026 09:00:00 GMT")]
@@ -381,25 +377,40 @@ def test_unrecognized_publication_date_uses_collection_day_without_inventing_dat
     capsys.readouterr()
     text = report.read_text(encoding="utf-8")
     assert code == 0
-    assert normalize_published_at("Fri, 09 Oct 2026 09:00:00 GMT") is None
+    assert normalize_published_at("Fri, 09 Oct 2026 09:00:00 GMT") is not None
     assert "1. Notícia diária" in text
-    assert "Data: não indicada" in text
 
 
-@pytest.mark.parametrize("published", [None, "not-a-date"])
-def test_missing_or_invalid_publication_date_uses_collection_day_without_inventing_date(
+@pytest.mark.parametrize("published", [None, "not-a-date", "Fri, 09 Oct 2026 09:00:00 -0000"])
+def test_items_without_a_reliable_publication_date_are_discarded(
     monkeypatch, tmp_path, capsys, published
 ):
     sources = config_dir(tmp_path / "config", "news_feed")
     collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published=published)])
 
-    code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
-    capsys.readouterr()
-    text = report.read_text(encoding="utf-8")
-
+    code, _, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
     assert code == 0
-    assert "1. Notícia diária" in text
-    assert "Data: não indicada" in text
+    assert "notícias selecionadas: 0" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("url", "selected"),
+    [
+        ("https://news.example/2026/08/14/artigo-antigo", 0),
+        ("https://news.example/2026-10-08-artigo-de-ontem", 0),
+        ("https://news.example/2026/10/09/artigo-de-hoje", 1),
+        ("https://news.example/artigo-sem-data", 1),
+    ],
+)
+def test_items_with_an_old_date_in_the_url_are_discarded(
+    monkeypatch, tmp_path, capsys, url, selected
+):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, url=url)])
+
+    code, _, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
+    assert code == 0
+    assert f"notícias selecionadas: {selected}" in capsys.readouterr().out
 
 
 def test_draft_is_short_and_ends_with_signature():
@@ -424,10 +435,10 @@ def test_draft_without_excerpt_still_has_two_points():
     assert "👉 Veja todos os detalhes na notícia completa." in _render_draft(article)
 
 
-def test_window_includes_previous_day(monkeypatch, tmp_path, capsys):
+def test_previous_day_is_discarded(monkeypatch, tmp_path, capsys):
     sources = config_dir(tmp_path / "config", "news_feed")
     collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published="2026-10-08T21:30:00Z")])
 
     code, _, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
     assert code == 0
-    assert "notícias selecionadas: 1" in capsys.readouterr().out
+    assert "notícias selecionadas: 0" in capsys.readouterr().out

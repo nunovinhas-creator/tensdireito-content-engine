@@ -3,7 +3,7 @@
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
@@ -77,8 +77,6 @@ def run_daily(
     sync_sources(db_path, loaded.sources, loaded.endpoints, now=fixed_now)
     collection = run_collect(db_path, registry, now=fixed_now)
     selected_day = day or instant.astimezone(LISBON).date()
-    # DEC-056: inclui o dia anterior, para apanhar o que saiu depois do último run.
-    window = {selected_day, selected_day - timedelta(days=1)}
     topics = load_topic_terms(Path(config_path).parent / TOPICS_FILENAME)
 
     candidates: list[tuple[StoredRawItem, NormalizedItem]] = []
@@ -86,9 +84,14 @@ def run_daily(
     for stored in list_raw_items(db_path):
         normalized = normalize_raw_item(stored.item)
         scores_by_raw_item[stored.id] = score_item(normalized, topics).value
-        relevant_date = normalized.published_at or stored.item.fetched_at
-        if relevant_date.astimezone(LISBON).date() in window:
-            candidates.append((stored, normalized))
+        # DEC-057: só notícias com data de publicação do próprio dia (Lisboa); sem data
+        # ou com uma data antiga no URL, o item é descartado.
+        published = normalized.published_at
+        if published is None or published.astimezone(LISBON).date() != selected_day:
+            continue
+        if _url_date(stored.item.url) not in (None, selected_day):
+            continue
+        candidates.append((stored, normalized))
 
     deduplicated = deduplicate_exact(normalized for _, normalized in candidates)
     records_by_item = {id(normalized): stored for stored, normalized in candidates}
@@ -181,6 +184,20 @@ def _source_excerpt(raw_content: str) -> str | None:
     try:
         return extract_rss_item(raw_content).text
     except RawContentError:
+        return None
+
+
+_URL_DATE = re.compile(r"(?<!\d)(20\d{2})[/-](0[1-9]|1[0-2])[/-](0[1-9]|[12]\d|3[01])(?!\d)")
+
+
+def _url_date(url: str) -> date | None:
+    """Data `AAAA/MM/DD` ou `AAAA-MM-DD` no caminho do URL, se existir e for válida."""
+    match = _URL_DATE.search(urlsplit(url).path)
+    if match is None:
+        return None
+    try:
+        return date(*(int(part) for part in match.groups()))
+    except ValueError:
         return None
 
 
