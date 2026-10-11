@@ -1,9 +1,17 @@
 name: Daily pipeline
 
-# Manual only until durable, shared persistence (D8) is implemented.
-# A GitHub-hosted runner is ephemeral; scheduling it would discard SQLite state and reports.
+# Três execuções diárias (DEC-050): 08:00, 13:00 e 18:00 UTC.
+# O runner continua efémero (D8 OPEN): o SQLite não persiste entre execuções.
+# A deduplicação entre execuções é feita pelas issues (referência ao URL da fonte).
 on:
+  schedule:
+    - cron: "0 8,13,18 * * *"
   workflow_dispatch:
+
+# Evita duas execuções em simultâneo a criar issues duplicadas; não cancela a que está a correr.
+concurrency:
+  group: daily-pipeline
+  cancel-in-progress: false
 
 permissions:
   contents: read

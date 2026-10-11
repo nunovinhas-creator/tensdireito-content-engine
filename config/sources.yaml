@@ -27,7 +27,9 @@
   endpoints:
   - id: governo-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.portugal.gov.pt/pt/comunicacao/noticias.rss
 - id: assembleia_republica
   name: Assembleia da República
@@ -42,7 +44,9 @@
   endpoints:
   - id: ar-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.parlamento.pt/Rss/Pages/Rss.aspx
 - id: seguranca_social
   name: Portal da Segurança Social
@@ -57,7 +61,9 @@
   endpoints:
   - id: ss-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.seg-social.pt/noticias
 - id: iefp
   name: IEFP - Emprego e Formação Profissional
@@ -72,7 +78,9 @@
   endpoints:
   - id: iefp-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.iefp.pt/noticias.rss
 - id: act
   name: ACT - Autoridade para as Condições do Trabalho
@@ -121,7 +129,9 @@
   endpoints:
   - id: publico-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.publico.pt/api/feed/rss/economia
 - id: jornal_noticias
   name: Jornal de Notícias
@@ -136,7 +146,9 @@
   endpoints:
   - id: jn-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.jn.pt/rss
 - id: expresso
   name: Expresso
@@ -151,7 +163,9 @@
   endpoints:
   - id: expresso-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://expresso.pt/rss
 - id: observador
   name: Observador
@@ -183,7 +197,9 @@
   endpoints:
   - id: cnn-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://cnnportugal.iol.pt/rss
 - id: jornal_economico
   name: Jornal Económico
@@ -214,7 +230,9 @@
   endpoints:
   - id: lusa-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.lusa.pt/rss
 - id: diario_noticias
   name: Diário de Notícias
@@ -228,7 +246,9 @@
   endpoints:
   - id: dn-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.dn.pt/rss
 - id: jornal_negocios
   name: Jornal de Negócios
@@ -276,5 +296,7 @@
   endpoints:
   - id: jm-rss
     endpoint_type: rss
-    endpoint_status: INACTIVE
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
     url: https://www.jm-madeira.pt/rss

@@ -512,3 +512,12 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Documentos subordinados:** [DAILY_PIPELINE.md](DAILY_PIPELINE.md), [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md), [ROADMAP.md](ROADMAP.md), [ARCHITECTURE.md](ARCHITECTURE.md).
 - **Estado:** Aplicada no pacote de correcção; revisão humana recomendada antes de integrar no repositório remoto.
 - **Data:** 2026-10-09
+
+### DEC-050 — Reactivação do agendamento e activação de todos os endpoints registados
+- **Decisão:** (1) `.github/workflows/daily.yml` volta a executar `uv run tde daily` três vezes por dia, às 08:00, 13:00 e 18:00 UTC (`cron: "0 8,13,18 * * *"`), mantendo `workflow_dispatch` e acrescentando um grupo de concorrência `daily-pipeline` sem cancelamento da execução em curso. (2) Os 11 endpoints que estavam `INACTIVE` em `config/sources.yaml` (governo-rss, ar-rss, ss-rss, iefp-rss, publico-rss, jn-rss, expresso-rss, cnn-rss, lusa-rss, dn-rss, jm-rss) passam a `ACTIVE`, com `validated_at: 2026-10-11T00:00:00Z` e `validated_by: nuno`.
+- **Razão:** Decisão do responsável do projecto de passar a operação regular com a totalidade das 18 fontes registadas, aceitando o runner efémero enquanto D8 não estiver implementada.
+- **Salvaguardas:** `tde drafts sync-issues` só cria uma issue quando não existe nenhuma (aberta ou fechada) com a mesma referência ao URL da fonte, pelo que a perda do SQLite entre execuções não duplica rascunhos publicados como issues. Um endpoint que falhe faz o `tde daily` terminar com código `2` (falha parcial), com aviso no resumo do job, sem o falhar.
+- **Limitações:** Os registos de evidência V1–V5 em `docs/source_validation/` (DEC-036) ainda não existem para estes 11 endpoints; os URLs não foram testados tecnicamente nesta alteração e alguns podem precisar de correcção (por exemplo, `ss-rss` aponta para uma página de notícias e não para um feed). D8 continua OPEN.
+- **Impacto:** Substitui a DEC-048 (suspensão do agendamento) quanto à frequência. Não altera os códigos de saída, o esquema, o domínio nem a CLI.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
