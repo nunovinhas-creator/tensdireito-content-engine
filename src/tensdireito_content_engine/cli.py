@@ -19,7 +19,11 @@ from tensdireito_content_engine.collectors import CollectorRegistry, default_reg
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
 from tensdireito_content_engine.daily import DEFAULT_REPORT_DIR, DailyResult, run_daily
 from tensdireito_content_engine.domain.enums import EditorialStatus, VerificationStatus
-from tensdireito_content_engine.github_issues import GitHubIssueError, sync_draft_issues
+from tensdireito_content_engine.github_issues import (
+    GitHubIssueError,
+    close_stale_draft_issues,
+    sync_draft_issues,
+)
 from tensdireito_content_engine.normalize_command import run_normalize
 from tensdireito_content_engine.publish.whatsapp import (
     WhatsAppMessage,
@@ -39,6 +43,7 @@ from tensdireito_content_engine.storage import (
     resolve_db_path,
     sync_sources,
 )
+from tensdireito_content_engine.topics import TOPICS_FILENAME, load_topic_map
 
 PROG = "tde"
 
@@ -209,6 +214,7 @@ def daily(
     report_dir: Path,
     registry: CollectorRegistry,
     day: date | None,
+    summary_md: Path | None = None,
 ) -> tuple[int, list[str], list[str]]:
     """Executa o pipeline diário e traduz o resultado para a CLI."""
     try:
@@ -219,9 +225,49 @@ def daily(
             registry,
             day=day,
         )
+        if summary_md is not None:
+            with Path(summary_md).open("a", encoding="utf-8") as handle:
+                handle.write(daily_summary_markdown(result))
     except (StorageError, CollectError, SourceRegistryError, OSError, ValueError) as exc:
         return 1, [], [f"daily: ERRO — {exc}"]
     return _daily_lines(result)
+
+
+def daily_summary_markdown(result: DailyResult) -> str:
+    """Resumo Markdown do run para o `$GITHUB_STEP_SUMMARY` (DEC-058)."""
+    outcomes = sorted(result.collection.endpoints, key=lambda outcome: outcome.id)
+    failed = [outcome for outcome in outcomes if outcome.error]
+    lines = [
+        f"## Pipeline diário — {result.day.isoformat()}",
+        "",
+        "| Métrica | Valor |",
+        "|---|---|",
+        f"| Fontes consultadas | {len(outcomes)} ({len(failed)} com falha) |",
+        f"| Itens obtidos | {result.collection.new + result.collection.existing} |",
+        f"| Notícias do dia | {len(result.articles)} |",
+        f"| Duplicados | {result.duplicates} |",
+        f"| Rascunhos novos | {result.drafts_created} |",
+        "",
+    ]
+    if failed:
+        lines += ["### Fontes com falha", "", "| Endpoint | Erro |", "|---|---|"]
+        lines += [f"| `{o.id}` | {_md_cell(o.error or '')} |" for o in failed]
+        lines.append("")
+    lines += [
+        "<details><summary>Itens por fonte</summary>",
+        "",
+        "| Endpoint | Novos | Já existentes | Estado |",
+        "|---|---:|---:|---|",
+    ]
+    lines += [
+        f"| `{o.id}` | {o.new} | {o.existing} | {'falha' if o.error else 'ok'} |" for o in outcomes
+    ]
+    lines += ["", "</details>", ""]
+    return "\n".join(lines) + "\n"
+
+
+def _md_cell(text: str) -> str:
+    return " ".join(text.split()).replace("|", "\\|")
 
 
 def drafts_list(db_path: Path) -> tuple[bool, list[str]]:
@@ -243,11 +289,12 @@ def drafts_list(db_path: Path) -> tuple[bool, list[str]]:
     return True, lines
 
 
-def drafts_sync_issues(db_path: Path) -> tuple[bool, list[str]]:
+def drafts_sync_issues(db_path: Path, config_dir: Path) -> tuple[bool, list[str]]:
     """Sincroniza rascunhos não verificados com issues do GitHub."""
     try:
-        result = sync_draft_issues(db_path)
-    except (GitHubIssueError, StorageError) as exc:
+        topic_map = load_topic_map(Path(config_dir) / TOPICS_FILENAME)
+        result = sync_draft_issues(db_path, topic_map)
+    except (GitHubIssueError, StorageError, OSError, ValueError) as exc:
         return False, [f"drafts sync-issues: ERRO — {exc}"]
     lines = [
         f"drafts sync-issues: OK — {len(result.created)} issues criadas, "
@@ -257,14 +304,23 @@ def drafts_sync_issues(db_path: Path) -> tuple[bool, list[str]]:
     return True, lines
 
 
+def drafts_close_stale(days: int) -> tuple[bool, list[str]]:
+    """Fecha as issues de rascunho abertas há mais de `days` dias (DEC-058)."""
+    try:
+        result = close_stale_draft_issues(days)
+    except (GitHubIssueError, ValueError) as exc:
+        return False, [f"drafts close-stale: ERRO — {exc}"]
+    lines = [f"drafts close-stale: OK — {len(result.closed)} issues fechadas"]
+    lines.extend(f"- issue fechada: #{number}" for number in result.closed)
+    return True, lines
+
+
 def drafts_approve(
     db_path: Path, draft_id: int, verification_status: VerificationStatus
 ) -> tuple[bool, list[str]]:
     """Marca um rascunho como aprovado após declaração explícita de verificação humana."""
     try:
-        approved = approve_draft(
-            db_path, draft_id, verification_status, datetime.now(UTC)
-        )
+        approved = approve_draft(db_path, draft_id, verification_status, datetime.now(UTC))
     except (StorageError, ValueError) as exc:
         return False, [f"drafts approve: ERRO — {exc}"]
     if not approved:
@@ -413,9 +469,7 @@ def _daily_lines(result: DailyResult) -> tuple[int, list[str], list[str]]:
         f"relatório gerado: {result.report_path}",
     ]
     errors = [
-        f"- {outcome.id}: {outcome.error}"
-        for outcome in collection.endpoints
-        if outcome.error
+        f"- {outcome.id}: {outcome.error}" for outcome in collection.endpoints if outcome.error
     ]
     return code, out, errors
 
@@ -523,6 +577,13 @@ def build_parser() -> argparse.ArgumentParser:
         " Os rascunhos WhatsApp elegíveis são guardados na fila SQLite para revisão humana."
     )
     daily_parser.add_argument(
+        "--summary-md",
+        type=Path,
+        default=None,
+        metavar="FICHEIRO",
+        help="acrescenta um resumo Markdown do run (p. ex. $GITHUB_STEP_SUMMARY)",
+    )
+    daily_parser.add_argument(
         "--report-dir",
         type=Path,
         default=DEFAULT_REPORT_DIR,
@@ -542,6 +603,13 @@ def build_parser() -> argparse.ArgumentParser:
     drafts_actions.add_parser(
         "sync-issues",
         help="cria issues GitHub para rascunhos pendentes não verificados",
+    )
+    close_parser = drafts_actions.add_parser(
+        "close-stale",
+        help="fecha issues de rascunho abertas há mais de N dias",
+    )
+    close_parser.add_argument(
+        "--days", type=int, default=3, metavar="N", help="idade mínima em dias (por defeito: 3)"
     )
     approve_parser = drafts_actions.add_parser(
         "approve", help="aprova um rascunho após revisão humana"
@@ -669,6 +737,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.report_dir,
             default_registry(),
             args.date,
+            args.summary_md,
         )
         for line in out:
             print(line)
@@ -683,7 +752,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0 if ok else 1
 
     if args.command == "drafts" and args.drafts_command == "sync-issues":
-        ok, lines = drafts_sync_issues(resolve_db_path(args.db, os.environ))
+        ok, lines = drafts_sync_issues(resolve_db_path(args.db, os.environ), args.config)
+        for line in lines:
+            print(line, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
+
+    if args.command == "drafts" and args.drafts_command == "close-stale":
+        ok, lines = drafts_close_stale(args.days)
         for line in lines:
             print(line, file=sys.stdout if ok else sys.stderr)
         return 0 if ok else 1

@@ -442,3 +442,49 @@ def test_previous_day_is_discarded(monkeypatch, tmp_path, capsys):
     code, _, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
     assert code == 0
     assert "notícias selecionadas: 0" in capsys.readouterr().out
+
+
+def test_daily_appends_markdown_summary(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    collector = FakeRss(lambda endpoint_id: [item(endpoint_id)])
+    monkeypatch.setattr(cli, "default_registry", lambda: CollectorRegistry([collector]))
+    summary = tmp_path / "summary.md"
+    summary.write_text("antes\n", encoding="utf-8")
+
+    code = cli.main(
+        [
+            "--config",
+            str(sources),
+            "--db",
+            str(tmp_path / "tde.sqlite3"),
+            "daily",
+            "--date",
+            DAY.isoformat(),
+            "--report-dir",
+            str(tmp_path / "reports"),
+            "--summary-md",
+            str(summary),
+        ]
+    )
+    capsys.readouterr()
+    text = summary.read_text(encoding="utf-8")
+    assert code == 0
+    assert text.startswith("antes\n## Pipeline diário — 2026-10-09")
+    assert "| Fontes consultadas | 1 (0 com falha) |" in text
+    assert "| `news_feed` | 1 | 0 | ok |" in text
+
+
+def test_draft_links_to_tensdireito_guide_when_title_matches():
+    from types import SimpleNamespace
+
+    from tensdireito_content_engine.daily import _render_draft
+    from tensdireito_content_engine.topics import Guide, TopicMap
+
+    guide = "https://tensdireito.com/abono-de-familia.html"
+    topic_map = TopicMap(guides=(Guide(guide, ("abono",)),))
+    article = SimpleNamespace(
+        title="Abono sobe em 2027", excerpt="Texto.", url="https://jornal.example/a"
+    )
+    message = _render_draft(article, topic_map)
+    assert f"🔎 **Saiba quem tem direito e como pedir:** {guide}" in message
+    assert "jornal.example" not in message

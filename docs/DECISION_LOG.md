@@ -503,7 +503,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | Q16 | Aprovar a actualização condicional por documento de DEC-045 como controlo de concorrência, em vez de serialização global. | **OPEN.** A implementação não pode permitir que uma execução CLASSIFY sobrescreva a proposta ou a provenance confirmada por outra. |
 
 
-### DEC-048 — Suspensão do agendamento até existir persistência durável
+### DEC-048B — Suspensão do agendamento até existir persistência durável
 - **Problema:** DEC-046 activou o cron apesar de DEC-013 e D8 afirmarem que o SQLite de um runner efémero não é persistência durável. A base de dados e o relatório local desaparecem no fim do job, pelo que a execução agendada cria uma aparência de continuidade que não existe.
 - **Decisão:** Suspender temporariamente o cron. `.github/workflows/daily.yml` fica apenas com `workflow_dispatch`; o relatório produzido é guardado como artefacto GitHub Actions por 14 dias. A sincronização de rascunhos para GitHub Issues mantém-se. O agendamento só pode ser reactivado depois de D8 estar implementada e validada, com estado durável e partilhado.
 - **Razão:** Evitar execuções recorrentes sem persistência e sem acesso editorial consistente aos relatórios, respeitando DEC-013. O artefacto é apenas um mecanismo temporário de entrega do relatório, não a base de dados canónica.
@@ -518,7 +518,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Razão:** Decisão do responsável do projecto de passar a operação regular com a totalidade das 18 fontes registadas, aceitando o runner efémero enquanto D8 não estiver implementada.
 - **Salvaguardas:** `tde drafts sync-issues` só cria uma issue quando não existe nenhuma (aberta ou fechada) com a mesma referência ao URL da fonte, pelo que a perda do SQLite entre execuções não duplica rascunhos publicados como issues. Um endpoint que falhe faz o `tde daily` terminar com código `2` (falha parcial), com aviso no resumo do job, sem o falhar.
 - **Limitações:** Os registos de evidência V1–V5 em `docs/source_validation/` (DEC-036) ainda não existem para estes 11 endpoints; os URLs não foram testados tecnicamente nesta alteração e alguns podem precisar de correcção (por exemplo, `ss-rss` aponta para uma página de notícias e não para um feed). D8 continua OPEN.
-- **Impacto:** Substitui a DEC-048 (suspensão do agendamento) quanto à frequência. Não altera os códigos de saída, o esquema, o domínio nem a CLI.
+- **Impacto:** Substitui a DEC-048B (suspensão do agendamento) quanto à frequência. Não altera os códigos de saída, o esquema, o domínio nem a CLI.
 - **Estado:** Aceite
 - **Data:** 2026-10-11
 
@@ -572,5 +572,12 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Problema:** `normalize_published_at` só aceitava ISO 8601. O `pubDate` dos feeds RSS (RFC 822, p. ex. `Fri, 09 Oct 2026 09:00:00 GMT`) ficava nulo e o item contava como sendo do dia da recolha, deixando entrar notícias antigas (p. ex. um artigo de 14 de Agosto via Bing).
 - **Decisão:** (1) Datas RFC 822 com fuso explícito passam a ser convertidas para UTC; `-0000` (fuso desconhecido) continua nulo. (2) `tde daily` só selecciona itens cuja data de publicação, em Lisboa, é o dia do run; itens sem data fiável são descartados. (3) Um item cujo URL contém uma data (`AAAA/MM/DD` ou `AAAA-MM-DD`) diferente do dia é descartado. (4) Revoga a janela de dois dias da DEC-056; o scoring por tema mantém-se.
 - **Impacto:** Feeds sem `pubDate` (p. ex. DECO Proteste) deixam de gerar rascunhos. Fecha D13 quanto a RFC 822. Não altera o esquema nem a CLI.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
+
+### DEC-058 — Melhorias operacionais: deduplicação, resumo do run, guias, áreas e fecho automático
+- **Problema:** A revisão de 2026-10-11 identificou: deduplicação de issues limitada às primeiras 1000; falhas de fontes visíveis só no log; rascunhos sem ligação aos guias do tensdireito.com; fila de issues sem organização por tema; rascunhos antigos que se acumulam; documentação desactualizada, duas entradas DEC-048 e avisos do GitHub Actions (Node 20, migração do `ubuntu-latest`).
+- **Decisão:** (1) `sync-issues` lê todas as issues (`--limit 1000000`, paginação do `gh`). (2) `tde daily --summary-md FICHEIRO` acrescenta um resumo Markdown (métricas, fontes com falha, itens por fonte); o workflow escreve-o em `$GITHUB_STEP_SUMMARY`, junto com as issues criadas e fechadas. (3) `config/apoios.yaml` ganha a secção `guias` (43 páginas do tensdireito.com); quando o título refere um desses apoios, o "Saiba mais" do rascunho passa a "Saiba quem tem direito e como pedir" com o link do guia; a fonte original continua na issue e é a chave de deduplicação. (4) Cada issue recebe etiquetas `área: <nome>` conforme as áreas de `apoios.yaml` presentes no título ou no texto; as etiquetas são criadas se não existirem. (5) `tde drafts close-stale --days N` fecha como "não planeada", com comentário, as issues de rascunho abertas há mais de N dias; o workflow usa 3. (6) Actions actualizadas para v7 e runner fixado em `ubuntu-24.04`; README, DAILY_PIPELINE, ARCHITECTURE e TECHNICAL_SPEC actualizados; a segunda DEC-048 passa a DEC-048B.
+- **Impacto:** Novo módulo `topics.py` (mapa de áreas e guias, usado também pelo scoring). Novos comandos/opções na CLI; sem alteração ao esquema nem aos códigos de saída.
 - **Estado:** Aceite
 - **Data:** 2026-10-11

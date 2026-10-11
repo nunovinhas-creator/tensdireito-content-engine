@@ -38,7 +38,7 @@ uv run tde daily --date 2026-10-09 --report-dir data/reports/daily
 
 As opções globais `--config DIR` e `--db PATH` têm de preceder `daily`. O dia é interpretado em `Europe/Lisbon`. O código de saída é `0` para sucesso, `2` para sucesso parcial e `1` para erro fatal/todas as fontes falhadas.
 
-O score é uma heurística lexical de priorização, não uma avaliação jurídica. Os rascunhos começam como `unverified`; o texto conserva o excerto original e assinala que está por validar. A aprovação exige revisão humana e um nível de verificação explícito.
+O score é uma heurística lexical de priorização, não uma avaliação jurídica, reforçada pelos termos de `config/apoios.yaml` (DEC-056). Só entram notícias publicadas no próprio dia (DEC-057). Os rascunhos começam como `unverified`; seguem o formato curto de DEC-053 e, quando o título refere um apoio com guia no tensdireito.com, o link aponta para o guia (DEC-058). A aprovação exige revisão humana e um nível de verificação explícito.
 
 ## Revisão e exportação
 
@@ -53,7 +53,7 @@ A exportação produz texto para cópia manual. Não envia mensagens para o What
 
 ## GitHub Actions e persistência
 
-O workflow `.github/workflows/daily.yml` é **manual (`workflow_dispatch`)**, não agendado. Os runners hospedados são efémeros e o SQLite local não é partilhado nem preservado entre execuções. Cada execução manual preserva o relatório como artefacto por 14 dias e pode sincronizar rascunhos para GitHub Issues. Não activar agendamento recorrente até estar implementada e aprovada uma solução de persistência durável/partilhada, conforme DEC-013 e D8.
+O workflow `.github/workflows/daily.yml` corre três vezes por dia (08:00, 13:00 e 18:00 UTC) e pode ser iniciado manualmente (DEC-050). Executa `tde daily --summary-md "$GITHUB_STEP_SUMMARY"` (resumo por fonte na página do run), `tde drafts sync-issues` (issues com etiqueta por área, deduplicadas pelo URL da fonte em todas as issues) e `tde drafts close-stale --days 3` (fecha rascunhos antigos), e guarda o relatório como artefacto por 14 dias (DEC-058). O runner é efémero: o SQLite não persiste entre execuções e a fila operacional são as issues; a persistência durável continua pendente em D8.
 
 ## Documentação
 

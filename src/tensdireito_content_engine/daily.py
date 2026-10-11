@@ -28,6 +28,7 @@ from tensdireito_content_engine.storage import (
     persist_pending_drafts,
     sync_sources,
 )
+from tensdireito_content_engine.topics import TOPICS_FILENAME, TopicMap, load_topic_map
 
 LISBON = ZoneInfo("Europe/Lisbon")
 DEFAULT_REPORT_DIR = Path("data") / "reports" / "daily"
@@ -78,6 +79,7 @@ def run_daily(
     collection = run_collect(db_path, registry, now=fixed_now)
     selected_day = day or instant.astimezone(LISBON).date()
     topics = load_topic_terms(Path(config_path).parent / TOPICS_FILENAME)
+    topic_map = load_topic_map(Path(config_path).parent / TOPICS_FILENAME)
 
     candidates: list[tuple[StoredRawItem, NormalizedItem]] = []
     scores_by_raw_item: dict[int, float] = {}
@@ -112,7 +114,7 @@ def run_daily(
     articles.sort(key=_article_order)
 
     draft_candidates = [
-        (article.raw_item_id, article.editorial_score, _render_draft(article))
+        (article.raw_item_id, article.editorial_score, _render_draft(article, topic_map))
         for article in articles
         if article.editorial_score >= MINIMUM_RELEVANCE_SCORE
         and article.registry_status == "validated"
@@ -216,7 +218,6 @@ def _is_https_url(value: str) -> bool:
     )
 
 
-TOPICS_FILENAME = "apoios.yaml"
 TITLE_MAX_CHARS = 90
 POINT_MAX_CHARS = 160
 POINTS_MAX = 3
@@ -258,12 +259,15 @@ def _key_points(excerpt: str | None) -> tuple[str, ...]:
     return tuple(points)
 
 
-def _render_draft(article: DailyArticle) -> str:
+def _render_draft(article: DailyArticle, topic_map: TopicMap | None = None) -> str:
+    # DEC-058: se o título refere um apoio com guia no tensdireito.com, o link é o guia;
+    # a fonte original continua registada no rascunho e na issue.
+    guide = (topic_map or TopicMap()).guide_for(article.title)
     message = WhatsAppMessage(
         emoji="📢",
         title=_shorten(article.title, TITLE_MAX_CHARS),
         key_points=_key_points(article.excerpt),
-        cta="Saiba mais",
-        url=article.url,
+        cta="Saiba quem tem direito e como pedir" if guide else "Saiba mais",
+        url=guide or article.url,
     )
     return format_whatsapp_message(message)

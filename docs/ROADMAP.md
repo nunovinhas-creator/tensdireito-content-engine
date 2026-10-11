@@ -785,7 +785,7 @@ Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os
 **Pré-requisito bloqueante:** antes de activar qualquer execução agendada via GitHub Actions, tem de ser tomada e registada no [DECISION_LOG.md](DECISION_LOG.md) uma decisão sobre **persistência durável e estado partilhado** (D8). Um SQLite local num runner efémero **não** é solução suficiente para produção: o estado perde-se entre execuções e não é partilhado com a revisão humana.
 
 - Preparação manual disponível: `tde ingest` executa `sources sync → collect → normalize` numa base de dados já inicializada.
-- DEC-046 foi temporariamente suspensa pela DEC-048: o workflow GitHub Actions é manual (`workflow_dispatch`) até existir persistência durável/partilhada D8. O relatório é guardado como artefacto durante 14 dias; os códigos `0`, `1` e `2` mantêm o contrato definido em DEC-046.
+- DEC-046 foi suspensa pela DEC-048B e reactivada pela DEC-050: o workflow corre três vezes por dia, com resumo do run, etiquetas por área e fecho de rascunhos antigos (DEC-058). D8 (persistência durável) continua aberta. Os códigos `0`, `1` e `2` mantêm o contrato definido em DEC-046.
 - Evolução futura: workflow persistente para `tde run`, depois de resolvida D8.
 - Persistência conforme a decisão D8.
 - Notificação com o relatório da execução.

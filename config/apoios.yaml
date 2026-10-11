@@ -264,3 +264,94 @@ pesquisas_por_site:
   - portaldahabitacao.pt
   - cga.pt
   - parlamento.pt
+
+# Guias do tensdireito.com (DEC-058). Quando o título da notícia contém um dos
+# `termos`, o "Saiba mais" do rascunho aponta para o guia. A ordem conta: o
+# primeiro guia cujo termo aparece no título é o escolhido (específicos primeiro).
+guias:
+  - url: https://tensdireito.com/psu-lista-13-apoios.html
+    termos: [13 prestações, 13 apoios]
+  - url: https://tensdireito.com/psu-trabalho-social.html
+    termos: [trabalho social]
+  - url: https://tensdireito.com/calendario-pagamentos-psu.html
+    termos: [pagamento da PSU, pagamentos da PSU, pagamento da prestação social única]
+  - url: https://tensdireito.com/prestacao-social-unica.html
+    termos: [prestação social única, PSU]
+  - url: https://tensdireito.com/prova-escolar.html
+    termos: [prova escolar]
+  - url: https://tensdireito.com/abono-de-familia.html
+    termos: [abono de família, abono pré-natal, abono]
+  - url: https://tensdireito.com/garantia-para-a-infancia.html
+    termos: [garantia para a infância]
+  - url: https://tensdireito.com/creche-gratuita.html
+    termos: [creche gratuita, creches gratuitas, creche feliz]
+  - url: https://tensdireito.com/subsidio-parental.html
+    termos: [licença parental, subsídio parental, licença de maternidade, licença de paternidade]
+  - url: https://tensdireito.com/assistencia-familia-filhos.html
+    termos: [assistência a filho, assistência a filhos, assistência a neto]
+  - url: https://tensdireito.com/bolsa-de-merito.html
+    termos: [bolsa de mérito, bolsas de mérito]
+  - url: https://tensdireito.com/bolsa-de-estudo-ensino-superior.html
+    termos: [bolsa de estudo, bolsas de estudo, DGES]
+  - url: https://tensdireito.com/manuais-escolares-mega.html
+    termos: [manuais escolares, vales MEGA]
+  - url: https://tensdireito.com/acao-social-escolar.html
+    termos: [ação social escolar, ASE]
+  - url: https://tensdireito.com/calendario-escolar-apoios.html
+    termos: [apoios escolares]
+  - url: https://tensdireito.com/passe-sub23.html
+    termos: [passe sub-23, passe sub23]
+  - url: https://tensdireito.com/majoracao-subsidio-desemprego.html
+    termos: [majoração do subsídio de desemprego]
+  - url: https://tensdireito.com/subsidio-desemprego.html
+    termos: [subsídio de desemprego, subsídio social de desemprego]
+  - url: https://tensdireito.com/rsi.html
+    termos: [rendimento social de inserção, RSI]
+  - url: https://tensdireito.com/baixa-medica-subsidio-doenca.html
+    termos: [baixa médica, subsídio de doença, autodeclaração de doença]
+  - url: https://tensdireito.com/imt-jovem.html
+    termos: [IMT jovem, IMT]
+  - url: https://tensdireito.com/garantia-publica-credito-habitacao.html
+    termos: [garantia pública]
+  - url: https://tensdireito.com/porta-65.html
+    termos: [Porta 65]
+  - url: https://tensdireito.com/apoio-extraordinario-renda.html
+    termos: [apoio extraordinário à renda, apoio à renda]
+  - url: https://tensdireito.com/primeiro-direito.html
+    termos: [1.º Direito, Primeiro Direito]
+  - url: https://tensdireito.com/deducao-rendas-irs.html
+    termos: [dedução de rendas, dedução das rendas]
+  - url: https://tensdireito.com/tarifa-social-energia.html
+    termos: [tarifa social]
+  - url: https://tensdireito.com/complemento-solidario-idosos.html
+    termos: [complemento solidário para idosos, CSI]
+  - url: https://tensdireito.com/prestacao-social-para-a-inclusao.html
+    termos: [prestação social para a inclusão, PSI]
+  - url: https://tensdireito.com/amim-beneficios-fiscais.html
+    termos: [benefícios fiscais deficiência]
+  - url: https://tensdireito.com/amim.html
+    termos: [atestado multiuso, atestado multiusos, AMIM]
+  - url: https://tensdireito.com/cuidador-informal.html
+    termos: [cuidador informal, cuidadores informais]
+  - url: https://tensdireito.com/cartao-europeu-estacionamento.html
+    termos: [cartão europeu de estacionamento]
+  - url: https://tensdireito.com/carreiras-muito-longas.html
+    termos: [carreiras muito longas, carreiras longas]
+  - url: https://tensdireito.com/pensao-sobrevivencia-uniao-de-facto.html
+    termos: [união de facto]
+  - url: https://tensdireito.com/pensao-de-sobrevivencia.html
+    termos: [pensão de sobrevivência, pensões de sobrevivência]
+  - url: https://tensdireito.com/subsidio-por-morte.html
+    termos: [subsídio por morte, subsídio de funeral]
+  - url: https://tensdireito.com/pensao-unificada.html
+    termos: [pensão unificada]
+  - url: https://tensdireito.com/caixa-geral-aposentacoes.html
+    termos: [Caixa Geral de Aposentações, CGA]
+  - url: https://tensdireito.com/idade-normal.html
+    termos: [idade da reforma, idade de reforma, idade normal de acesso]
+  - url: https://tensdireito.com/mais-cedo-ou-mais-tarde.html
+    termos: [reforma antecipada, reformas antecipadas]
+  - url: https://tensdireito.com/pensao-e-trabalho.html
+    termos: [pensão e trabalho, trabalhar reformado]
+  - url: https://tensdireito.com/calendario-pagamentos-seguranca-social.html
+    termos: [calendário de pagamentos, pagamento das pensões, pagamentos da Segurança Social]

@@ -18,21 +18,21 @@ permissions:
 
 jobs:
   daily:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       issues: write
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Install project
         run: uv sync --locked
@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          uv run tde daily
+          uv run tde daily --summary-md "$GITHUB_STEP_SUMMARY"
           status=$?
           set -e
 
@@ -72,11 +72,28 @@ jobs:
       - name: Sync unverified drafts to GitHub Issues
         env:
           GH_TOKEN: ${{ github.token }}
-        run: uv run tde drafts sync-issues
+        shell: bash
+        run: |
+          uv run tde drafts sync-issues | tee sync.txt
+          {
+            echo "### Issues"
+            echo
+            sed 's/^/- /; s/^- - /  - /' sync.txt
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # DEC-058: só interessam notícias do dia; rascunhos com mais de 3 dias são fechados.
+      - name: Close stale draft issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          uv run tde drafts close-stale --days 3 | tee close.txt
+          sed 's/^/- /; s/^- - /  - /' close.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Preserve daily report as workflow artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tensdireito-daily-report-${{ github.run_id }}
           path: data/reports/daily/*.txt

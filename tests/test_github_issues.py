@@ -180,9 +180,7 @@ def test_sync_creates_at_most_one_issue_per_source_reference(monkeypatch, tmp_pa
         assert kwargs["text"] is True
         commands.append(command)
         if command[:3] == ["gh", "label", "list"]:
-            return SimpleNamespace(
-                returncode=0, stdout='[{"name":"draft-whatsapp"}]', stderr=""
-            )
+            return SimpleNamespace(returncode=0, stdout='[{"name":"draft-whatsapp"}]', stderr="")
         if command[:3] == ["gh", "issue", "list"]:
             return SimpleNamespace(returncode=0, stdout="[]", stderr="")
         if command[:3] == ["gh", "issue", "create"]:
@@ -227,3 +225,72 @@ def test_sync_rejects_invalid_github_json(monkeypatch, tmp_path):
 
     with pytest.raises(GitHubIssueError, match="JSON inválido"):
         sync_draft_issues(db)
+
+
+def test_sync_adds_area_labels_and_creates_missing_ones(monkeypatch, tmp_path):
+    from tensdireito_content_engine.topics import Area, TopicMap
+
+    db = database_with_unverified_draft(tmp_path)
+    commands: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        if command[:3] == ["gh", "label", "list"]:
+            return SimpleNamespace(
+                returncode=0, stdout=json.dumps([{"name": "draft-whatsapp"}]), stderr=""
+            )
+        if command[:3] in (["gh", "label", "create"], ["gh", "issue", "list"]):
+            out = "[]" if command[:3] == ["gh", "issue", "list"] else ""
+            return SimpleNamespace(returncode=0, stdout=out, stderr="")
+        if command[:3] == ["gh", "issue", "create"]:
+            return SimpleNamespace(returncode=0, stdout="https://x/issues/1\n", stderr="")
+        raise AssertionError(command)
+
+    monkeypatch.setattr("tensdireito_content_engine.github_issues.subprocess.run", fake_run)
+    topic_map = TopicMap(
+        areas=(Area("familia", "Família", ("noticia util",)), Area("x", "Outra", ("zzz",)))
+    )
+    sync_draft_issues(db, topic_map)
+
+    created = [c for c in commands if c[:3] == ["gh", "label", "create"]]
+    assert [c[3] for c in created] == ["área: Família"]
+    create = commands[-1]
+    labels = [create[i + 1] for i, arg in enumerate(create) if arg == "--label"]
+    assert labels == ["draft-whatsapp", "área: Família"]
+    issue_list = next(c for c in commands if c[:3] == ["gh", "issue", "list"])
+    assert issue_list[issue_list.index("--limit") + 1] == "1000000"
+
+
+def test_close_stale_closes_only_issues_older_than_the_limit(monkeypatch):
+    from tensdireito_content_engine.github_issues import close_stale_draft_issues
+
+    commands: list[list[str]] = []
+    issues = [
+        {"number": 5, "createdAt": "2026-10-05T10:00:00Z"},
+        {"number": 7, "createdAt": "2026-10-08T13:00:00Z"},
+        {"number": 6, "createdAt": "2026-10-01T10:00:00Z"},
+    ]
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        if command[:3] == ["gh", "issue", "list"]:
+            assert command[command.index("--state") + 1] == "open"
+            assert command[command.index("--label") + 1] == "draft-whatsapp"
+            return SimpleNamespace(returncode=0, stdout=json.dumps(issues), stderr="")
+        if command[:3] == ["gh", "issue", "close"]:
+            assert command[command.index("--reason") + 1] == "not planned"
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        raise AssertionError(command)
+
+    monkeypatch.setattr("tensdireito_content_engine.github_issues.subprocess.run", fake_run)
+    result = close_stale_draft_issues(3, now=datetime(2026, 10, 11, 12, tzinfo=UTC))
+
+    assert result.closed == (5, 6)
+    assert [c[3] for c in commands if c[:3] == ["gh", "issue", "close"]] == ["5", "6"]
+
+
+def test_close_stale_rejects_invalid_days():
+    from tensdireito_content_engine.github_issues import close_stale_draft_issues
+
+    with pytest.raises(ValueError):
+        close_stale_draft_issues(0)

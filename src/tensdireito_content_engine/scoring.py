@@ -8,6 +8,8 @@ from pathlib import Path
 import yaml
 
 from tensdireito_content_engine.normalize import NormalizedItem
+from tensdireito_content_engine.topics import contains as _contains_word
+from tensdireito_content_engine.topics import support_terms as _support_terms
 
 WEIGHTS = {
     "impact": 30,
@@ -73,9 +75,6 @@ class TopicTerms:
     named_supports: tuple[str, ...] = ()
 
 
-_PARENTHESES = re.compile(r"\(([^)]*)\)")
-
-
 def load_topic_terms(path: Path) -> TopicTerms:
     """Lê `apoios.yaml`; devolve termos vazios se o ficheiro não existir."""
     path = Path(path)
@@ -98,14 +97,6 @@ def load_topic_terms(path: Path) -> TopicTerms:
                 keywords.add(folded)
     keywords |= named
     return TopicTerms(keywords=tuple(sorted(keywords)), named_supports=tuple(sorted(named)))
-
-
-def _support_terms(name: str) -> list[str]:
-    """`Ação Social Escolar (ASE)` → `acao social escolar`, `ase`."""
-    inside = [part.strip() for match in _PARENTHESES.findall(name) for part in match.split(",")]
-    outside = _PARENTHESES.sub("", name).strip()
-    terms = [_fold(term).strip() for term in (outside, *inside)]
-    return [term for term in terms if len(term) >= 3]
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,11 +134,6 @@ def _dimension_score(text: str, terms: tuple[str, ...], *, whole_word: bool = Fa
 
 def _contains_term(text: str, term: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(term)}\w*", text) is not None
-
-
-def _contains_word(text: str, term: str) -> bool:
-    """Palavra ou expressão inteira, com plural opcional (`lar` não casa com `largo`)."""
-    return re.search(rf"(?<!\w){re.escape(term)}(?:s|es)?(?!\w)", text) is not None
 
 
 def _fold(value: str) -> str:
