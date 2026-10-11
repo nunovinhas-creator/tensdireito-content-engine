@@ -55,6 +55,7 @@ jobs:
         run: |
           uv run tde llm check | tee llm.txt
           sed 's/^/- /' llm.txt >> "$GITHUB_STEP_SUMMARY"
+          while IFS= read -r line; do echo "::notice title=IA::$line"; done < llm.txt
 
       - name: Run daily pipeline
         shell: bash

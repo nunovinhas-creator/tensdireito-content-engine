@@ -194,6 +194,15 @@ def test_llm_check_reports_each_provider(monkeypatch, capsys):
     assert lines == [
         "llm: OK — gemini gemini-3.5-flash-lite (whatsapp_draft)",
         "llm: ERRO — groq openai/gpt-oss-120b (whatsapp_draft): HTTP 429",
+        "llm: rascunho de teste — falhou a validação; os rascunhos usam regras",
     ]
+
+    monkeypatch.setattr(
+        llm_module, "_post_json", lambda *a: {"choices": [{"message": {"content": answer()}}]}
+    )
+    lines = cli.llm_check(CONFIG, {"GEMINI_API_KEY": "g"})
+    assert lines[-1] == (
+        "llm: rascunho de teste OK — 🎓 Bolsa de mérito: há apoio para alunos com boas notas"
+    )
     assert cli.main(["--config", str(CONFIG), "llm", "check"]) == 0
     capsys.readouterr()

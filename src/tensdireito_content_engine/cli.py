@@ -14,6 +14,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from tensdireito_content_engine import __version__
+from tensdireito_content_engine.ai_draft import write_whatsapp
 from tensdireito_content_engine.collect import CollectError, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry, default_registry
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
@@ -345,7 +346,22 @@ def llm_check(config_dir: Path, environ: Mapping[str, str]) -> list[str]:
             lines.append(f"llm: ERRO — {label} ({name}): {exc}")
         else:
             lines.append(f"llm: OK — {label} ({name})")
+    # Rascunho de teste completo (prompt, JSON e validação), com o texto do exemplo editorial.
+    proposal = write_whatsapp(loaded, SAMPLE_TITLE, SAMPLE_TEXT)
+    if proposal is None:
+        lines.append("llm: rascunho de teste — falhou a validação; os rascunhos usam regras")
+    else:
+        lines.append(f"llm: rascunho de teste OK — {proposal.emoji} {proposal.title}")
     return lines
+
+
+SAMPLE_TITLE = "Bolsa de mérito para alunos do secundário com Ação Social Escolar"
+SAMPLE_TEXT = (
+    "Os alunos do ensino secundário que sejam beneficiários da Ação Social Escolar podem ter "
+    "acesso a uma bolsa de mérito. É necessário ter média superior a 14 valores no 10.º ou "
+    "11.º ano. O valor da bolsa é de 1.342,83 euros. A candidatura deve ser feita até 30 de "
+    "setembro, na escola frequentada pelo aluno."
+)
 
 
 def drafts_close_stale(days: int) -> tuple[bool, list[str]]:
