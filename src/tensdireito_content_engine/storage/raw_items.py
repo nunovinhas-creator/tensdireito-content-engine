@@ -132,3 +132,36 @@ def _insert(conn: Connection, item: RawItem, run_id: int, timestamp: str) -> Non
             timestamp,
         ),
     )
+
+
+def prune_raw_items(path: Path, before: datetime) -> int:
+    """Apaga `raw_item` recolhidos antes de `before` e o que deles depende (DEC-061).
+
+    Com a base persistida entre execuções (cache do GitHub Actions), limita o
+    crescimento: remove rascunhos, documentos normalizados e itens antigos numa
+    transacção e compacta o ficheiro. Devolve o número de `raw_item` apagados.
+    """
+    cutoff = to_utc_iso(before)
+    old = "SELECT id FROM raw_item WHERE fetched_at < ?"
+    docs = f"SELECT id FROM source_document WHERE raw_item_id IN ({old})"
+    conn = open_existing_database(Path(path))
+    try:
+        with transaction(conn, "não foi possível limpar raw_item antigos"):
+            count = conn.execute(
+                "SELECT COUNT(*) FROM raw_item WHERE fetched_at < ?", (cutoff,)
+            ).fetchone()[0]
+            conn.execute(f"DELETE FROM whatsapp_draft WHERE raw_item_id IN ({old})", (cutoff,))
+            conn.execute(
+                f"UPDATE source_document SET duplicate_of = NULL WHERE duplicate_of IN ({docs})",
+                (cutoff,),
+            )
+            conn.execute(f"DELETE FROM source_document WHERE raw_item_id IN ({old})", (cutoff,))
+            conn.execute("DELETE FROM raw_item WHERE fetched_at < ?", (cutoff,))
+        if count:
+            try:
+                conn.execute("VACUUM")
+            except sqlite3.Error as exc:
+                raise StorageError(f"não foi possível compactar a base: {exc}") from exc
+        return int(count)
+    finally:
+        conn.close()

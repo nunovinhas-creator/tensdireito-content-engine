@@ -1,11 +1,11 @@
 name: Daily pipeline
 
-# Três execuções diárias (DEC-050): 08:00, 13:00 e 18:00 UTC.
-# O runner continua efémero (D8 OPEN): o SQLite não persiste entre execuções.
-# A deduplicação entre execuções é feita pelas issues (referência ao URL da fonte).
+# Três execuções diárias (DEC-050): 08:07, 13:07 e 18:07 UTC (minuto 7: DEC-061).
+# DEC-061: o SQLite passa entre execuções pelo cache do GitHub Actions (grátis). Se o
+# cache se perder, a base recomeça vazia; a deduplicação pelas issues continua a valer.
 on:
   schedule:
-    - cron: "0 8,13,18 * * *"
+    - cron: "7 8,13,18 * * *"
   workflow_dispatch:
 
 # Evita duas execuções em simultâneo a criar issues duplicadas; não cancela a que está a correr.
@@ -38,8 +38,23 @@ jobs:
       - name: Install project
         run: uv sync --locked
 
+      - name: Restore database
+        uses: actions/cache/restore@v6
+        with:
+          path: data/tde.sqlite3
+          key: tde-db-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: tde-db-
+
       - name: Validate configured sources
         run: uv run tde sources validate
+
+      - name: Check AI provider
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          uv run tde llm check | tee llm.txt
+          sed 's/^/- /' llm.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run daily pipeline
         shell: bash
@@ -94,6 +109,20 @@ jobs:
         run: |
           uv run tde drafts close-stale --days 3 | tee close.txt
           sed 's/^/- /; s/^- - /  - /' close.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prune old items
+        if: always()
+        shell: bash
+        run: |
+          uv run tde prune --days 60 | tee prune.txt
+          sed 's/^/- /' prune.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save database
+        if: always() && hashFiles('data/tde.sqlite3') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: data/tde.sqlite3
+          key: tde-db-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Preserve daily report as workflow artifact
         if: always()

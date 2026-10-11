@@ -143,3 +143,27 @@ def test_github_models_empty_answer_is_an_error(monkeypatch):
     monkeypatch.setattr(llm_module, "_post_json", lambda *a: {"choices": []})
     with pytest.raises(LLMError):
         llm_module.GitHubModelsProvider(token="t").complete(TASK, "s", "u")
+
+
+def test_llm_check_reports_disabled_ok_and_error(tmp_path, monkeypatch, capsys):
+    from tensdireito_content_engine import cli
+    from tensdireito_content_engine import llm as llm_module
+
+    config = Path(__file__).resolve().parents[1] / "config"
+    assert cli.llm_check(config, {})[0].startswith("llm: desactivado")
+
+    monkeypatch.setattr(
+        llm_module, "_post_json", lambda *a: {"choices": [{"message": {"content": "OK"}}]}
+    )
+    assert cli.llm_check(config, {"GITHUB_TOKEN": "t"}) == [
+        "llm: OK — github_models openai/gpt-4.1-mini (whatsapp_draft)"
+    ]
+
+    def fail(*args):
+        raise LLMError("HTTP 429")
+
+    monkeypatch.setattr(llm_module, "_post_json", fail)
+    assert cli.llm_check(config, {"GITHUB_TOKEN": "t"})[0].endswith("HTTP 429")
+    monkeypatch.setattr(cli, "default_registry", lambda: None)
+    assert cli.main(["--config", str(config), "llm", "check"]) == 0
+    capsys.readouterr()

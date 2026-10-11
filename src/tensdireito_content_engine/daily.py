@@ -88,7 +88,15 @@ def run_daily(
 
     candidates: list[tuple[StoredRawItem, NormalizedItem]] = []
     scores_by_raw_item: dict[int, float] = {}
-    for stored in list_raw_items(db_path):
+    stored_items = list_raw_items(db_path)
+    # DEC-061: primeira recolha de cada endpoint, para datar itens sem `pubDate`.
+    first_seen_by_endpoint: dict[str | None, date] = {}
+    for stored in stored_items:
+        seen = stored.item.fetched_at.astimezone(LISBON).date()
+        endpoint = stored.item.source_endpoint_id
+        if endpoint not in first_seen_by_endpoint or seen < first_seen_by_endpoint[endpoint]:
+            first_seen_by_endpoint[endpoint] = seen
+    for stored in stored_items:
         normalized = normalize_raw_item(stored.item)
         # DEC-059: fontes oficiais (T1/T2) passam à frente das restantes.
         scores_by_raw_item[stored.id] = min(
@@ -98,7 +106,14 @@ def run_daily(
         # DEC-057: só notícias com data de publicação do próprio dia (Lisboa); sem data
         # ou com uma data antiga no URL, o item é descartado.
         published = normalized.published_at
-        if published is None or published.astimezone(LISBON).date() != selected_day:
+        if published is None:
+            # Sem data: só conta se o item apareceu hoje pela primeira vez num endpoint que
+            # já tinha sido recolhido antes (com a base persistida, DEC-061).
+            seen = stored.item.fetched_at.astimezone(LISBON).date()
+            endpoint_start = first_seen_by_endpoint.get(stored.item.source_endpoint_id, seen)
+            if seen != selected_day or endpoint_start >= selected_day:
+                continue
+        elif published.astimezone(LISBON).date() != selected_day:
             continue
         if _url_date(stored.item.url) not in (None, selected_day):
             continue

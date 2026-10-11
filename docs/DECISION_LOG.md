@@ -485,7 +485,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 | D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
 | D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
 | D7 — Quem revê e aprova | Parcial: formato do registo fechado (DEC-014); pessoas e autenticação OPEN |
-| D8 — Persistência durável e estado partilhado | OPEN — DEC-047 Em Avaliação / Pendente de Aprovação: PostgreSQL gerido + S3/R2 para relatórios; falta aprovação da arquitectura e confirmação do fornecedor/credenciais/custos (DEC-013, DEC-026, DEC-046) |
+| D8 — Persistência durável e estado partilhado | Parcial — DEC-061: SQLite persistido pelo cache do GitHub Actions (grátis, sem garantia de retenção); a proposta PostgreSQL + S3/R2 (DEC-047) fica para quando for preciso estado partilhado garantido |
 | D9 — Frequência e agendamento das execuções | CLOSED (DEC-046) |
 | D10 — Destino de publicação | CLOSED (DEC-048, DEC-049; exportação WhatsApp, sem envio automático) |
 | D11 — Norma ortográfica do conteúdo publicado | **CLOSED (DEC-017)** |
@@ -595,5 +595,13 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Decisão:** O fornecedor por defeito de `generate:whatsapp` passa a ser o GitHub Models (`https://models.github.ai/inference/chat/completions`, compatível com OpenAI), com o modelo `openai/gpt-4.1-mini` e o `GITHUB_TOKEN` do workflow (permissão `models: read`); não é preciso chave nem secret. A Anthropic mantém-se como alternativa configurável em `config/llm.yaml`. O resumo do run passa a indicar quantos rascunhos foram redigidos por IA.
 - **Limitações:** O plano gratuito tem limites diários de pedidos; quando são excedidos, ou se o modelo deixar de estar disponível, o pipeline usa só regras, sem falhar.
 - **Impacto:** Substitui DEC-059 quanto ao fornecedor; validações e fallback mantêm-se. Sem custos.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
+
+### DEC-061 — Persistência grátis pelo cache do Actions, itens sem data, verificação da IA e horário
+- **Problema:** O SQLite perdia-se no fim de cada run (D8), o que impedia datar itens sem `pubDate` (p. ex. DECO) e obrigava a recomeçar a base três vezes por dia; não havia forma de confirmar se a IA gratuita respondia; as execuções agendadas à hora certa sofrem atrasos no GitHub.
+- **Decisão:** (1) O workflow restaura `data/tde.sqlite3` do cache do GitHub Actions (`actions/cache/restore`, prefixo `tde-db-`) antes do pipeline e guarda-o no fim (`actions/cache/save`, chave por run), sem custos nem contas externas. Se o cache se perder, a base recomeça vazia e a deduplicação pelas issues continua a valer. (2) `tde prune --days N` apaga `raw_item` recolhidos há mais de N dias (60 no workflow), com os rascunhos e documentos dependentes, e compacta a base. (3) Um item sem data de publicação conta como do dia se foi recolhido pela primeira vez nesse dia num endpoint que já tinha sido recolhido antes; na primeira recolha de um endpoint, os itens sem data são descartados. (4) `tde llm check` faz um pedido mínimo ao modelo configurado e escreve o resultado no resumo do run, sem nunca falhar o job. (5) O cron passa para o minuto 7 (08:07, 13:07, 18:07 UTC). (6) Rascunhos de registos de validação (`docs/source_validation/<id>.md`) para as 30 fontes sem registo, com as observações técnicas dos runs; V1–V5 ficam pendentes para preenchimento humano.
+- **Não decidido:** um collector `html_page` para sites sem feed. Os portais do Governo e da Segurança Social carregam as notícias por JavaScript e o IEFP não expõe ligações estáveis; estes domínios ficam cobertos pelas pesquisas `site:` do Bing (DEC-055).
+- **Impacto:** D8 fica parcialmente resolvida. Remover uma fonte de `config/sources.yaml` que já tenha itens na base persistida faz a sincronização falhar; deve passar a `INACTIVE` (regra existente de DEC-028). Sem alteração ao esquema.
 - **Estado:** Aceite
 - **Data:** 2026-10-11

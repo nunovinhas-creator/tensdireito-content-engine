@@ -524,3 +524,51 @@ def test_official_sources_get_a_tier_bonus():
     from tensdireito_content_engine.daily import TIER_BONUS
 
     assert TIER_BONUS == {"T1": 10, "T2": 5}
+
+
+def test_undated_items_use_first_collection_when_endpoint_was_seen_before(
+    monkeypatch, tmp_path, capsys
+):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    db = tmp_path / "tde.sqlite3"
+    day1, day2 = DAY, date(2026, 10, 10)
+    t1 = T0
+    t2 = datetime(2026, 10, 10, 8, 0, tzinfo=UTC)
+
+    def undated(url, fetched):
+        return RawItem(
+            url=url,
+            title=f"Notícia {url[-1]}",
+            raw_content="<item>Texto</item>",
+            fetched_at=fetched,
+            source_endpoint_id="news_feed",
+            published_at_raw=None,
+        )
+
+    def run(day, items):
+        collector = FakeRss(lambda endpoint_id: items)
+        monkeypatch.setattr(cli, "default_registry", lambda: CollectorRegistry([collector]))
+        code = cli.main(
+            [
+                "--config",
+                str(sources),
+                "--db",
+                str(db),
+                "daily",
+                "--date",
+                day.isoformat(),
+                "--report-dir",
+                str(tmp_path / "reports"),
+            ]
+        )
+        assert code == 0
+        return capsys.readouterr().out
+
+    # Primeira recolha do endpoint: o item sem data é descartado (pode ser antigo).
+    assert "notícias selecionadas: 0" in run(day1, [undated("https://news.example/a", t1)])
+    # No dia seguinte, só o item novo (visto pela primeira vez hoje) entra.
+    out = run(
+        day2,
+        [undated("https://news.example/a", t2), undated("https://news.example/b", t2)],
+    )
+    assert "notícias selecionadas: 1" in out

@@ -53,7 +53,7 @@ A exportação produz texto para cópia manual. Não envia mensagens para o What
 
 ## GitHub Actions e persistência
 
-O workflow `.github/workflows/daily.yml` corre três vezes por dia (08:00, 13:00 e 18:00 UTC) e pode ser iniciado manualmente (DEC-050). Executa `tde daily --summary-md "$GITHUB_STEP_SUMMARY"` (resumo por fonte na página do run), `tde drafts sync-issues` (issues com etiqueta por área, deduplicadas pelo URL da fonte em todas as issues) e `tde drafts close-stale --days 3` (fecha rascunhos antigos), e guarda o relatório como artefacto por 14 dias (DEC-058). O runner é efémero: o SQLite não persiste entre execuções e a fila operacional são as issues; a persistência durável continua pendente em D8.
+O workflow `.github/workflows/daily.yml` corre três vezes por dia (08:07, 13:07 e 18:07 UTC) e pode ser iniciado manualmente (DEC-050). Executa `tde daily --summary-md "$GITHUB_STEP_SUMMARY"` (resumo por fonte na página do run), `tde drafts sync-issues` (issues com etiqueta por área, deduplicadas pelo URL da fonte em todas as issues) e `tde drafts close-stale --days 3` (fecha rascunhos antigos), e guarda o relatório como artefacto por 14 dias (DEC-058). A base SQLite passa entre execuções pelo cache do GitHub Actions e é limpa de itens com mais de 60 dias (`tde prune`); `tde llm check` regista no resumo se a IA respondeu (DEC-061). A fila operacional continuam a ser as issues.
 
 ## Documentação
 

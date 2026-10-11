@@ -10,7 +10,7 @@ import os
 import platform
 import sys
 from collections.abc import Mapping, Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from tensdireito_content_engine import __version__
@@ -24,7 +24,7 @@ from tensdireito_content_engine.github_issues import (
     close_stale_draft_issues,
     sync_draft_issues,
 )
-from tensdireito_content_engine.llm import load_provider
+from tensdireito_content_engine.llm import LLMError, load_provider
 from tensdireito_content_engine.normalize_command import run_normalize
 from tensdireito_content_engine.publish.whatsapp import (
     WhatsAppMessage,
@@ -41,6 +41,7 @@ from tensdireito_content_engine.storage import (
     export_approved_drafts,
     init_database,
     list_drafts,
+    prune_raw_items,
     resolve_db_path,
     sync_sources,
 )
@@ -306,6 +307,36 @@ def drafts_sync_issues(db_path: Path, config_dir: Path) -> tuple[bool, list[str]
     ]
     lines.extend(f"- issue criada: {issue}" for issue in result.created)
     return True, lines
+
+
+def prune(db_path: Path, days: int, now: datetime | None = None) -> tuple[bool, list[str]]:
+    """Apaga itens recolhidos há mais de `days` dias (DEC-061)."""
+    if days < 1:
+        return False, ["prune: ERRO — --days tem de ser pelo menos 1"]
+    if not Path(db_path).is_file():
+        return True, ["prune: OK — base inexistente, nada a limpar"]
+    cutoff = (now or datetime.now(UTC)) - timedelta(days=days)
+    try:
+        removed = prune_raw_items(db_path, cutoff)
+    except StorageError as exc:
+        return False, [f"prune: ERRO — {exc}"]
+    return True, [f"prune: OK — {removed} itens com mais de {days} dias apagados"]
+
+
+def llm_check(config_dir: Path, environ: Mapping[str, str]) -> list[str]:
+    """Verifica o fornecedor de IA com um pedido mínimo; nunca falha o comando (DEC-061)."""
+    try:
+        loaded = load_provider(config_dir, environ)
+    except (OSError, ValueError, KeyError) as exc:
+        return [f"llm: ERRO — configuração inválida: {exc}"]
+    if loaded is None:
+        return ["llm: desactivado — sem configuração ou credencial; rascunhos só por regras"]
+    name, task = next(iter(loaded.tasks.items()))
+    try:
+        loaded.provider.complete(task, "Responde apenas: OK", "Teste de ligação.")
+    except LLMError as exc:
+        return [f"llm: ERRO — {loaded.provider.name} {task.model} ({name}): {exc}"]
+    return [f"llm: OK — {loaded.provider.name} {task.model} ({name})"]
 
 
 def drafts_close_stale(days: int) -> tuple[bool, list[str]]:
@@ -594,6 +625,15 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help=f"directório dos relatórios (por defeito: {DEFAULT_REPORT_DIR})",
     )
+    prune_parser = subparsers.add_parser(
+        "prune", help="apaga itens antigos da base para limitar o tamanho"
+    )
+    prune_parser.add_argument(
+        "--days", type=int, default=60, metavar="N", help="idade mínima em dias (por defeito: 60)"
+    )
+    llm_parser = subparsers.add_parser("llm", help="verifica o fornecedor de IA")
+    llm_actions = llm_parser.add_subparsers(dest="llm_command", metavar="<acção>", required=True)
+    llm_actions.add_parser("check", help="faz um pedido mínimo ao modelo configurado")
     drafts_parser = subparsers.add_parser(
         "drafts",
         help="lista, aprova e exporta rascunhos WhatsApp",
@@ -749,6 +789,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in err:
             print(line, file=sys.stderr)
         return code
+
+    if args.command == "prune":
+        ok, lines = prune(resolve_db_path(args.db, os.environ), args.days)
+        for line in lines:
+            print(line, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
+
+    if args.command == "llm" and args.llm_command == "check":
+        for line in llm_check(args.config, os.environ):
+            print(line)
+        return 0
 
     if args.command == "drafts" and args.drafts_command == "list":
         ok, lines = drafts_list(resolve_db_path(args.db, os.environ))

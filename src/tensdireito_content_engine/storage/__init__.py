@@ -41,6 +41,7 @@ from tensdireito_content_engine.storage.raw_items import (
     SavedItems,
     StoredRawItem,
     list_raw_items,
+    prune_raw_items,
     save_endpoint_items,
 )
 from tensdireito_content_engine.storage.runs import RUN_STATUSES, finish_run, start_run
@@ -58,6 +59,7 @@ from tensdireito_content_engine.storage.source_sync import (
 )
 
 __all__ = [
+    "prune_raw_items",
     "DB_PATH_ENV",
     "DEFAULT_DB_PATH",
     "RUN_STATUSES",
