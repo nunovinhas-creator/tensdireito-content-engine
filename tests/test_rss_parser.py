@@ -317,3 +317,29 @@ def test_declared_iso_8859_1():
     assert item.title == "Decisão do Tribunal sobre férias e subsídio"
     assert item.url == "https://feed.example.org/ação"
     assert "Acórdão n.º 1" in item.raw_content
+
+
+# --- Links de clique do Bing Notícias (DEC-055) ---------------------------------
+
+
+@pytest.mark.parametrize(
+    ("link", "expected"),
+    [
+        (
+            "https://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=ABC"
+            "&amp;url=https%3a%2f%2fnoticias.example.org%2fabono%3fx%3d1&amp;c=123&amp;mkt=pt-pt",
+            "https://noticias.example.org/abono?x=1",
+        ),
+        (
+            "https://bing.com/news/apiclick.aspx?url=javascript%3aalert(1)",
+            "https://bing.com/news/apiclick.aspx?url=javascript%3aalert(1)",
+        ),
+        ("https://www.bing.com/news/search?url=https%3a%2f%2fx.example.org", None),
+        ("https://noticias.example.org/a?url=https%3a%2f%2fy.example.org", None),
+    ],
+)
+def test_bing_click_links_are_unwrapped_to_the_publisher_url(link, expected):
+    body = rss(f"<item><title>T</title><link>{link}</link></item>")
+    [item] = parse(body)
+    original = link.replace("&amp;", "&")
+    assert item.url == (expected if expected is not None else original)

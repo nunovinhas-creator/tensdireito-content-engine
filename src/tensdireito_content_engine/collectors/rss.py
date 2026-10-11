@@ -13,7 +13,7 @@ antes de se processarem entidades (DEC-033 §10); só depois o documento é cons
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from datetime import UTC, datetime
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from xml.parsers import expat
 
 from tensdireito_content_engine.collectors.http import FeedTransport, TransportError
@@ -91,7 +91,7 @@ def _raw_item(
     link = _text(element, "link")
     if link is None or not link.strip():
         raise FeedError(f"item {position}: sem link")
-    url = link.strip()
+    url = _unwrap_aggregator_link(link.strip())
     if not _is_absolute_http_url(url):
         raise FeedError(f"item {position}: link não é URL absoluto http/https")
     return RawItem(
@@ -117,6 +117,25 @@ def _stripped(value: str | None) -> str | None:
     if value is None or not value.strip():
         return None
     return value.strip()
+
+
+_AGGREGATOR_REDIRECTS = {("www.bing.com", "/news/apiclick.aspx"), ("bing.com", "/news/apiclick.aspx")}
+
+
+def _unwrap_aggregator_link(url: str) -> str:
+    """URL do editor dentro de um link de clique de agregador (DEC-055).
+
+    O Bing Notícias entrega `bing.com/news/apiclick.aspx?url=<editor>&tid=…`; o
+    parâmetro `url` é lido sem seguir o link. Outros URLs ficam inalterados.
+    """
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+    if ((parts.hostname or "").lower(), parts.path.lower()) not in _AGGREGATOR_REDIRECTS:
+        return url
+    target = parse_qs(parts.query).get("url", [""])[0].strip()
+    return target if _is_absolute_http_url(target) else url
 
 
 def _is_absolute_http_url(url: str) -> bool:

@@ -552,3 +552,11 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** 31 fontes, 91 endpoints, 82 `ACTIVE`. Cerca de 5 minutos adicionais por execução (intervalo de 5 s entre pedidos ao mesmo anfitrião).
 - **Estado:** Aceite
 - **Data:** 2026-10-11
+
+### DEC-055 — Pesquisas por tema passam do Google Notícias para o Bing Notícias
+- **Problema:** No run de 2026-10-11 após DEC-054, os 61 endpoints `gn-*` falharam com `robots.txt não permite`: o robots.txt de news.google.com proíbe o acesso ao collector. `hrportugal-rss` falhou com XML malformado (atributo duplicado).
+- **Decisão:** (1) A fonte `google_news` é substituída por `bing_news`, com as mesmas 61 pesquisas (`bn-*`) em `https://www.bing.com/news/search?q=<pesquisa>&format=rss&setlang=pt-PT&cc=PT`; o robots.txt do Bing não restringe `/news/search`. (2) O collector RSS lê o URL do editor no parâmetro `url` dos links de clique `bing.com/news/apiclick.aspx`, sem seguir o link; os rascunhos e a deduplicação de issues usam esse URL. (3) `hrportugal-rss` volta a `INACTIVE`.
+- **Limitações:** O Bing devolve até 10 itens por pesquisa. Só entram no relatório diário itens publicados no próprio dia (Lisboa).
+- **Impacto:** 31 fontes, 91 endpoints, 81 `ACTIVE`. Não altera o esquema nem a CLI.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
