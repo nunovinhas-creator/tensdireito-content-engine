@@ -209,12 +209,21 @@ def test_default_tls_context_verifies_certificates():
 # --- Resposta -------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
+@pytest.mark.parametrize("status", [301, 303, 308])
 def test_redirect_is_not_followed(status):
     redirect = Reply(status, {"Location": "https://outro.example.org/rss.xml"})
     server = server_with(redirect)
     assert failure(server) == f"redirect não seguido: {status}"
     assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
+
+
+@pytest.mark.parametrize("status", [302, 307])
+def test_temporary_redirect_is_retried_once_but_never_followed(status):
+    redirect = Reply(status, {"Location": "https://outro.example.org/rss.xml"})
+    server = server_with(redirect)
+    assert failure(server) == f"redirect não seguido: {status}"
+    assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml", f"{HOST}/rss.xml"]
+    assert 20.0 in server.clock.sleeps
 
 
 @pytest.mark.parametrize("status", [201, 203, 204, 206, 400, 403, 404, 410, 429, 500, 503])
@@ -404,10 +413,22 @@ def test_incomplete_read_is_a_transport_failure():
     assert failure(server) == "erro de ligação: IncompleteRead"
 
 
-def test_failure_is_not_retried():
-    server = server_with(Reply(503, {"Content-Type": "text/plain"}))
+def test_permanent_failure_is_not_retried():
+    server = server_with(Reply(500, {"Content-Type": "text/plain"}))
     failure(server)
     assert server.paths().count(f"{HOST}/rss.xml") == 1
+
+
+@pytest.mark.parametrize("status", [429, 503])
+def test_temporary_failure_is_retried_once(status):
+    server = server_with(Reply(status, {"Content-Type": "text/plain"}))
+    assert failure(server) == f"HTTP {status}"
+    assert server.paths().count(f"{HOST}/rss.xml") == 2
+
+
+def test_retry_can_succeed():
+    server = server_with([Reply(307, {"Location": "https://x.example.org/"}), feed(BODY)])
+    assert server.transport().fetch_feed(FEED_URL).body == BODY
 
 
 def test_connections_are_closed():

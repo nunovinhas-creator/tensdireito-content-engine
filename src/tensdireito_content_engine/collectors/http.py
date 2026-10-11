@@ -48,6 +48,10 @@ ROBOTS_MAX_BYTES = 512 * 1024
 OPERATION_TIMEOUT_SECONDS = 20.0  # ligação e cada leitura
 REQUEST_TIMEOUT_SECONDS = 60.0  # total por pedido
 MIN_INTERVAL_SECONDS = 5.0  # entre pedidos ao mesmo anfitrião
+# DEC-062: respostas temporárias (p. ex. limitação do Bing com 307) têm uma nova
+# tentativa após uma pausa; o redirect nunca é seguido.
+RETRY_STATUSES = frozenset({302, 307, 429, 503})
+RETRY_DELAY_SECONDS = 20.0
 HTTPS_PORT = 443
 READ_CHUNK_BYTES = 64 * 1024
 
@@ -167,6 +171,9 @@ class HttpsTransport:
         self._public_address(target.host)  # destino não público falha antes de robots.txt
         self._require_robots_permission(target.host, url)
         status, response = self._get(target, _FEED)
+        if status in RETRY_STATUSES:
+            self._sleep(RETRY_DELAY_SECONDS)
+            status, response = self._get(target, _FEED)
         if status != 200:
             raise TransportError(_status_reason(status))
         assert response is not None

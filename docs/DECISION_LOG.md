@@ -480,7 +480,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 |---|--------|
 | D1 — Fontes T1 prioritárias e endpoints | **OPEN.** Fecha quando as fontes prioritárias e os respectivos endpoints forem validados manualmente, segundo o protocolo de DEC-034. Nenhum URL, feed, RSS ou API é assumido. |
 | D2 — Fontes T2/T3 | OPEN |
-| D3 — Fornecedor de IA e orçamento | Parcial: GitHub Models gratuito para `generate:whatsapp` (DEC-060); restantes tarefas OPEN |
+| D3 — Fornecedor de IA e orçamento | Parcial: Gemini/Groq em plano gratuito para `generate:whatsapp` (DEC-062); restantes tarefas OPEN |
 | D4 — Taxonomia | CLOSED (DEC-006) |
 | D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
 | D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
@@ -603,5 +603,12 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Decisão:** (1) O workflow restaura `data/tde.sqlite3` do cache do GitHub Actions (`actions/cache/restore`, prefixo `tde-db-`) antes do pipeline e guarda-o no fim (`actions/cache/save`, chave por run), sem custos nem contas externas. Se o cache se perder, a base recomeça vazia e a deduplicação pelas issues continua a valer. (2) `tde prune --days N` apaga `raw_item` recolhidos há mais de N dias (60 no workflow), com os rascunhos e documentos dependentes, e compacta a base. (3) Um item sem data de publicação conta como do dia se foi recolhido pela primeira vez nesse dia num endpoint que já tinha sido recolhido antes; na primeira recolha de um endpoint, os itens sem data são descartados. (4) `tde llm check` faz um pedido mínimo ao modelo configurado e escreve o resultado no resumo do run, sem nunca falhar o job. (5) O cron passa para o minuto 7 (08:07, 13:07, 18:07 UTC). (6) Rascunhos de registos de validação (`docs/source_validation/<id>.md`) para as 30 fontes sem registo, com as observações técnicas dos runs; V1–V5 ficam pendentes para preenchimento humano.
 - **Não decidido:** um collector `html_page` para sites sem feed. Os portais do Governo e da Segurança Social carregam as notícias por JavaScript e o IEFP não expõe ligações estáveis; estes domínios ficam cobertos pelas pesquisas `site:` do Bing (DEC-055).
 - **Impacto:** D8 fica parcialmente resolvida. Remover uma fonte de `config/sources.yaml` que já tenha itens na base persistida faz a sincronização falhar; deve passar a `INACTIVE` (regra existente de DEC-028). Sem alteração ao esquema.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
+
+### DEC-062 — Correcções do run de 2026-10-11 18:01 UTC: IA, etiquetas e limitação do Bing
+- **Problema:** (1) `tde llm check` devolveu `JSONDecodeError`: o GitHub Models foi descontinuado a 30 de Julho de 2026, pelo que DEC-060 não funciona. (2) `sync-issues` falhou com HTTP 422 ao criar a etiqueta `área: Idosos, Incapacidade e Cuidadores`: o GitHub não aceita vírgulas em nomes de etiquetas (e o `gh` separa `--label` por vírgulas); a falha parou a criação de issues e falhou o job. (3) 12 pesquisas do Bing e `economiafinancas-rss` falharam com redirect 307/302, de forma intermitente (limitação temporária).
+- **Decisão:** (1) `llm.py` passa a ter `OpenAICompatibleProvider` genérico e `ChainProvider`; `config/llm.yaml` lista Google Gemini (`gemini-3.5-flash-lite`, `GEMINI_API_KEY`) e Groq (`openai/gpt-oss-120b`, `GROQ_API_KEY`), ambos com plano gratuito sem cartão; usam-se, por ordem, os que tiverem chave (secrets do repositório). `tde llm check` testa cada um e as respostas não JSON passam a indicar o `Content-Type`. Substitui DEC-060. (2) As etiquetas de área trocam ", " por " / " e ficam até 50 caracteres; se o GitHub recusar uma etiqueta, a issue é criada sem ela. (3) O transporte repete uma vez, após 20 s, os pedidos com 302, 307, 429 ou 503; o redirect continua a não ser seguido (DEC-033).
+- **Impacto:** Sem as chaves, a IA fica desactivada e os rascunhos usam regras. Até ≈ 20 s extra por endpoint limitado. Sem alteração ao esquema.
 - **Estado:** Aceite
 - **Data:** 2026-10-11

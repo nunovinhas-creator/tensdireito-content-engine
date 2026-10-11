@@ -1,12 +1,29 @@
-# Fornecedor e modelo por tarefa (AI_RULES.md §7; DEC-059, DEC-060).
-# GitHub Models: gratuito, usa o GITHUB_TOKEN do workflow (permissão `models: read`),
-# com limites diários do plano grátis. Se falhar ou exceder o limite, os rascunhos
-# usam só regras. Para a API paga da Anthropic: provider: anthropic, model:
-# claude-haiku-5-5 e o secret ANTHROPIC_API_KEY.
-provider: github_models
+# Fornecedores de IA para a redacção dos rascunhos (AI_RULES.md §7; DEC-062).
+# São tentados por ordem; só entram os que têm a chave definida (secret do repositório).
+# Sem nenhuma chave, ou se todos falharem, os rascunhos usam só regras.
+# Ambos têm plano gratuito, sem cartão de crédito:
+#   GEMINI_API_KEY — Google AI Studio (aistudio.google.com) → "Get API key"
+#   GROQ_API_KEY   — console.groq.com → "API Keys"
+providers:
+  - name: gemini
+    url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+    key_env: GEMINI_API_KEY
+    model: gemini-3.5-flash-lite
+    extra:
+      reasoning_effort: low
+  - name: groq
+    url: https://api.groq.com/openai/v1/chat/completions
+    key_env: GROQ_API_KEY
+    model: openai/gpt-oss-120b
+    extra:
+      reasoning_effort: low
+  # API paga da Anthropic (opcional):
+  # - name: anthropic
+  #   type: anthropic
+  #   key_env: ANTHROPIC_API_KEY
+  #   model: claude-haiku-5-5
 tasks:
   whatsapp_draft:
-    model: openai/gpt-4.1-mini
     temperature: 0.3
-    max_tokens: 600
+    max_tokens: 2000
     prompt_id: llm:whatsapp_draft_v1

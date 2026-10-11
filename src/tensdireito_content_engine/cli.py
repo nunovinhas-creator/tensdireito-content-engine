@@ -330,13 +330,22 @@ def llm_check(config_dir: Path, environ: Mapping[str, str]) -> list[str]:
     except (OSError, ValueError, KeyError) as exc:
         return [f"llm: ERRO — configuração inválida: {exc}"]
     if loaded is None:
-        return ["llm: desactivado — sem configuração ou credencial; rascunhos só por regras"]
+        return [
+            "llm: desactivado — nenhuma chave definida (GEMINI_API_KEY ou GROQ_API_KEY); "
+            "rascunhos só por regras"
+        ]
     name, task = next(iter(loaded.tasks.items()))
-    try:
-        loaded.provider.complete(task, "Responde apenas: OK", "Teste de ligação.")
-    except LLMError as exc:
-        return [f"llm: ERRO — {loaded.provider.name} {task.model} ({name}): {exc}"]
-    return [f"llm: OK — {loaded.provider.name} {task.model} ({name})"]
+    providers = getattr(loaded.provider, "providers", (loaded.provider,))
+    lines = []
+    for provider in providers:
+        label = f"{provider.name} {getattr(provider, 'model', '')}".strip()
+        try:
+            provider.complete(task, "Responde apenas: OK", "Teste de ligação.")
+        except LLMError as exc:
+            lines.append(f"llm: ERRO — {label} ({name}): {exc}")
+        else:
+            lines.append(f"llm: OK — {label} ({name})")
+    return lines
 
 
 def drafts_close_stale(days: int) -> tuple[bool, list[str]]:

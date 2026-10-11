@@ -294,3 +294,12 @@ def test_close_stale_rejects_invalid_days():
 
     with pytest.raises(ValueError):
         close_stale_draft_issues(0)
+
+
+def test_area_label_has_no_commas_and_fits_github_limit():
+    from tensdireito_content_engine.github_issues import area_label
+
+    assert area_label("Idosos, Incapacidade e Cuidadores") == (
+        "área: Idosos / Incapacidade e Cuidadores"
+    )
+    assert len(area_label("x" * 80)) == 50

@@ -22,7 +22,6 @@ jobs:
     permissions:
       contents: read
       issues: write
-      models: read
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -50,7 +49,8 @@ jobs:
 
       - name: Check AI provider
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         shell: bash
         run: |
           uv run tde llm check | tee llm.txt
@@ -59,8 +59,9 @@ jobs:
       - name: Run daily pipeline
         shell: bash
         env:
-          # DEC-060: redacção com IA grátis via GitHub Models; sem acesso, só regras.
-          GITHUB_TOKEN: ${{ github.token }}
+          # DEC-062: redacção com IA (planos gratuitos); sem chaves, só regras.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           set +e
           uv run tde daily --summary-md "$GITHUB_STEP_SUMMARY"

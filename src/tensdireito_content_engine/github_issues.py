@@ -79,8 +79,12 @@ def sync_draft_issues(
         body = _issue_body(draft, reference)
         label_args = ["--label", LABEL]
         for area in topic_map.areas_for(f"{draft.title}\n{draft.message}"):
-            name = f"{AREA_LABEL_PREFIX}{area.name}"
-            _ensure_label(labels, name, AREA_LABEL_COLOR, f"Área temática: {area.name}")
+            name = area_label(area.name)
+            # DEC-062: uma etiqueta que o GitHub recuse não impede a criação da issue.
+            try:
+                _ensure_label(labels, name, AREA_LABEL_COLOR, f"Área temática: {area.name}")
+            except GitHubIssueError:
+                continue
             label_args += ["--label", name]
         result = _gh(
             [
@@ -99,6 +103,12 @@ def sync_draft_issues(
     return IssueSyncResult(
         created=tuple(created), already_present=already_present, same_topic=grouped
     )
+
+
+def area_label(area_name: str) -> str:
+    """Nome de etiqueta aceite pelo GitHub e pelo `gh`: sem vírgulas, até 50 caracteres."""
+    name = f"{AREA_LABEL_PREFIX}{area_name}".replace(", ", " / ").replace(",", " ")
+    return " ".join(name.split())[:50]
 
 
 def _recent_titles(issues: Any, since: datetime) -> list[str]:

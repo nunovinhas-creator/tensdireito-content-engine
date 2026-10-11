@@ -8,7 +8,7 @@ import pytest
 from tensdireito_content_engine.ai_draft import SYSTEM_PROMPT, write_whatsapp
 from tensdireito_content_engine.llm import LLMError, LoadedLLM, TaskConfig, load_provider
 
-TASK = TaskConfig(model="m", temperature=0.3, max_tokens=600, prompt_id="llm:test")
+TASK = TaskConfig(temperature=0.3, max_tokens=600, prompt_id="llm:test", model="m")
 SOURCE = (
     "Os alunos do ensino secundário com Ação Social Escolar podem pedir a bolsa de mérito. "
     "O valor é de 1.342,83 euros e a candidatura termina a 30 de setembro."
@@ -100,27 +100,39 @@ def test_source_is_truncated_and_delimited():
     assert len(user) < 4100
 
 
-def test_load_provider_uses_free_github_models_by_default(tmp_path):
-    from tensdireito_content_engine.llm import AnthropicProvider, GitHubModelsProvider
+CONFIG = Path(__file__).resolve().parents[1] / "config"
 
-    config = Path(__file__).resolve().parents[1] / "config"
-    assert load_provider(config, {}) is None
-    assert load_provider(tmp_path, {"GITHUB_TOKEN": "t"}) is None
-    loaded = load_provider(config, {"GITHUB_TOKEN": "t"})
-    assert isinstance(loaded.provider, GitHubModelsProvider)
-    assert loaded.tasks["whatsapp_draft"].model == "openai/gpt-4.1-mini"
+
+def test_load_provider_uses_only_providers_with_keys(tmp_path):
+    from tensdireito_content_engine.llm import ChainProvider, OpenAICompatibleProvider
+
+    assert load_provider(CONFIG, {}) is None
+    assert load_provider(tmp_path, {"GEMINI_API_KEY": "g"}) is None
+
+    only_groq = load_provider(CONFIG, {"GROQ_API_KEY": "q"})
+    assert isinstance(only_groq.provider, OpenAICompatibleProvider)
+    assert only_groq.provider.name == "groq"
+    assert only_groq.provider.url == "https://api.groq.com/openai/v1/chat/completions"
+
+    both = load_provider(CONFIG, {"GEMINI_API_KEY": "g", "GROQ_API_KEY": "q"})
+    assert isinstance(both.provider, ChainProvider)
+    assert [p.name for p in both.provider.providers] == ["gemini", "groq"]
+    assert both.tasks["whatsapp_draft"].max_tokens == 2000
+
+
+def test_anthropic_provider_can_be_configured(tmp_path):
+    from tensdireito_content_engine.llm import AnthropicProvider
 
     (tmp_path / "llm.yaml").write_text(
-        "provider: anthropic\ntasks:\n  whatsapp_draft:\n    model: claude-haiku-5-5\n",
+        "providers:\n  - name: anthropic\n    type: anthropic\n    key_env: K\n"
+        "    model: claude-haiku-5-5\ntasks:\n  whatsapp_draft: {}\n",
         encoding="utf-8",
     )
-    assert load_provider(tmp_path, {"GITHUB_TOKEN": "t"}) is None
-    assert isinstance(
-        load_provider(tmp_path, {"ANTHROPIC_API_KEY": "k"}).provider, AnthropicProvider
-    )
+    assert load_provider(tmp_path, {}) is None
+    assert isinstance(load_provider(tmp_path, {"K": "k"}).provider, AnthropicProvider)
 
 
-def test_github_models_request_and_response(monkeypatch):
+def test_openai_compatible_request_and_response(monkeypatch):
     from tensdireito_content_engine import llm as llm_module
 
     sent = {}
@@ -130,40 +142,58 @@ def test_github_models_request_and_response(monkeypatch):
         return {"choices": [{"message": {"content": "olá"}}]}
 
     monkeypatch.setattr(llm_module, "_post_json", fake_post)
-    provider = llm_module.GitHubModelsProvider(token="tok")
+    provider = llm_module.OpenAICompatibleProvider(
+        name="x",
+        url="https://api.example/v1/chat/completions",
+        api_key="tok",
+        model="m1",
+        extra={"reasoning_effort": "low"},
+    )
     assert provider.complete(TASK, "sistema", "utilizador") == "olá"
-    assert sent["url"] == "https://models.github.ai/inference/chat/completions"
     assert sent["headers"]["authorization"] == "Bearer tok"
+    assert sent["payload"]["model"] == "m1"
+    assert sent["payload"]["reasoning_effort"] == "low"
     assert [m["role"] for m in sent["payload"]["messages"]] == ["system", "user"]
 
 
-def test_github_models_empty_answer_is_an_error(monkeypatch):
+def test_empty_answer_is_an_error(monkeypatch):
     from tensdireito_content_engine import llm as llm_module
 
     monkeypatch.setattr(llm_module, "_post_json", lambda *a: {"choices": []})
+    provider = llm_module.OpenAICompatibleProvider(
+        name="x", url="https://a", api_key="t", model="m"
+    )
     with pytest.raises(LLMError):
-        llm_module.GitHubModelsProvider(token="t").complete(TASK, "s", "u")
+        provider.complete(TASK, "s", "u")
 
 
-def test_llm_check_reports_disabled_ok_and_error(tmp_path, monkeypatch, capsys):
+def test_chain_falls_back_to_the_next_provider():
+    from tensdireito_content_engine.llm import ChainProvider
+
+    first, second = FakeProvider(LLMError("HTTP 429")), FakeProvider("resposta")
+    first.name, second.name = "a", "b"
+    assert ChainProvider((first, second)).complete(TASK, "s", "u") == "resposta"
+    failing = ChainProvider((FakeProvider(LLMError("x")),))
+    with pytest.raises(LLMError):
+        failing.complete(TASK, "s", "u")
+
+
+def test_llm_check_reports_each_provider(monkeypatch, capsys):
     from tensdireito_content_engine import cli
     from tensdireito_content_engine import llm as llm_module
 
-    config = Path(__file__).resolve().parents[1] / "config"
-    assert cli.llm_check(config, {})[0].startswith("llm: desactivado")
+    assert cli.llm_check(CONFIG, {})[0].startswith("llm: desactivado")
 
-    monkeypatch.setattr(
-        llm_module, "_post_json", lambda *a: {"choices": [{"message": {"content": "OK"}}]}
-    )
-    assert cli.llm_check(config, {"GITHUB_TOKEN": "t"}) == [
-        "llm: OK — github_models openai/gpt-4.1-mini (whatsapp_draft)"
+    def fake_post(url, headers, payload):
+        if "groq" in url:
+            raise LLMError("HTTP 429")
+        return {"choices": [{"message": {"content": "OK"}}]}
+
+    monkeypatch.setattr(llm_module, "_post_json", fake_post)
+    lines = cli.llm_check(CONFIG, {"GEMINI_API_KEY": "g", "GROQ_API_KEY": "q"})
+    assert lines == [
+        "llm: OK — gemini gemini-3.5-flash-lite (whatsapp_draft)",
+        "llm: ERRO — groq openai/gpt-oss-120b (whatsapp_draft): HTTP 429",
     ]
-
-    def fail(*args):
-        raise LLMError("HTTP 429")
-
-    monkeypatch.setattr(llm_module, "_post_json", fail)
-    assert cli.llm_check(config, {"GITHUB_TOKEN": "t"})[0].endswith("HTTP 429")
-    monkeypatch.setattr(cli, "default_registry", lambda: None)
-    assert cli.main(["--config", str(config), "llm", "check"]) == 0
+    assert cli.main(["--config", str(CONFIG), "llm", "check"]) == 0
     capsys.readouterr()
