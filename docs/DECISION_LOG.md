@@ -480,7 +480,7 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 |---|--------|
 | D1 — Fontes T1 prioritárias e endpoints | **OPEN.** Fecha quando as fontes prioritárias e os respectivos endpoints forem validados manualmente, segundo o protocolo de DEC-034. Nenhum URL, feed, RSS ou API é assumido. |
 | D2 — Fontes T2/T3 | OPEN |
-| D3 — Fornecedor de IA e orçamento | OPEN |
+| D3 — Fornecedor de IA e orçamento | Parcial: Anthropic `claude-haiku-5-5` para `generate:whatsapp` (DEC-059); restantes tarefas OPEN |
 | D4 — Taxonomia | CLOSED (DEC-006) |
 | D5 — Verificação sem fonte oficial | CLOSED (DEC-004) |
 | D6 — Guia de estilo | CLOSED (DEC-008, DEC-018) |
@@ -579,5 +579,13 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Problema:** A revisão de 2026-10-11 identificou: deduplicação de issues limitada às primeiras 1000; falhas de fontes visíveis só no log; rascunhos sem ligação aos guias do tensdireito.com; fila de issues sem organização por tema; rascunhos antigos que se acumulam; documentação desactualizada, duas entradas DEC-048 e avisos do GitHub Actions (Node 20, migração do `ubuntu-latest`).
 - **Decisão:** (1) `sync-issues` lê todas as issues (`--limit 1000000`, paginação do `gh`). (2) `tde daily --summary-md FICHEIRO` acrescenta um resumo Markdown (métricas, fontes com falha, itens por fonte); o workflow escreve-o em `$GITHUB_STEP_SUMMARY`, junto com as issues criadas e fechadas. (3) `config/apoios.yaml` ganha a secção `guias` (43 páginas do tensdireito.com); quando o título refere um desses apoios, o "Saiba mais" do rascunho passa a "Saiba quem tem direito e como pedir" com o link do guia; a fonte original continua na issue e é a chave de deduplicação. (4) Cada issue recebe etiquetas `área: <nome>` conforme as áreas de `apoios.yaml` presentes no título ou no texto; as etiquetas são criadas se não existirem. (5) `tde drafts close-stale --days N` fecha como "não planeada", com comentário, as issues de rascunho abertas há mais de N dias; o workflow usa 3. (6) Actions actualizadas para v7 e runner fixado em `ubuntu-24.04`; README, DAILY_PIPELINE, ARCHITECTURE e TECHNICAL_SPEC actualizados; a segunda DEC-048 passa a DEC-048B.
 - **Impacto:** Novo módulo `topics.py` (mapa de áreas e guias, usado também pelo scoring). Novos comandos/opções na CLI; sem alteração ao esquema nem aos códigos de saída.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
+
+### DEC-059 — Agrupamento por tema, peso do nível da fonte e redacção com IA
+- **Problema:** Notícias sobre o mesmo acontecimento de fontes diferentes geravam vários rascunhos; fontes T3 com textos longos (p. ex. CGTP) dominavam a fila; os pontos-chave eram frases cortadas da fonte e não seguiam o estilo editorial pretendido.
+- **Decisão:** (1) **Agrupamento:** `similarity.py` compara títulos por palavras significativas (Jaccard ≥ 0,5 com ≥ 3 palavras em comum, ou ≥ 0,3 com ≥ 4); `tde daily` mantém só o rascunho de maior score de cada grupo, e `sync-issues` não abre issue se uma issue criada nos últimos 3 dias tem título do mesmo tema (contado como "do mesmo tema"). (2) **Nível da fonte:** bónus de +10 (T1) e +5 (T2) ao score, até 100. (3) **IA:** tarefa `generate:whatsapp` com `LLMProvider`/`AnthropicProvider` (biblioteca padrão), configurada em `config/llm.yaml` (`claude-haiku-5-5`, temperatura 0,3). O modelo recebe só título e texto da fonte e devolve emoji, título e 2–3 pontos em JSON; validação local, incluindo números suportados pela fonte; uma nova tentativa e depois fallback para regras. A chave vem do secret `ANTHROPIC_API_KEY`; sem ele, só regras. Fecha D3 para esta tarefa.
+- **Razão:** Uma mensagem por tema, prioridade às fontes oficiais e textos no formato do canal, mantendo revisão humana obrigatória e sem factos fora da fonte.
+- **Impacto:** Novos módulos `similarity.py`, `llm.py` e `ai_draft.py`; `llm.py` é o segundo módulo com rede (só `api.anthropic.com`). Custo estimado: cêntimos por dia (≈10–30 chamadas). Sem alteração ao esquema nem aos códigos de saída.
 - **Estado:** Aceite
 - **Data:** 2026-10-11

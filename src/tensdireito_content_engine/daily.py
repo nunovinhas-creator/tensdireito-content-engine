@@ -8,9 +8,11 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
+from tensdireito_content_engine.ai_draft import write_whatsapp
 from tensdireito_content_engine.collect import CollectResult, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry
 from tensdireito_content_engine.domain.policy import MINIMUM_RELEVANCE_SCORE
+from tensdireito_content_engine.llm import LoadedLLM
 from tensdireito_content_engine.normalize import (
     NormalizedItem,
     RawContentError,
@@ -20,6 +22,7 @@ from tensdireito_content_engine.normalize import (
 )
 from tensdireito_content_engine.publish.whatsapp import WhatsAppMessage, format_whatsapp_message
 from tensdireito_content_engine.scoring import load_topic_terms, score_item
+from tensdireito_content_engine.similarity import same_topic
 from tensdireito_content_engine.sources import load_sources
 from tensdireito_content_engine.storage import (
     StoredRawItem,
@@ -66,6 +69,7 @@ def run_daily(
     *,
     day: date | None = None,
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
+    writer: LoadedLLM | None = None,
 ) -> DailyResult:
     """Executa toda a fase diária; a repetição não duplica `raw_item` nem o relatório."""
     instant = now()
@@ -85,7 +89,11 @@ def run_daily(
     scores_by_raw_item: dict[int, float] = {}
     for stored in list_raw_items(db_path):
         normalized = normalize_raw_item(stored.item)
-        scores_by_raw_item[stored.id] = score_item(normalized, topics).value
+        # DEC-059: fontes oficiais (T1/T2) passam à frente das restantes.
+        scores_by_raw_item[stored.id] = min(
+            100.0,
+            score_item(normalized, topics).value + TIER_BONUS.get(stored.source_tier or "", 0),
+        )
         # DEC-057: só notícias com data de publicação do próprio dia (Lisboa); sem data
         # ou com uma data antiga no URL, o item é descartado.
         published = normalized.published_at
@@ -113,12 +121,21 @@ def run_daily(
     ]
     articles.sort(key=_article_order)
 
-    draft_candidates = [
-        (article.raw_item_id, article.editorial_score, _render_draft(article, topic_map))
+    eligible = [
+        article
         for article in articles
         if article.editorial_score >= MINIMUM_RELEVANCE_SCORE
         and article.registry_status == "validated"
         and _is_https_url(article.url)
+    ]
+    # DEC-059: notícias do mesmo tema dão um único rascunho, o de maior score.
+    representatives: list[DailyArticle] = []
+    for article in sorted(eligible, key=lambda a: (-a.editorial_score, _article_order(a))):
+        if not any(same_topic(article.title, kept.title) for kept in representatives):
+            representatives.append(article)
+    draft_candidates = [
+        (article.raw_item_id, article.editorial_score, _render_draft(article, topic_map, writer))
+        for article in representatives
     ]
     report_dir = Path(report_dir)
     report_path = report_dir / f"{selected_day.isoformat()}.txt"
@@ -218,6 +235,7 @@ def _is_https_url(value: str) -> bool:
     )
 
 
+TIER_BONUS = {"T1": 10, "T2": 5}
 TITLE_MAX_CHARS = 90
 POINT_MAX_CHARS = 160
 POINTS_MAX = 3
@@ -259,14 +277,19 @@ def _key_points(excerpt: str | None) -> tuple[str, ...]:
     return tuple(points)
 
 
-def _render_draft(article: DailyArticle, topic_map: TopicMap | None = None) -> str:
+def _render_draft(
+    article: DailyArticle, topic_map: TopicMap | None = None, writer: LoadedLLM | None = None
+) -> str:
     # DEC-058: se o título refere um apoio com guia no tensdireito.com, o link é o guia;
     # a fonte original continua registada no rascunho e na issue.
     guide = (topic_map or TopicMap()).guide_for(article.title)
+    # DEC-059: com IA configurada, título e pontos são uma proposta validada do modelo;
+    # sem IA ou se a proposta falhar a validação, usam-se as frases da fonte.
+    proposal = write_whatsapp(writer, article.title, article.excerpt)
     message = WhatsAppMessage(
-        emoji="📢",
-        title=_shorten(article.title, TITLE_MAX_CHARS),
-        key_points=_key_points(article.excerpt),
+        emoji=proposal.emoji if proposal else "📢",
+        title=proposal.title if proposal else _shorten(article.title, TITLE_MAX_CHARS),
+        key_points=proposal.key_points if proposal else _key_points(article.excerpt),
         cta="Saiba quem tem direito e como pedir" if guide else "Saiba mais",
         url=guide or article.url,
     )

@@ -703,9 +703,10 @@ def _is_network(module: str) -> bool:
 
 def test_only_the_transport_imports_network_modules():
     transport_path = PACKAGE_DIR / "collectors" / "http.py"
+    llm_path = PACKAGE_DIR / "llm.py"  # DEC-059: cliente do modelo de linguagem
     assert {module for module in _imports(transport_path) if _is_network(module)}
     for path in sorted(PACKAGE_DIR.rglob("*.py")):
-        if path == transport_path:
+        if path in (transport_path, llm_path):
             continue
         assert not {module for module in _imports(path) if _is_network(module)}, path
 

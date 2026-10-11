@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from tensdireito_content_engine.similarity import same_topic
 from tensdireito_content_engine.storage import DraftIssueData, list_unverified_drafts_for_issues
 from tensdireito_content_engine.topics import TopicMap
 
@@ -15,6 +16,9 @@ AREA_LABEL_PREFIX = "área: "
 AREA_LABEL_COLOR = "0E8A16"
 # DEC-058: sem limite prático; o `gh` pagina internamente.
 ISSUE_LIST_LIMIT = "1000000"
+TITLE_PREFIX = "[Rascunho WhatsApp] "
+# DEC-059: um rascunho não abre nova issue se uma issue recente trata o mesmo tema.
+SAME_TOPIC_WINDOW = timedelta(days=3)
 STALE_COMMENT = "Fechada automaticamente: rascunho com mais de {days} dias (DEC-058)."
 REFERENCE_PREFIX = "<!-- tensdireito-draft-source: "
 REFERENCE_SUFFIX = " -->"
@@ -28,6 +32,7 @@ class GitHubIssueError(Exception):
 class IssueSyncResult:
     created: tuple[str, ...]
     already_present: int
+    same_topic: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,7 +40,9 @@ class StaleCloseResult:
     closed: tuple[int, ...]
 
 
-def sync_draft_issues(db_path: Path, topic_map: TopicMap | None = None) -> IssueSyncResult:
+def sync_draft_issues(
+    db_path: Path, topic_map: TopicMap | None = None, now: datetime | None = None
+) -> IssueSyncResult:
     """Cria uma issue para cada rascunho ainda não verificado sem referência existente."""
     drafts = list_unverified_drafts_for_issues(db_path)
     if not drafts:
@@ -44,9 +51,20 @@ def sync_draft_issues(db_path: Path, topic_map: TopicMap | None = None) -> Issue
     labels = _existing_labels()
     _ensure_label(labels, LABEL, "1D76DB", "Rascunho WhatsApp pendente de revisão editorial")
     issues = _gh_json(
-        ["issue", "list", "--state", "all", "--limit", ISSUE_LIST_LIMIT, "--json", "number,body"]
+        [
+            "issue",
+            "list",
+            "--state",
+            "all",
+            "--limit",
+            ISSUE_LIST_LIMIT,
+            "--json",
+            "number,body,title,createdAt",
+        ]
     )
     issue_bodies = _issue_bodies(issues)
+    recent_titles = _recent_titles(issues, (now or datetime.now(UTC)) - SAME_TOPIC_WINDOW)
+    grouped = 0
 
     created: list[str] = []
     already_present = 0
@@ -54,6 +72,9 @@ def sync_draft_issues(db_path: Path, topic_map: TopicMap | None = None) -> Issue
         reference = _source_reference(draft.source_url)
         if any(reference in body for body in issue_bodies):
             already_present += 1
+            continue
+        if any(same_topic(draft.title, title) for title in recent_titles):
+            grouped += 1
             continue
         body = _issue_body(draft, reference)
         label_args = ["--label", LABEL]
@@ -66,7 +87,7 @@ def sync_draft_issues(db_path: Path, topic_map: TopicMap | None = None) -> Issue
                 "issue",
                 "create",
                 "--title",
-                f"[Rascunho WhatsApp] {draft.title}",
+                f"{TITLE_PREFIX}{draft.title}",
                 "--body",
                 body,
                 *label_args,
@@ -74,7 +95,26 @@ def sync_draft_issues(db_path: Path, topic_map: TopicMap | None = None) -> Issue
         )
         created.append(result.strip())
         issue_bodies.append(body)
-    return IssueSyncResult(created=tuple(created), already_present=already_present)
+        recent_titles.append(draft.title)
+    return IssueSyncResult(
+        created=tuple(created), already_present=already_present, same_topic=grouped
+    )
+
+
+def _recent_titles(issues: Any, since: datetime) -> list[str]:
+    """Títulos (sem prefixo) das issues criadas desde `since`; ignora entradas sem data."""
+    titles: list[str] = []
+    for issue in issues if isinstance(issues, list) else ():
+        title, created = issue.get("title"), issue.get("createdAt")
+        if not isinstance(title, str) or not isinstance(created, str):
+            continue
+        try:
+            when = datetime.fromisoformat(created.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if when >= since:
+            titles.append(title.removeprefix(TITLE_PREFIX))
+    return titles
 
 
 def close_stale_draft_issues(days: int, now: datetime | None = None) -> StaleCloseResult:

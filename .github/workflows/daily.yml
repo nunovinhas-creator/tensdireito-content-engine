@@ -42,6 +42,9 @@ jobs:
 
       - name: Run daily pipeline
         shell: bash
+        env:
+          # DEC-059: opcional; sem o secret, os rascunhos usam só regras.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           set +e
           uv run tde daily --summary-md "$GITHUB_STEP_SUMMARY"

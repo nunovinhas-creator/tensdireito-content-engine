@@ -1,0 +1,10 @@
+# Fornecedor e modelo por tarefa (AI_RULES.md §7; DEC-059).
+# A chave é lida de ANTHROPIC_API_KEY (secret do repositório). Sem chave, o pipeline
+# usa só regras e os rascunhos mantêm as frases da fonte.
+provider: anthropic
+tasks:
+  whatsapp_draft:
+    model: claude-haiku-5-5
+    temperature: 0.3
+    max_tokens: 600
+    prompt_id: llm:whatsapp_draft_v1

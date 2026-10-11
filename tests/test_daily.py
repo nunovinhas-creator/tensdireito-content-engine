@@ -488,3 +488,39 @@ def test_draft_links_to_tensdireito_guide_when_title_matches():
     message = _render_draft(article, topic_map)
     assert f"🔎 **Saiba quem tem direito e como pedir:** {guide}" in message
     assert "jornal.example" not in message
+
+
+def test_same_topic_news_produce_a_single_draft(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "feed_a", "feed_b")
+    raw = (
+        "<item><description>A nova prestação aumenta e cria direito para trabalhadores. "
+        "Deve requerer apoio até 31 de outubro, prazo para pedir. {}</description></item>"
+    )
+    titles = {
+        "feed_a": "Prestação Social Única entra em vigor e agrega 13 apoios sociais",
+        "feed_b": "Prestação Social Única entra em vigor hoje e chega ao terreno em dezembro",
+    }
+    collector = FakeRss(
+        lambda endpoint_id: [
+            item(
+                endpoint_id,
+                raw=raw.format(endpoint_id),
+                title=titles[endpoint_id],
+                url=f"https://news.example/{endpoint_id}",
+            )
+        ]
+    )
+
+    code, db, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
+    output = capsys.readouterr().out
+    assert "duplicados na janela: 0" in output
+    assert "notícias selecionadas: 2" in output
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone() == (1,)
+    assert code == 0
+
+
+def test_official_sources_get_a_tier_bonus():
+    from tensdireito_content_engine.daily import TIER_BONUS
+
+    assert TIER_BONUS == {"T1": 10, "T2": 5}

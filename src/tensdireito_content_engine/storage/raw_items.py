@@ -34,6 +34,7 @@ class StoredRawItem:
     source_id: str | None
     source_name: str
     registry_status: str | None
+    source_tier: str | None = None
 
 
 def list_raw_items(path: Path) -> tuple[StoredRawItem, ...]:
@@ -43,7 +44,7 @@ def list_raw_items(path: Path) -> tuple[StoredRawItem, ...]:
         rows = conn.execute(
             "SELECT r.id, r.url, r.title, r.raw_content, r.fetched_at, r.source_endpoint_id, "
             "r.external_id, r.published_at_raw, r.manual_note, s.id, s.name, "
-            "s.registry_status "
+            "s.registry_status, s.tier "
             "FROM raw_item r LEFT JOIN source_endpoint e ON e.id = r.source_endpoint_id "
             "LEFT JOIN source_registry s ON s.id = e.source_id "
             "ORDER BY r.fetched_at, r.source_endpoint_id, r.url, r.id"
@@ -69,6 +70,7 @@ def list_raw_items(path: Path) -> tuple[StoredRawItem, ...]:
             source_id=row[9],
             source_name=row[10] or "Fonte não identificada",
             registry_status=row[11],
+            source_tier=row[12],
         )
         for row in rows
     )

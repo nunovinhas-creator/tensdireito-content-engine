@@ -9,7 +9,7 @@ import json
 import os
 import platform
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -24,6 +24,7 @@ from tensdireito_content_engine.github_issues import (
     close_stale_draft_issues,
     sync_draft_issues,
 )
+from tensdireito_content_engine.llm import load_provider
 from tensdireito_content_engine.normalize_command import run_normalize
 from tensdireito_content_engine.publish.whatsapp import (
     WhatsAppMessage,
@@ -215,6 +216,7 @@ def daily(
     registry: CollectorRegistry,
     day: date | None,
     summary_md: Path | None = None,
+    environ: Mapping[str, str] | None = None,
 ) -> tuple[int, list[str], list[str]]:
     """Executa o pipeline diário e traduz o resultado para a CLI."""
     try:
@@ -224,6 +226,7 @@ def daily(
             report_dir,
             registry,
             day=day,
+            writer=load_provider(config_dir, environ or {}),
         )
         if summary_md is not None:
             with Path(summary_md).open("a", encoding="utf-8") as handle:
@@ -298,7 +301,7 @@ def drafts_sync_issues(db_path: Path, config_dir: Path) -> tuple[bool, list[str]
         return False, [f"drafts sync-issues: ERRO — {exc}"]
     lines = [
         f"drafts sync-issues: OK — {len(result.created)} issues criadas, "
-        f"{result.already_present} já existentes"
+        f"{result.already_present} já existentes, {result.same_topic} do mesmo tema"
     ]
     lines.extend(f"- issue criada: {issue}" for issue in result.created)
     return True, lines
@@ -738,6 +741,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             default_registry(),
             args.date,
             args.summary_md,
+            os.environ,
         )
         for line in out:
             print(line)
