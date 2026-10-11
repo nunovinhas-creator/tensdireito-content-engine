@@ -63,13 +63,14 @@ def test_publish_whatsapp_prints_eligible_preview(tmp_path, capsys):
     assert captured.err == ""
     assert captured.out.splitlines() == [
         "publish: PRÉ-VISUALIZAÇÃO — whatsapp",
-        "📢 *Novo apoio às famílias*",
+        "📢 **NOVO APOIO ÀS FAMÍLIAS**",
         "",
-        "• Quem pode pedir",
-        "• Qual o prazo",
+        "👉 Quem pode pedir",
+        "👉 Qual o prazo",
         "",
-        "👉 *Consulte os detalhes*",
-        "_Saiba mais:_ https://example.org/direito",
+        "🔎 **Consulte os detalhes:** https://example.org/direito",
+        "",
+        "👉 **Tensdireito.com — informação útil para o seu bolso.**",
     ]
 
 

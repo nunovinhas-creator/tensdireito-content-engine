@@ -22,11 +22,11 @@ def create_message(**overrides):
 
 def test_format_whatsapp_message_uses_channel_syntax_and_required_structure():
     assert format_whatsapp_message(create_message()) == (
-        "📢 *Novo apoio às famílias*\n\n"
-        "• Pode pedir online\n"
-        "• O prazo termina em junho\n\n"
-        "👉 *Veja se tem direito*\n"
-        "_Saiba mais:_ https://example.org/direito"
+        "📢 **NOVO APOIO ÀS FAMÍLIAS**\n\n"
+        "👉 Pode pedir online\n"
+        "👉 O prazo termina em junho\n\n"
+        "🔎 **Veja se tem direito:** https://example.org/direito\n\n"
+        "👉 **Tensdireito.com — informação útil para o seu bolso.**"
     )
 
 

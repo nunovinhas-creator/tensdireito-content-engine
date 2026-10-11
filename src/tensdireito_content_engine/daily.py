@@ -1,5 +1,6 @@
 """Execução diária: recolha persistida, normalização, deduplicação e relatório."""
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -30,6 +31,8 @@ from tensdireito_content_engine.storage import (
 
 LISBON = ZoneInfo("Europe/Lisbon")
 DEFAULT_REPORT_DIR = Path("data") / "reports" / "daily"
+
+
 @dataclass(frozen=True, slots=True)
 class DailyArticle:
     title: str
@@ -193,18 +196,53 @@ def _is_https_url(value: str) -> bool:
     )
 
 
+TITLE_MAX_CHARS = 90
+POINT_MAX_CHARS = 160
+POINTS_MAX = 3
+POINTS_TOTAL_MAX_CHARS = 380
+FALLBACK_POINT = "Veja todos os detalhes na notícia completa."
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Þ0-9\"“«(])")
+
+
+def _shorten(text: str, limit: int) -> str:
+    """Corta `text` numa fronteira de palavra, com reticências, se exceder `limit`."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    cut = text[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:–-")
+    return f"{cut}…"
+
+
+def _key_points(excerpt: str | None) -> tuple[str, ...]:
+    """Até 3 frases curtas do excerpt da fonte, dentro do orçamento de caracteres (DEC-053)."""
+    if not excerpt:
+        return ("Resumo pendente de revisão editorial.", FALLBACK_POINT)
+    points: list[str] = []
+    used = 0
+    for sentence in _SENTENCE_END.split(" ".join(excerpt.split())):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        point = _shorten(sentence, POINT_MAX_CHARS)
+        if points and used + len(point) > POINTS_TOTAL_MAX_CHARS:
+            break
+        points.append(point)
+        used += len(point)
+        if len(points) == POINTS_MAX:
+            break
+    if not points:
+        points.append(_shorten(excerpt, POINT_MAX_CHARS))
+    if len(points) < 2:
+        points.append(FALLBACK_POINT)
+    return tuple(points)
+
+
 def _render_draft(article: DailyArticle) -> str:
-    excerpt = article.excerpt
-    point = (
-        f"Resumo da fonte (por validar): {' '.join(excerpt.split())}"
-        if excerpt
-        else "Resumo pendente de revisão editorial."
-    )
     message = WhatsAppMessage(
         emoji="📢",
-        title=article.title,
-        key_points=(point, "Confirme os factos e o impacto antes de aprovar."),
-        cta="Consulte a fonte",
+        title=_shorten(article.title, TITLE_MAX_CHARS),
+        key_points=_key_points(article.excerpt),
+        cta="Saiba mais",
         url=article.url,
     )
     return format_whatsapp_message(message)

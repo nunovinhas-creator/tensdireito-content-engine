@@ -62,8 +62,7 @@ def sync_draft_issues(db_path: Path) -> IssueSyncResult:
 def _ensure_label() -> None:
     labels = _gh_json(["label", "list", "--limit", "1000", "--json", "name"])
     if not isinstance(labels, list) or any(
-        not isinstance(label, dict) or not isinstance(label.get("name"), str)
-        for label in labels
+        not isinstance(label, dict) or not isinstance(label.get("name"), str) for label in labels
     ):
         raise GitHubIssueError("a resposta de `gh label list` tem formato inválido")
     if any(label["name"] == LABEL for label in labels):
@@ -103,6 +102,7 @@ def _issue_body(draft: DraftIssueData, reference: str) -> str:
         "---\n"
         f"**Score de relevância:** {draft.editorial_score:g}/100\n\n"
         f"**Fonte original:** {draft.source_url}\n\n"
+        "⚠️ Resumo automático a partir da fonte: confirme os factos antes de publicar.\n\n"
         "Copie o texto para o WhatsApp e feche a issue após publicação.\n\n"
         f"{reference}"
     )

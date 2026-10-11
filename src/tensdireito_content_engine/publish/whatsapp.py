@@ -79,12 +79,15 @@ def check_whatsapp_eligibility(
     return tuple(reasons)
 
 
+SIGNATURE = "👉 **Tensdireito.com — informação útil para o seu bolso.**"
+
+
 def format_whatsapp_message(message: WhatsAppMessage) -> str:
-    """Formata título, pontos-chave, CTA e hiperligação com sintaxe WhatsApp."""
-    points = "\n".join(f"• {point}" for point in message.key_points)
+    """Formata título, pontos-chave, CTA, hiperligação e assinatura fixa (DEC-053)."""
+    points = "\n".join(f"👉 {point}" for point in message.key_points)
     return (
-        f"{message.emoji} *{message.title}*\n\n"
+        f"{message.emoji} **{message.title.upper()}**\n\n"
         f"{points}\n\n"
-        f"👉 *{message.cta}*\n"
-        f"_Saiba mais:_ {message.url}"
+        f"🔎 **{message.cta}:** {message.url}\n\n"
+        f"{SIGNATURE}"
     )

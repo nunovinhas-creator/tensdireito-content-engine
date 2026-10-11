@@ -537,3 +537,10 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** 18 endpoints `ACTIVE`. Não altera o esquema, o domínio, a CLI nem os códigos de saída.
 - **Estado:** Aceite
 - **Data:** 2026-10-11
+
+### DEC-053 — Formato curto das mensagens WhatsApp e assinatura fixa
+- **Problema:** Os rascunhos copiavam o resumo completo do RSS (milhares de caracteres em algumas fontes), o que os tornava impróprios para publicação.
+- **Decisão:** A mensagem passa a ter: emoji e título em maiúsculas a negrito (máx. 90 caracteres), 2–3 pontos iniciados por 👉 com as primeiras frases do resumo da fonte (máx. 160 caracteres cada, 380 no total), `🔎 **Saiba mais:** <URL>` e termina sempre com `👉 **Tensdireito.com — informação útil para o seu bolso.**`. O aviso de revisão ("confirme os factos") passa para o corpo da issue, fora do texto a copiar. Substitui o formato `*texto*`/`_texto_` de DEC-048 por `**texto**`, a pedido do responsável.
+- **Impacto:** Mensagens com cerca de 500–800 caracteres. Aplica-se a `tde daily`, `tde publish` e `tde drafts export`. Não altera o esquema, a elegibilidade nem os códigos de saída.
+- **Estado:** Aceite
+- **Data:** 2026-10-11

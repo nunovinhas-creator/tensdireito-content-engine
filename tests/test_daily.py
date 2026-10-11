@@ -198,9 +198,9 @@ def test_daily_generates_only_eligible_non_duplicate_drafts(monkeypatch, tmp_pat
         ).fetchall()
     assert len(drafts) == 1
     assert drafts[0][1:4] == (74.0, "unverified", "pending")
-    assert drafts[0][4].startswith("📢 *Nova prestação aumenta")
-    assert "Resumo da fonte (por validar)" in drafts[0][4]
-    assert "Confirme os factos e o impacto antes de aprovar." in drafts[0][4]
+    assert drafts[0][4].startswith("📢 **NOVA PRESTAÇÃO AUMENTA")
+    assert "\n👉 " in drafts[0][4]
+    assert drafts[0][4].endswith("👉 **Tensdireito.com — informação útil para o seu bolso.**")
 
     code, _, _ = invoke_daily(monkeypatch, tmp_path, sources, collector)
     capsys.readouterr()
@@ -232,26 +232,27 @@ def test_daily_requires_validated_source_for_drafts(monkeypatch, tmp_path, capsy
     def collect_then_unvalidate(*args, **kwargs):
         result = original_collect(*args, **kwargs)
         with sqlite3.connect(db) as connection:
-            connection.execute(
-                "UPDATE source_registry SET registry_status = 'candidate'"
-            )
+            connection.execute("UPDATE source_registry SET registry_status = 'candidate'")
         return result
 
     monkeypatch.setattr(daily_pipeline, "run_collect", collect_then_unvalidate)
     report_dir = tmp_path / "reports"
-    assert cli.main(
-        [
-            "--config",
-            str(sources),
-            "--db",
-            str(db),
-            "daily",
-            "--date",
-            DAY.isoformat(),
-            "--report-dir",
-            str(report_dir),
-        ]
-    ) == 0
+    assert (
+        cli.main(
+            [
+                "--config",
+                str(sources),
+                "--db",
+                str(db),
+                "daily",
+                "--date",
+                DAY.isoformat(),
+                "--report-dir",
+                str(report_dir),
+            ]
+        )
+        == 0
+    )
     output = capsys.readouterr().out
     assert "rascunhos WhatsApp gerados: 0" in output
     with sqlite3.connect(db) as connection:
@@ -302,9 +303,7 @@ def test_partial_source_failure_keeps_successful_items(monkeypatch, tmp_path, ca
     assert "1. Notícia diária" in report.read_text(encoding="utf-8")
 
 
-def test_all_source_failures_still_write_report_and_return_error(
-    monkeypatch, tmp_path, capsys
-):
+def test_all_source_failures_still_write_report_and_return_error(monkeypatch, tmp_path, capsys):
     sources = config_dir(tmp_path / "config", "feed_a", "feed_b")
 
     def fail(_):
@@ -319,9 +318,7 @@ def test_all_source_failures_still_write_report_and_return_error(
     assert "fontes consultadas: 2" in output.out
     assert "notícias selecionadas: 0" in output.out
     assert output.err.count("feed indisponível") == 2
-    assert "Não foram encontradas notícias na janela diária." in report.read_text(
-        encoding="utf-8"
-    )
+    assert "Não foram encontradas notícias na janela diária." in report.read_text(encoding="utf-8")
 
 
 def test_empty_feed_writes_a_zero_news_report(monkeypatch, tmp_path, capsys):
@@ -358,16 +355,12 @@ def test_disabled_endpoint_is_not_collected(monkeypatch, tmp_path, capsys):
     assert "fontes consultadas: 0" in output
     assert "itens obtidos: 0" in output
     assert "notícias selecionadas: 0" in output
-    assert "Não foram encontradas notícias na janela diária." in report.read_text(
-        encoding="utf-8"
-    )
+    assert "Não foram encontradas notícias na janela diária." in report.read_text(encoding="utf-8")
 
 
 def test_zero_items_in_requested_publication_window(monkeypatch, tmp_path, capsys):
     sources = config_dir(tmp_path / "config", "news_feed")
-    collector = FakeRss(
-        lambda endpoint_id: [item(endpoint_id, published="2026-10-08T12:00:00Z")]
-    )
+    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published="2026-10-08T12:00:00Z")])
 
     code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
     output = capsys.readouterr().out
@@ -381,9 +374,7 @@ def test_unrecognized_publication_date_uses_collection_day_without_inventing_dat
 ):
     sources = config_dir(tmp_path / "config", "news_feed")
     collector = FakeRss(
-        lambda endpoint_id: [
-            item(endpoint_id, published="Fri, 09 Oct 2026 09:00:00 GMT")
-        ]
+        lambda endpoint_id: [item(endpoint_id, published="Fri, 09 Oct 2026 09:00:00 GMT")]
     )
 
     code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
@@ -394,14 +385,13 @@ def test_unrecognized_publication_date_uses_collection_day_without_inventing_dat
     assert "1. Notícia diária" in text
     assert "Data: não indicada" in text
 
+
 @pytest.mark.parametrize("published", [None, "not-a-date"])
 def test_missing_or_invalid_publication_date_uses_collection_day_without_inventing_date(
     monkeypatch, tmp_path, capsys, published
 ):
     sources = config_dir(tmp_path / "config", "news_feed")
-    collector = FakeRss(
-        lambda endpoint_id: [item(endpoint_id, published=published)]
-    )
+    collector = FakeRss(lambda endpoint_id: [item(endpoint_id, published=published)])
 
     code, _, report = invoke_daily(monkeypatch, tmp_path, sources, collector)
     capsys.readouterr()
@@ -410,3 +400,25 @@ def test_missing_or_invalid_publication_date_uses_collection_day_without_inventi
     assert code == 0
     assert "1. Notícia diária" in text
     assert "Data: não indicada" in text
+
+
+def test_draft_is_short_and_ends_with_signature():
+    from types import SimpleNamespace
+
+    from tensdireito_content_engine.daily import _render_draft
+
+    excerpt = " ".join(f"Frase número {index} com algum texto descritivo." for index in range(50))
+    article = SimpleNamespace(title="T" * 200, excerpt=excerpt, url="https://example.org/a")
+    message = _render_draft(article)
+    assert len(message) <= 800
+    assert message.count("\n👉 ") <= 4
+    assert message.endswith("👉 **Tensdireito.com — informação útil para o seu bolso.**")
+
+
+def test_draft_without_excerpt_still_has_two_points():
+    from types import SimpleNamespace
+
+    from tensdireito_content_engine.daily import _render_draft
+
+    article = SimpleNamespace(title="Apoio", excerpt=None, url="https://example.org/a")
+    assert "👉 Veja todos os detalhes na notícia completa." in _render_draft(article)
