@@ -41,7 +41,8 @@ FEED_CONTENT_TYPES = frozenset({"application/rss+xml", "application/xml", "text/
 # quando o corpo começa (após BOM e espaços) por uma declaração XML ou por `<rss`.
 FEED_SNIFFED_CONTENT_TYPES = frozenset({"text/html"})
 _FEED_BODY_PREFIXES = (b"<?xml", b"<rss")
-ROBOTS_CONTENT_TYPES = frozenset({"text/plain"})
+# DEC-052: alguns servidores (p. ex. Feedburner) entregam o robots.txt como `text/xml`.
+ROBOTS_CONTENT_TYPES = frozenset({"text/plain", "text/xml"})
 FEED_MAX_BYTES = 5 * 1024 * 1024
 ROBOTS_MAX_BYTES = 512 * 1024
 OPERATION_TIMEOUT_SECONDS = 20.0  # ligação e cada leitura

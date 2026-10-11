@@ -487,6 +487,17 @@ def test_robots_allow_requests_the_feed(rules):
     assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
 
 
+@pytest.mark.parametrize("content_type", ["text/plain", "text/xml"])
+def test_robots_accepted_content_types(content_type):
+    server = server_with(feed(BODY), robots("User-agent: *\nAllow: /", content_type))
+    assert server.transport().fetch_feed(FEED_URL).body == BODY
+
+
+def test_robots_text_xml_disallow_is_respected():
+    server = server_with(feed(BODY), robots("User-agent: *\nDisallow: /", "text/xml"))
+    assert "robots.txt" in failure(server)
+
+
 @pytest.mark.parametrize("status", [400, 401, 403, 404, 410, 451])
 def test_robots_4xx_means_no_restrictions(status):
     server = server_with(feed(BODY), Reply(status, {"Content-Type": "text/html"}))

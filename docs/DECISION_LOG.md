@@ -530,3 +530,10 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** 27 fontes registadas, 19 endpoints `ACTIVE`. Não altera o esquema, o domínio, a CLI nem os códigos de saída.
 - **Estado:** Aceite
 - **Data:** 2026-10-11
+
+### DEC-052 — robots.txt servido como `text/xml` e desactivação do idealista
+- **Problema:** No run de 2026-10-11 com DEC-051, `publico-rss`, `expresso-rss` e `cig-rss` (todos em `feeds.feedburner.com`) falharam porque o Feedburner entrega o robots.txt com `Content-Type: text/xml`, que era recusado e tratado como proibição. `idealista-rss` respondeu HTTP 403.
+- **Decisão:** (1) O robots.txt passa a ser aceite com `text/plain` ou `text/xml`; as regras continuam a ser lidas e respeitadas da mesma forma. (2) `idealista-rss` volta a `INACTIVE`.
+- **Impacto:** 18 endpoints `ACTIVE`. Não altera o esquema, o domínio, a CLI nem os códigos de saída.
+- **Estado:** Aceite
+- **Data:** 2026-10-11

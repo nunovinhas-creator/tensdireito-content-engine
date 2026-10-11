@@ -416,9 +416,7 @@
   endpoints:
   - id: idealista-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-11T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.idealista.pt/news/rss/v2/latest-news.xml
 - id: cgtp
   name: CGTP-IN
