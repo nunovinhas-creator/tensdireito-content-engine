@@ -22,6 +22,11 @@ from typing import Any, Protocol
 
 import yaml
 
+from tensdireito_content_engine import __version__
+
+# DEC-062: alguns fornecedores (p. ex. Groq, atrás da Cloudflare) recusam com 403 o
+# User-Agent por defeito do urllib.
+USER_AGENT = f"tensdireito-content-engine/{__version__}"
 LLM_FILENAME = "llm.yaml"
 ANTHROPIC_VERSION = "2023-06-01"
 TIMEOUT_SECONDS = 30.0
@@ -50,7 +55,12 @@ def _post_json(url: str, headers: Mapping[str, str], payload: dict) -> Any:
         url,
         data=json.dumps(payload).encode("utf-8"),
         method="POST",
-        headers={"content-type": "application/json", "accept": "application/json", **headers},
+        headers={
+            "content-type": "application/json",
+            "accept": "application/json",
+            "user-agent": USER_AGENT,
+            **headers,
+        },
     )
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
