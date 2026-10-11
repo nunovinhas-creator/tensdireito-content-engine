@@ -96,12 +96,15 @@ def test_sync_creates_labeled_issue_with_review_details(monkeypatch, tmp_path):
     assert SOURCE_URL in body
 
 
-@pytest.mark.parametrize("state", ["OPEN", "CLOSED"])
+@pytest.mark.parametrize(
+    ("state", "wrapped_url"),
+    [("OPEN", SOURCE_URL), ("CLOSED", SOURCE_URL), ("OPEN", f"```{SOURCE_URL}```")],
+)
 def test_sync_is_idempotent_when_source_issue_already_exists(
-    monkeypatch, tmp_path, state
+    monkeypatch, tmp_path, state, wrapped_url
 ):
     db = database_with_unverified_draft(tmp_path)
-    existing_issue_body = f"Earlier review\n<!-- tensdireito-draft-source: {SOURCE_URL} -->"
+    existing_issue_body = f"Earlier review\n<!-- tensdireito-draft-source: {wrapped_url} -->"
     commands: list[list[str]] = []
 
     def fake_run(command, **kwargs):

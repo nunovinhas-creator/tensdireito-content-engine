@@ -89,7 +89,9 @@ def _issue_bodies(issues: Any) -> list[str]:
         for issue in issues
     ):
         raise GitHubIssueError("a resposta de `gh issue list` tem formato inválido")
-    return [issue["body"] or "" for issue in issues]
+    # Edições manuais ou por ferramentas podem envolver os URLs em `código`; a referência
+    # compara-se sem crases para não duplicar a issue.
+    return [(issue["body"] or "").replace("`", "") for issue in issues]
 
 
 def _source_reference(source_url: str) -> str:
