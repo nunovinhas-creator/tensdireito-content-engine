@@ -285,7 +285,7 @@ def test_first_failure_writes_nothing(db, monkeypatch):
     [
         (Reply(404, {"Content-Type": "text/html"}), "TransportError: HTTP 404"),
         (Reply(301, {"Location": "https://x.test/"}), "TransportError: redirect não seguido: 301"),
-        (feed(b"<rss/>", "text/html"), "TransportError: Content-Type não aceite: text/html"),
+        (feed(b"<html/>", "text/html"), "TransportError: Content-Type não aceite: text/html"),
         (feed(b"", **{"Content-Encoding": "gzip"}), "TransportError: compressão não aceite: gzip"),
         (Reply(error=TimeoutError("timed out")), "TransportError: tempo esgotado"),
         (feed(b"<rss><channel>"), "FeedError: XML malformado: no element found: line 1, column 14"),

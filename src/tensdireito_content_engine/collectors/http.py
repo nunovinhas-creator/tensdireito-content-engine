@@ -37,6 +37,10 @@ PROJECT_URL = "https://github.com/nunovinhas-creator/tensdireito-content-engine"
 USER_AGENT = f"{USER_AGENT_TOKEN}/{__version__} (+{PROJECT_URL})"
 
 FEED_CONTENT_TYPES = frozenset({"application/rss+xml", "application/xml", "text/xml"})
+# DEC-051: servidores que entregam RSS com um `Content-Type` HTML errado. Só se aceita
+# quando o corpo começa (após BOM e espaços) por uma declaração XML ou por `<rss`.
+FEED_SNIFFED_CONTENT_TYPES = frozenset({"text/html"})
+_FEED_BODY_PREFIXES = (b"<?xml", b"<rss")
 ROBOTS_CONTENT_TYPES = frozenset({"text/plain"})
 FEED_MAX_BYTES = 5 * 1024 * 1024
 ROBOTS_MAX_BYTES = 512 * 1024
@@ -100,9 +104,10 @@ class _Policy:
     content_types: frozenset[str]
     max_bytes: int
     limit_label: str
+    sniffed_content_types: frozenset[str] = frozenset()
 
 
-_FEED = _Policy("feed", FEED_CONTENT_TYPES, FEED_MAX_BYTES, "5 MiB")
+_FEED = _Policy("feed", FEED_CONTENT_TYPES, FEED_MAX_BYTES, "5 MiB", FEED_SNIFFED_CONTENT_TYPES)
 _ROBOTS = _Policy("robots.txt", ROBOTS_CONTENT_TYPES, ROBOTS_MAX_BYTES, "512 KiB")
 
 
@@ -249,6 +254,8 @@ class HttpsTransport:
             if declared is not None and len(body) != declared:
                 # `http.client` não levanta `IncompleteRead` em `read(amt)`.
                 raise TransportError("resposta incompleta")
+            if content_type in policy.sniffed_content_types and not _looks_like_feed(body):
+                raise TransportError(f"Content-Type não aceite: {content_type}")
             return status, Response(status=status, content_type=content_type, body=body)
         except TransportError:
             raise
@@ -364,7 +371,7 @@ def _check_headers(response: _HTTPResponse, policy: _Policy) -> tuple[str, int |
     if raw_type is None or not raw_type.split(";", 1)[0].strip():
         raise TransportError("Content-Type ausente")
     content_type = raw_type.split(";", 1)[0].strip().lower()
-    if content_type not in policy.content_types:
+    if content_type not in policy.content_types | policy.sniffed_content_types:
         raise TransportError(f"Content-Type não aceite: {content_type}")
     length = response.getheader("Content-Length")
     declared = None
@@ -378,6 +385,12 @@ def _check_headers(response: _HTTPResponse, policy: _Policy) -> tuple[str, int |
         if declared > policy.max_bytes:
             raise TransportError(f"resposta excede {policy.limit_label}")
     return content_type, declared
+
+
+def _looks_like_feed(body: bytes) -> bool:
+    """O corpo começa por uma declaração XML ou por `<rss` (DEC-051)."""
+    head = body[:512].removeprefix(b"\xef\xbb\xbf").lstrip().lower()
+    return head.startswith(_FEED_BODY_PREFIXES)
 
 
 def _status_reason(status: int) -> str:

@@ -235,7 +235,6 @@ def test_accepted_feed_content_types(content_type):
         ({}, "Content-Type ausente"),
         ({"Content-Type": ""}, "Content-Type ausente"),
         ({"Content-Type": "; charset=utf-8"}, "Content-Type ausente"),
-        ({"Content-Type": "text/html"}, "Content-Type não aceite: text/html"),
         ({"Content-Type": "application/atom+xml"}, "Content-Type não aceite: application/atom+xml"),
         ({"Content-Type": "application/json"}, "Content-Type não aceite: application/json"),
         ({"Content-Type": "text/plain"}, "Content-Type não aceite: text/plain"),
@@ -244,6 +243,27 @@ def test_accepted_feed_content_types(content_type):
 def test_invalid_content_type_fails(headers, error):
     server = server_with(Reply(200, headers, BODY))
     assert failure(server) == error
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'<?xml version="1.0"?><rss version="2.0"><channel/></rss>',
+        b'\xef\xbb\xbf  \n<rss version="2.0"><channel/></rss>',
+        b"<RSS><channel/></RSS>",
+    ],
+)
+def test_html_content_type_is_accepted_when_body_is_a_feed(body):
+    server = server_with(Reply(200, {"Content-Type": "text/html; charset=utf-8"}, body))
+    response = server.transport().fetch_feed(FEED_URL)
+    assert response.content_type == "text/html"
+    assert response.body == body
+
+
+@pytest.mark.parametrize("body", [b"<!DOCTYPE html><html></html>", b"<html><rss/></html>", b""])
+def test_html_content_type_is_refused_when_body_is_not_a_feed(body):
+    server = server_with(Reply(200, {"Content-Type": "text/html"}, body))
+    assert failure(server) == "Content-Type não aceite: text/html"
 
 
 @pytest.mark.parametrize("encoding", ["gzip", "deflate", "br", "GZIP", "identity, gzip"])

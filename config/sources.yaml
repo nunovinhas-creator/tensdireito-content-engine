@@ -27,9 +27,7 @@
   endpoints:
   - id: governo-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-11T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.portugal.gov.pt/pt/comunicacao/noticias.rss
 - id: assembleia_republica
   name: Assembleia da República
@@ -44,9 +42,7 @@
   endpoints:
   - id: ar-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-11T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.parlamento.pt/Rss/Pages/Rss.aspx
 - id: seguranca_social
   name: Portal da Segurança Social
@@ -61,9 +57,7 @@
   endpoints:
   - id: ss-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-11T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.seg-social.pt/noticias
 - id: iefp
   name: IEFP - Emprego e Formação Profissional
@@ -78,9 +72,7 @@
   endpoints:
   - id: iefp-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-11T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.iefp.pt/noticias.rss
 - id: act
   name: ACT - Autoridade para as Condições do Trabalho
@@ -95,9 +87,7 @@
   endpoints:
   - id: act-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-09T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.act.gov.pt/(pt-PT)/Noticias/Rss/Pages/default.aspx
 - id: rtp_noticias
   name: RTP Notícias
@@ -132,7 +122,7 @@
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
-    url: https://www.publico.pt/api/feed/rss/economia
+    url: https://feeds.feedburner.com/PublicoRSS
 - id: jornal_noticias
   name: Jornal de Notícias
   entity_type: press
@@ -146,9 +136,7 @@
   endpoints:
   - id: jn-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-11T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.jn.pt/rss
 - id: expresso
   name: Expresso
@@ -166,7 +154,7 @@
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
-    url: https://expresso.pt/rss
+    url: https://feeds.feedburner.com/expresso-geral
 - id: observador
   name: Observador
   entity_type: press
@@ -230,9 +218,7 @@
   endpoints:
   - id: lusa-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
-    validated_at: '2026-10-11T00:00:00Z'
-    validated_by: nuno
+    endpoint_status: INACTIVE
     url: https://www.lusa.pt/rss
 - id: diario_noticias
   name: Diário de Notícias
@@ -249,7 +235,7 @@
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
-    url: https://www.dn.pt/rss
+    url: https://www.dn.pt/stories.rss
 - id: jornal_negocios
   name: Jornal de Negócios
   entity_type: press
@@ -296,7 +282,158 @@
   endpoints:
   - id: jm-rss
     endpoint_type: rss
+    endpoint_status: INACTIVE
+    url: https://www.jm-madeira.pt/rss
+- id: provedor_justica
+  name: Provedoria de Justiça
+  entity_type: public_body
+  tier: T2
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - direitos
+  - seguranca_social
+  endpoints:
+  - id: provedor-rss
+    endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
-    url: https://www.jm-madeira.pt/rss
+    url: https://www.provedor-jus.pt/feed/
+- id: cig
+  name: CIG - Comissão para a Cidadania e a Igualdade de Género
+  entity_type: public_body
+  tier: T2
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - igualdade
+  - apoios
+  endpoints:
+  - id: cig-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://feeds.feedburner.com/ciggovpt
+- id: portugal2030
+  name: Portugal 2030
+  entity_type: public_body
+  tier: T2
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - apoios
+  - fundos_europeus
+  endpoints:
+  - id: portugal2030-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://portugal2030.pt/feed/
+- id: dre_serie2
+  name: Diário da República - 2.ª Série
+  entity_type: official_journal
+  tier: T1
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - legislacao
+  - apoios
+  endpoints:
+  - id: dre-serie2-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://files.diariodarepublica.pt/rss/serie2-html.xml
+- id: deco_proteste
+  name: DECO Proteste
+  entity_type: specialised
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - consumo
+  - apoios
+  endpoints:
+  - id: deco-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://www.deco.proteste.pt/rss
+- id: doutor_financas
+  name: Doutor Finanças
+  entity_type: specialised
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - financas_pessoais
+  - apoios
+  endpoints:
+  - id: doutorfinancas-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://www.doutorfinancas.pt/feed/
+- id: ekonomista
+  name: Ekonomista
+  entity_type: specialised
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - financas_pessoais
+  - apoios
+  endpoints:
+  - id: ekonomista-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://www.e-konomista.pt/feed/
+- id: idealista_news
+  name: idealista/news
+  entity_type: specialised
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - habitacao
+  - apoios
+  endpoints:
+  - id: idealista-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://www.idealista.pt/news/rss/v2/latest-news.xml
+- id: cgtp
+  name: CGTP-IN
+  entity_type: specialised
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-11T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - trabalho
+  - pensoes
+  endpoints:
+  - id: cgtp-rss
+    endpoint_type: rss
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-11T00:00:00Z'
+    validated_by: nuno
+    url: https://www.cgtp.pt/?format=feed&type=rss

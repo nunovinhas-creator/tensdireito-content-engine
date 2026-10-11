@@ -521,3 +521,12 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** Substitui a DEC-048 (suspensão do agendamento) quanto à frequência. Não altera os códigos de saída, o esquema, o domínio nem a CLI.
 - **Estado:** Aceite
 - **Data:** 2026-10-11
+
+### DEC-051 — Correcção dos endpoints falhados, fontes de apoios sociais e RSS com `Content-Type` HTML
+- **Problema:** No primeiro run com DEC-050 (2026-10-11), 12 dos 18 endpoints falharam: URLs inexistentes (404), redirects, bloqueios (403), timeout do robots.txt e um feed RSS válido servido como `text/html` (CNN Portugal).
+- **Decisão:** (1) Corrigir os URLs de `publico-rss` (`https://feeds.feedburner.com/PublicoRSS`), `dn-rss` (`https://www.dn.pt/stories.rss`) e `expresso-rss` (`https://feeds.feedburner.com/expresso-geral`). (2) Voltar a `INACTIVE` os endpoints sem feed público encontrado ou inacessíveis: governo-rss, ar-rss, ss-rss, iefp-rss, lusa-rss, jm-rss, jn-rss e act-rss. (3) Acrescentar 9 fontes com foco em apoios sociais: Provedoria de Justiça, CIG, Portugal 2030, Diário da República 2.ª Série, DECO Proteste, Doutor Finanças, Ekonomista, idealista/news e CGTP-IN. (4) O transporte HTTP passa a aceitar `Content-Type: text/html` num feed apenas quando o corpo começa, após BOM e espaços, por `<?xml` ou `<rss`; caso contrário mantém-se o erro `Content-Type não aceite: text/html`.
+- **Razão:** Alargar a cobertura de apoios sociais e eliminar falhas parciais recorrentes causadas por URLs errados. A verificação do corpo limita a excepção a respostas que são de facto feeds.
+- **Limitações:** Os URLs foram encontrados e abertos com assistência do modelo e confirmados pelo responsável; os registos de evidência V1–V5 (DEC-036) continuam por fazer. O DRE 2.ª Série tem volume elevado (≈170 itens/dia) e pouco texto por item. Atom continua sem suporte.
+- **Impacto:** 27 fontes registadas, 19 endpoints `ACTIVE`. Não altera o esquema, o domínio, a CLI nem os códigos de saída.
+- **Estado:** Aceite
+- **Data:** 2026-10-11
