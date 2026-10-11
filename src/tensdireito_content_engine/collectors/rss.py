@@ -119,7 +119,10 @@ def _stripped(value: str | None) -> str | None:
     return value.strip()
 
 
-_AGGREGATOR_REDIRECTS = {("www.bing.com", "/news/apiclick.aspx"), ("bing.com", "/news/apiclick.aspx")}
+_AGGREGATOR_REDIRECTS = {
+    ("www.bing.com", "/news/apiclick.aspx"),
+    ("bing.com", "/news/apiclick.aspx"),
+}
 
 
 def _unwrap_aggregator_link(url: str) -> str:
