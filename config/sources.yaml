@@ -860,7 +860,7 @@
     redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-seg-social
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-073: vazia em todos os runs
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aseg-social.pt&format=rss&setlang=pt-PT&cc=PT'
@@ -874,14 +874,14 @@
     redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-iefp
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-073: vazia em todos os runs
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aiefp.pt&format=rss&setlang=pt-PT&cc=PT'
     redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-financas
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-073: vazia em todos os runs
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aportaldasfinancas.gov.pt&format=rss&setlang=pt-PT&cc=PT'
@@ -895,28 +895,28 @@
     redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-dges
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-073: vazia em todos os runs
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Adges.gov.pt&format=rss&setlang=pt-PT&cc=PT'
     redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-portaldahabitacao
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-073: vazia em todos os runs
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aportaldahabitacao.pt&format=rss&setlang=pt-PT&cc=PT'
     redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-cga
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-073: vazia em todos os runs
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Acga.pt&format=rss&setlang=pt-PT&cc=PT'
     redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-parlamento
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-073: vazia em todos os runs
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aparlamento.pt&format=rss&setlang=pt-PT&cc=PT'
