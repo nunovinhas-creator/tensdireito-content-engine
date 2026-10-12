@@ -58,7 +58,7 @@ Não há classificação semântica nesta entrega. “Selecionadas” significa 
 | Segurança Social (`ss-rss`) | Redirect 302 não seguido | `INACTIVE` |
 | ACT (`act-rss`) | Timeout ao consultar `robots.txt` | Mantido `ACTIVE` para nova tentativa; não contar como validado por este log |
 
-Os outros endpoints que não falharam nessa execução permanecem configurados. A ausência de erro num único pedido não substitui as verificações V1–V5 nem a revisão dos termos de utilização. Para reactivar um endpoint, confirmar a URL a partir do site oficial, os termos e `robots.txt`, e testar o contrato técnico do collector. Os redirects não são seguidos pelo transporte actual por decisão de segurança (DEC-033); actualize a URL para o destino canónico apenas depois de o confirmar manualmente.
+Os outros endpoints que não falharam nessa execução permanecem configurados. A ausência de erro num único pedido não substitui as verificações V1–V5 nem a revisão dos termos de utilização. Para reactivar um endpoint, confirmar a URL a partir do site oficial, os termos e `robots.txt`, e testar o contrato técnico do collector. Um redirect só é seguido para os anfitriões listados em `redirect_hosts` do endpoint, com um único salto e o destino revalidado (DEC-065, DEC-070); sem a lista, aparece como "redirect recusado" com o destino. Actualize a URL para o destino canónico, ou acrescente o destino a `redirect_hosts`, apenas depois de o confirmar manualmente e registar em `docs/source_validation/<id>.md`.
 
 ## Execução através de GitHub Actions
 

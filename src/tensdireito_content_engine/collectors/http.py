@@ -9,9 +9,18 @@ Política (valores fixos no código, DEC-033):
 - URL só `https`, sem credenciais, porta omitida ou `443`, anfitrião por nome.
 - Todos os endereços resolvidos têm de ser públicos; a ligação é aberta ao endereço
   verificado (não há segunda resolução), com TLS verificado para o nome do anfitrião.
-- Redirects não são seguidos; só `200` é sucesso; `Content-Type` aceite por tipo de
-  pedido; sem compressão; limites de tamanho e de tempo.
-- Uma tentativa por pedido, pedidos sequenciais, intervalo mínimo por anfitrião.
+- Só `200` é sucesso; `Content-Type` aceite por tipo de pedido; sem compressão;
+  limites de tamanho e de tempo.
+- Redirects (DEC-065/066, especificação §5 e §7): só para um endpoint com
+  `redirect_hosts`, para um desses anfitriões (lista exacta), um único salto e só
+  HTTPS → HTTPS; o destino é revalidado como um pedido novo (URL, IP público,
+  robots.txt, limites) antes de ser contactado. Sem autorização, o redirect é recusado
+  com o destino e o motivo, e o pedido não é repetido.
+- Novas tentativas: 429/503 têm uma, após o `Retry-After` (segundos ou data HTTP, até
+  60 s; sem cabeçalho ou inválido, 20 s). Excepção documentada: num endpoint
+  `redirect_is_throttle` (as pesquisas do Bing), um 302/307 é limitação e tem uma nova
+  tentativa após 20 s. No máximo uma nova tentativa por pedido.
+- Pedidos sequenciais, intervalo mínimo por anfitrião.
 - `robots.txt` obtido uma vez por anfitrião e por instância (uma execução de
   `tde collect`), antes do primeiro pedido do feed, e avaliado com `urllib.robotparser`.
 
@@ -24,10 +33,12 @@ import ipaddress
 import socket
 import ssl
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Protocol
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
 
 from tensdireito_content_engine import __version__
@@ -48,10 +59,14 @@ ROBOTS_MAX_BYTES = 512 * 1024
 OPERATION_TIMEOUT_SECONDS = 20.0  # ligação e cada leitura
 REQUEST_TIMEOUT_SECONDS = 60.0  # total por pedido
 MIN_INTERVAL_SECONDS = 5.0  # entre pedidos ao mesmo anfitrião
-# DEC-062: respostas temporárias (p. ex. limitação do Bing com 307) têm uma nova
-# tentativa após uma pausa; o redirect nunca é seguido.
-RETRY_STATUSES = frozenset({302, 307, 429, 503})
+# DEC-066 (revê DEC-062): 429/503 têm uma nova tentativa, após o `Retry-After` até 60 s
+# (20 s sem cabeçalho ou com valor inválido); um redirect não é uma falha transitória.
+RETRY_STATUSES = frozenset({429, 503})
 RETRY_DELAY_SECONDS = 20.0
+RETRY_AFTER_MAX_SECONDS = 60.0
+REDIRECT_STATUSES = frozenset({301, 302, 307, 308})
+# Excepção documentada (DEC-066): só em endpoints `redirect_is_throttle`.
+THROTTLE_STATUSES = frozenset({302, 307})
 HTTPS_PORT = 443
 READ_CHUNK_BYTES = 64 * 1024
 
@@ -67,10 +82,30 @@ class Response:
     body: bytes
 
 
+@dataclass(frozen=True, slots=True)
+class TransportEvent:
+    """O que aconteceu num pedido bem-sucedido além do pedido simples, para o resumo."""
+
+    kind: str  # LIMITATION | RETRY | REDIRECT
+    url: str
+    detail: str
+
+
+LIMITATION = "limitação"
+RETRY = "nova tentativa"
+REDIRECT = "redirect seguido"
+
+
 class FeedTransport(Protocol):
     """Interface do transporte vista pelos collectors."""
 
-    def fetch_feed(self, url: str) -> Response: ...
+    def fetch_feed(
+        self,
+        url: str,
+        *,
+        redirect_hosts: Collection[str] = (),
+        redirect_is_throttle: bool = False,
+    ) -> Response: ...
 
 
 class _Socket(Protocol):
@@ -122,6 +157,14 @@ class _Target:
     path: str  # caminho e query, sem fragmento
 
 
+@dataclass(frozen=True, slots=True)
+class _Reply:
+    status: int
+    response: Response | None  # só para `200`, já validada
+    location: str | None = None
+    retry_after: str | None = None
+
+
 def _resolve_addresses(host: str, port: int) -> list[str]:
     """Endereços IP de `host` pela resolução do sistema."""
     infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
@@ -158,26 +201,109 @@ class HttpsTransport:
         connect: Connector = _open_connection,
         monotonic: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._resolve = resolve
         self._connect = connect
         self._monotonic = monotonic
         self._sleep = sleep
+        self._now = now
         self._robots: dict[str, RobotFileParser | TransportError] = {}
         self._last_request: dict[str, float] = {}
+        self._events: list[TransportEvent] = []
 
-    def fetch_feed(self, url: str) -> Response:
+    def fetch_feed(
+        self,
+        url: str,
+        *,
+        redirect_hosts: Collection[str] = (),
+        redirect_is_throttle: bool = False,
+    ) -> Response:
+        """`GET` de um feed ou sitemap; `200` validado ou `TransportError`.
+
+        `redirect_hosts` e `redirect_is_throttle` vêm do endpoint (`sources.yaml`).
+        """
+        allowed = frozenset(host.lower() for host in redirect_hosts)
+        if allowed and redirect_is_throttle:
+            raise TransportError("redirect_hosts e redirect_is_throttle não se combinam")
         target = _check_url(url)
         self._public_address(target.host)  # destino não público falha antes de robots.txt
         self._require_robots_permission(target.host, url)
-        status, response = self._get(target, _FEED)
-        if status in RETRY_STATUSES:
+        reply = self._get(target, _FEED)
+        retried = False
+        if reply.status in RETRY_STATUSES:
+            reply, retried = self._retry(target, url, reply), True
+        elif redirect_is_throttle and reply.status in THROTTLE_STATUSES:
+            self._events.append(
+                TransportEvent(LIMITATION, url, f"HTTP {reply.status}; espera 20 s")
+            )
             self._sleep(RETRY_DELAY_SECONDS)
-            status, response = self._get(target, _FEED)
-        if status != 200:
-            raise TransportError(_status_reason(status))
-        assert response is not None
-        return response
+            reply, retried = self._get(target, _FEED), True
+        if reply.status in REDIRECT_STATUSES and not redirect_is_throttle:
+            destination = self._authorize_redirect(url, reply, allowed)
+            reply = self._follow(url, destination, retried)
+        if reply.status != 200:
+            raise TransportError(_status_reason(reply.status))
+        assert reply.response is not None
+        return reply.response
+
+    def drain_events(self) -> list[TransportEvent]:
+        """Eventos desde a última chamada (limitações, novas tentativas, redirects)."""
+        events, self._events = self._events, []
+        return events
+
+    # --- Novas tentativas e redirects (DEC-065/066) ------------------------------------
+
+    def _retry(self, target: _Target, url: str, reply: _Reply) -> _Reply:
+        delay = retry_after_seconds(reply.retry_after, self._now())
+        self._events.append(TransportEvent(RETRY, url, f"HTTP {reply.status}; espera {delay:g} s"))
+        self._sleep(delay)
+        return self._get(target, _FEED)
+
+    def _authorize_redirect(self, url: str, reply: _Reply, allowed: frozenset[str]) -> str:
+        """Destino autorizado e revalidado como um pedido novo, ou `TransportError`."""
+        if not reply.location or not reply.location.strip():
+            raise TransportError(f"redirect recusado: {reply.status} sem Location")
+        try:
+            destination = urljoin(url, reply.location.strip())
+        except ValueError:
+            raise TransportError(
+                f"redirect recusado: {reply.status} com Location inválido"
+            ) from None
+
+        def refuse(reason: str) -> TransportError:
+            shown = _shorten(destination)
+            return TransportError(f"redirect recusado: {reply.status} para {shown}: {reason}")
+
+        if not allowed:
+            raise refuse("endpoint sem redirect_hosts")
+        try:
+            target = _check_url(destination)
+        except TransportError as exc:
+            raise refuse(str(exc)) from None
+        if target.host.lower() not in allowed:
+            raise refuse("anfitrião fora de redirect_hosts")
+        try:
+            self._public_address(target.host)
+            self._require_robots_permission(target.host, destination)
+        except TransportError as exc:
+            raise refuse(str(exc)) from None
+        return destination
+
+    def _follow(self, url: str, destination: str, retried: bool) -> _Reply:
+        """Um único salto, já autorizado; um segundo redirect é recusado."""
+        target = _check_url(destination)
+        reply = self._get(target, _FEED)
+        if reply.status in RETRY_STATUSES and not retried:
+            reply = self._retry(target, destination, reply)
+        if reply.status in REDIRECT_STATUSES:
+            raise TransportError(
+                f"redirect recusado: segundo redirect ({reply.status}) "
+                f"depois de {_shorten(destination)}"
+            )
+        if reply.status == 200:
+            self._events.append(TransportEvent(REDIRECT, url, f"→ {destination}"))
+        return reply
 
     # --- robots.txt ---------------------------------------------------------------
 
@@ -193,9 +319,10 @@ class HttpsTransport:
     def _load_robots(self, host: str) -> RobotFileParser | TransportError:
         parser = RobotFileParser()
         try:
-            status, response = self._get(_Target(host, "/robots.txt"), _ROBOTS)
+            reply = self._get(_Target(host, "/robots.txt"), _ROBOTS)
         except TransportError as exc:
             return exc
+        status, response = reply.status, reply.response
         if 400 <= status < 500 or status in (301, 302, 307, 308):
             # 4xx segue RFC 9309; redirects são uma exceção de compatibilidade e não são seguidos.
             parser.parse([])
@@ -212,7 +339,7 @@ class HttpsTransport:
 
     # --- Pedido -------------------------------------------------------------------
 
-    def _get(self, target: _Target, policy: _Policy) -> tuple[int, Response | None]:
+    def _get(self, target: _Target, policy: _Policy) -> _Reply:
         """Faz o pedido; devolve o código e, só para `200`, a resposta já validada."""
         address = self._public_address(target.host)
         self._wait_for_turn(target.host)
@@ -241,9 +368,7 @@ class HttpsTransport:
         if remaining > 0:
             self._sleep(remaining)
 
-    def _exchange(
-        self, address: str, target: _Target, policy: _Policy
-    ) -> tuple[int, Response | None]:
+    def _exchange(self, address: str, target: _Target, policy: _Policy) -> _Reply:
         deadline = self._monotonic() + REQUEST_TIMEOUT_SECONDS
         connection: _HTTPConnection | None = None
         response: _HTTPResponse | None = None
@@ -256,7 +381,12 @@ class HttpsTransport:
             response = connection.getresponse()
             status = response.status
             if status != 200:
-                return status, None
+                return _Reply(
+                    status,
+                    None,
+                    location=response.getheader("Location"),
+                    retry_after=response.getheader("Retry-After"),
+                )
             content_type, declared = _check_headers(response, policy)
             body = self._read_body(sock, response, policy, deadline)
             if declared is not None and len(body) != declared:
@@ -264,7 +394,7 @@ class HttpsTransport:
                 raise TransportError("resposta incompleta")
             if content_type in policy.sniffed_content_types and not _looks_like_feed(body):
                 raise TransportError(f"Content-Type não aceite: {content_type}")
-            return status, Response(status=status, content_type=content_type, body=body)
+            return _Reply(status, Response(status=status, content_type=content_type, body=body))
         except TransportError:
             raise
         except TimeoutError:
@@ -310,6 +440,33 @@ class HttpsTransport:
             if size > policy.max_bytes:
                 raise TransportError(f"resposta excede {policy.limit_label}")
             chunks.append(chunk)
+
+
+# O `Location` vem do servidor: nas mensagens (que vão para `last_error` e para o resumo)
+# mostra-se no máximo este número de caracteres.
+LOCATION_SHOWN_CHARS = 200
+
+
+def _shorten(url: str) -> str:
+    return url if len(url) <= LOCATION_SHOWN_CHARS else f"{url[:LOCATION_SHOWN_CHARS]}…"
+
+
+def retry_after_seconds(value: str | None, now: datetime) -> float:
+    """Espera de `Retry-After` (segundos ou data HTTP), entre 0 e 60 s; inválido → 20 s."""
+    if value is None:
+        return RETRY_DELAY_SECONDS
+    text = value.strip()
+    if text.isascii() and text.isdigit():
+        seconds = float(int(text))
+    else:
+        try:
+            when = parsedate_to_datetime(text)
+        except (TypeError, ValueError, IndexError):
+            return RETRY_DELAY_SECONDS
+        if when.tzinfo is None:  # formato asctime sem zona: as datas HTTP são GMT
+            when = when.replace(tzinfo=UTC)
+        seconds = max(0.0, (when - now).total_seconds())
+    return min(seconds, RETRY_AFTER_MAX_SECONDS)
 
 
 def _check_url(url: str) -> _Target:

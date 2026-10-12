@@ -235,7 +235,7 @@ Um redirect não é uma falha transitória: é uma instrução. Por isso a fase 
 
 ## 7. Política de redirects
 
-Hoje nenhum redirect é seguido (DEC-033), e vários endpoints ficaram inactivos por isso. **Política aprovada (DEC-065, 2026-10-12), por implementar na fase 2.** Condição da aprovação: a implementação valida o anfitrião e o destino final de forma a impedir redirects para endereços internos ou não autorizados; os testes de segurança de §9 são obrigatórios antes de activar qualquer `redirect_hosts`.
+Hoje nenhum redirect é seguido (DEC-033), e vários endpoints ficaram inactivos por isso. **Política aprovada (DEC-065, 2026-10-12), implementada na fase 2c (DEC-070).** Condição da aprovação: a implementação valida o anfitrião e o destino final de forma a impedir redirects para endereços internos ou não autorizados; os testes de segurança de §9 são obrigatórios antes de activar qualquer `redirect_hosts`.
 
 - **Só destinos aprovados, por endpoint.** Em `sources.yaml`, um endpoint pode ter `redirect_hosts: [jn.pt]`, a lista **exacta** de anfitriões para onde se aceita ir. Sem a lista, nenhum redirect é seguido. Não há cálculo de "domínio registável": comparar os dois últimos rótulos ou manter uma lista de sufixos à mão dá decisões erradas. Se algum dia for preciso aceitar destinos de forma genérica, usa-se uma implementação da Public Suffix List, por DEC própria.
 - **No máximo um salto**, e só HTTPS → HTTPS. Um segundo redirect é recusado.

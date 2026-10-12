@@ -226,9 +226,15 @@ def test_empty_database_gets_0001_and_0002(tmp_path, capsys):
     assert cli.main(["--db", str(db), "init"]) == 0
     assert capsys.readouterr().out.splitlines()[1] == (
         "migrações aplicadas: 0001_init, 0002_source_document, 0003_whatsapp_draft, "
-        "0004_candidate"
+        "0004_candidate, 0005_endpoint_redirects"
     )
-    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [1, 2, 3, 4]
+    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [
+        1,
+        2,
+        3,
+        4,
+        5,
+    ]
     assert query(db, "SELECT COUNT(*) FROM source_document") == [(0,)]
 
 
@@ -257,18 +263,30 @@ def test_existing_database_with_only_0001_gets_only_0002_and_keeps_data(tmp_path
     assert cli.main(["--db", str(db), "init"]) == 0
     assert capsys.readouterr().out.splitlines() == [
         f"init: OK — {db}",
-        "migrações aplicadas: 0002_source_document, 0003_whatsapp_draft, 0004_candidate",
+        "migrações aplicadas: 0002_source_document, 0003_whatsapp_draft, 0004_candidate, "
+        "0005_endpoint_redirects",
     ]
     for table in tables_0001[1:]:
-        assert table_snapshot(db, table) == before[table]
+        snapshot = table_snapshot(db, table)
+        if table == "source_endpoint":
+            # 0005 acrescenta redirect_hosts e redirect_is_throttle, nulos até ao sync.
+            assert [row[-2:] for row in snapshot] == [(None, None)] * len(snapshot)
+            snapshot = [row[:-2] for row in snapshot]
+        assert snapshot == before[table]
     assert table_snapshot(db, "schema_migration")[0] == before["schema_migration"][0]
     assert query(
         db,
         "SELECT name, sql FROM sqlite_master "
         "WHERE tbl_name NOT IN ('source_document', 'whatsapp_draft', 'candidate', "
-        "'candidate_group', 'candidate_discovery', 'candidate_transition') "
+        "'candidate_group', 'candidate_discovery', 'candidate_transition', "
+        "'source_endpoint') "
         "AND name != 'schema_migration' ORDER BY 1",
-    ) == [row for row in schema_before if row[0] != "schema_migration"]
+    ) == [
+        row
+        for row in schema_before
+        if row[0]
+        not in ("schema_migration", "source_endpoint", "sqlite_autoindex_source_endpoint_1")
+    ]
     assert init_database(db).applied == ()
 
 
@@ -284,7 +302,7 @@ def test_normalize_on_database_without_0002_fails_without_run_or_migration(tmp_p
     assert captured.err.splitlines() == [
         f"normalize: ERRO — {db}",
         "- esquema não conforme: migrações pendentes: 0002_source_document, "
-        "0003_whatsapp_draft, 0004_candidate; execute `tde init`",
+        "0003_whatsapp_draft, 0004_candidate, 0005_endpoint_redirects; execute `tde init`",
     ]
     assert query(db, "SELECT type, name, sql FROM sqlite_master ORDER BY name") == before
     assert query(db, "SELECT COUNT(*) FROM run") == [(0,)]

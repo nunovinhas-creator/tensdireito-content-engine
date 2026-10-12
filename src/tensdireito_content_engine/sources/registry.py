@@ -53,7 +53,15 @@ SOURCE_OPTIONAL = (
     "endpoints",
 )
 ENDPOINT_REQUIRED = ("id", "endpoint_type")
-ENDPOINT_OPTIONAL = ("url", "endpoint_status", "fetch", "validated_at", "validated_by")
+ENDPOINT_OPTIONAL = (
+    "url",
+    "endpoint_status",
+    "fetch",
+    "validated_at",
+    "validated_by",
+    "redirect_hosts",
+    "redirect_is_throttle",
+)
 
 
 class SourceRegistryError(ValueError):
@@ -175,6 +183,8 @@ def _parse_endpoint(
     _put(fields, "endpoint_type", _by_value(item, "endpoint_type", EndpointType, problems))
     _put(fields, "endpoint_status", _by_name(item, "endpoint_status", EndpointStatus, problems))
     _put(fields, "validated_at", _timestamp(item, "validated_at", problems))
+    _put(fields, "redirect_hosts", _text_list(item, "redirect_hosts", problems))
+    _put(fields, "redirect_is_throttle", _boolean(item, "redirect_is_throttle", problems))
     fetch = item.get("fetch")
     if fetch is not None and not isinstance(fetch, dict):
         problems.append(f"fetch tem de ser um mapeamento, recebido {_kind(fetch)}")
@@ -260,6 +270,16 @@ def _text_list(item: Mapping, key: str, problems: list[str]) -> object:
         problems.append(f"{key} só pode conter texto, recebido {_kind(bad[0])}")
         return _MISSING
     return tuple(value)
+
+
+def _boolean(item: Mapping, key: str, problems: list[str]) -> object:
+    if key not in item:
+        return _MISSING
+    value = item[key]
+    if not isinstance(value, bool):
+        problems.append(f"{key} tem de ser booleano, recebido {_kind(value)}")
+        return _MISSING
+    return value
 
 
 def _by_value(item: Mapping, key: str, enum_type: type[Enum], problems: list[str]) -> object:

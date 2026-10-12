@@ -233,6 +233,15 @@ def test_default_registry_has_rss_and_news_sitemap():
 # --- Zero endpoints e sucesso ---------------------------------------------------
 
 
+# DEC-070: contagens do transporte em `run.stats`.
+NO_TRANSPORT_EVENTS = {
+    "limitação": 0,
+    "nova tentativa": 0,
+    "redirect seguido": 0,
+    "redirect recusado": 0,
+}
+
+
 def test_zero_active_endpoints_is_success(tmp_path):
     db = tmp_path / "tde.sqlite3"
     init_database(db)
@@ -250,6 +259,7 @@ def test_zero_active_endpoints_is_success(tmp_path):
         "failed": 0,
         "new": 0,
         "existing": 0,
+        "transport": NO_TRANSPORT_EVENTS,
     }
     assert raw_items(db) == []
 
@@ -513,7 +523,7 @@ def test_pending_migrations_fail_without_migrating(tmp_path, monkeypatch, capsys
     err = capsys.readouterr().err
     assert (
         "esquema não conforme: migrações pendentes: 0001_init, 0002_source_document, "
-        "0003_whatsapp_draft, 0004_candidate; "
+        "0003_whatsapp_draft, 0004_candidate, 0005_endpoint_redirects; "
         "execute `tde init`"
     ) in err
     assert query(db, "SELECT name FROM sqlite_master") == []
@@ -610,11 +620,33 @@ def test_stats_structure_is_deterministic(db):
                     "new": 0,
                     "existing": 0,
                     "error": "o collector falhou: RuntimeError: falhou",
+                    "notes": [],
                 },
-                {"id": "a_pagina", "result": "success", "new": 1, "existing": 1, "error": None},
-                {"id": "b_feed", "result": "success", "new": 1, "existing": 1, "error": None},
+                {
+                    "id": "a_pagina",
+                    "result": "success",
+                    "new": 1,
+                    "existing": 1,
+                    "error": None,
+                    "notes": [],
+                },
+                {
+                    "id": "b_feed",
+                    "result": "success",
+                    "new": 1,
+                    "existing": 1,
+                    "error": None,
+                    "notes": [],
+                },
             ],
-            "totals": {"selected": 3, "succeeded": 2, "failed": 1, "new": 2, "existing": 2},
+            "totals": {
+                "selected": 3,
+                "succeeded": 2,
+                "failed": 1,
+                "new": 2,
+                "existing": 2,
+                "transport": NO_TRANSPORT_EVENTS,
+            },
         },
         ensure_ascii=False,
     )

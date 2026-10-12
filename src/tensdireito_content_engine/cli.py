@@ -15,7 +15,7 @@ from pathlib import Path
 
 from tensdireito_content_engine import __version__
 from tensdireito_content_engine.ai_draft import write_whatsapp
-from tensdireito_content_engine.collect import CollectError, run_collect
+from tensdireito_content_engine.collect import CollectError, CollectResult, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry, default_registry
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
 from tensdireito_content_engine.daily import (
@@ -267,6 +267,17 @@ def daily_summary_markdown(result: DailyResult) -> str:
     if failed:
         lines += ["### Fontes com falha", "", "| Endpoint | Erro |", "|---|---|"]
         lines += [f"| `{o.id}` | {_md_cell(o.error or '')} |" for o in failed]
+        lines.append("")
+    noted = [outcome for outcome in outcomes if outcome.notes]
+    if noted:
+        # DEC-070: o que o transporte fez além do pedido simples, por endpoint.
+        lines += [
+            "### Limitações, novas tentativas e redirects",
+            "",
+            "| Endpoint | Ocorrência |",
+            "|---|---|",
+        ]
+        lines += [f"| `{o.id}` | {_md_cell('; '.join(o.notes))} |" for o in noted]
         lines.append("")
     lines += [
         "<details><summary>Itens por fonte</summary>",
@@ -698,7 +709,19 @@ def _audit_lines(result: DailyResult) -> list[str]:
             f"CANDIDATOS: {stats.candidates} notícias, {stats.new_candidates} novas; "
             f"métodos: {methods or 'nenhum'}"
         )
+    lines.append(_transport_line(result.collection))
     return lines
+
+
+def _transport_line(collection: CollectResult) -> str:
+    """Linha `TRANSPORTE` (DEC-070): limitações, novas tentativas e redirects do run."""
+    counts = collection.transport_counts()
+    return (
+        f"TRANSPORTE: limitações {counts['limitação']}; "
+        f"novas tentativas {counts['nova tentativa']}; "
+        f"redirects seguidos {counts['redirect seguido']}; "
+        f"redirects recusados {counts['redirect recusado']}"
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:

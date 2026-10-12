@@ -284,7 +284,11 @@ def test_first_failure_writes_nothing(db, monkeypatch):
     ("server_reply", "error"),
     [
         (Reply(404, {"Content-Type": "text/html"}), "TransportError: HTTP 404"),
-        (Reply(301, {"Location": "https://x.test/"}), "TransportError: redirect não seguido: 301"),
+        (
+            Reply(301, {"Location": "https://x.test/"}),
+            "TransportError: redirect recusado: 301 para https://x.test/: "
+            "endpoint sem redirect_hosts",
+        ),
         (feed(b"<html/>", "text/html"), "TransportError: Content-Type não aceite: text/html"),
         (feed(b"", **{"Content-Encoding": "gzip"}), "TransportError: compressão não aceite: gzip"),
         (Reply(error=TimeoutError("timed out")), "TransportError: tempo esgotado"),
@@ -366,6 +370,14 @@ def test_updated_at_keeps_m28_semantics(db, monkeypatch):
     assert endpoint_state(db)[2] == updated_at == "2026-10-07T12:00:00.000000+00:00"
 
 
+NO_TRANSPORT_EVENTS = {
+    "limitação": 0,
+    "nova tentativa": 0,
+    "redirect seguido": 0,
+    "redirect recusado": 0,
+}
+
+
 def test_run_stats_keep_the_dec031_structure(db, monkeypatch):
     collect_cli(monkeypatch, db, serving(fixture("valid.xml")))
     collect_cli(monkeypatch, db, serving(INVALID_SECOND_ITEM))
@@ -378,9 +390,17 @@ def test_run_stats_keep_the_dec031_structure(db, monkeypatch):
                     "new": 3,
                     "existing": 0,
                     "error": None,
+                    "notes": [],
                 }
             ],
-            "totals": {"selected": 1, "succeeded": 1, "failed": 0, "new": 3, "existing": 0},
+            "totals": {
+                "selected": 1,
+                "succeeded": 1,
+                "failed": 0,
+                "new": 3,
+                "existing": 0,
+                "transport": NO_TRANSPORT_EVENTS,
+            },
         },
         {
             "endpoints": [
@@ -390,9 +410,17 @@ def test_run_stats_keep_the_dec031_structure(db, monkeypatch):
                     "new": 0,
                     "existing": 0,
                     "error": "o collector falhou: FeedError: item 2: sem link",
+                    "notes": [],
                 }
             ],
-            "totals": {"selected": 1, "succeeded": 0, "failed": 1, "new": 0, "existing": 0},
+            "totals": {
+                "selected": 1,
+                "succeeded": 0,
+                "failed": 1,
+                "new": 0,
+                "existing": 0,
+                "transport": NO_TRANSPORT_EVENTS,
+            },
         },
     ]
 
@@ -405,10 +433,11 @@ class RecordingTransport:
         self.body = body
         self.urls: list[str] = []
 
-    def fetch_feed(self, url: str):
+    def fetch_feed(self, url: str, *, redirect_hosts=(), redirect_is_throttle=False):
         from tensdireito_content_engine.collectors.http import Response
 
         self.urls.append(url)
+        self.options = (tuple(redirect_hosts), redirect_is_throttle)
         return Response(status=200, content_type="application/rss+xml", body=self.body)
 
 
@@ -417,6 +446,7 @@ def test_collector_fetches_the_endpoint_url_and_ignores_since():
     collector = RssCollector(transport, now=lambda: FETCHED)
     items = collector.fetch(ENDPOINTS[0], since=T0)
     assert transport.urls == [FEED_URL]
+    assert transport.options == ((), False)
     assert len(items) == 3
     assert {item.fetched_at for item in items} == {FETCHED}
 
@@ -444,4 +474,4 @@ def test_schema_is_unchanged(db, monkeypatch):
     tables = query(db, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
     collect_cli(monkeypatch, db, serving(fixture("valid.xml")))
     assert query(db, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name") == tables
-    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [1, 2, 3, 4]
+    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [1, 2, 3, 4, 5]

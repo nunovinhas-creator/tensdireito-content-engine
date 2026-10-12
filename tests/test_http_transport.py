@@ -209,21 +209,24 @@ def test_default_tls_context_verifies_certificates():
 # --- Resposta -------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("status", [301, 303, 308])
-def test_redirect_is_not_followed(status):
-    redirect = Reply(status, {"Location": "https://outro.example.org/rss.xml"})
+def test_303_is_not_a_redirect_that_can_be_followed():
+    redirect = Reply(303, {"Location": "https://outro.example.org/rss.xml"})
     server = server_with(redirect)
-    assert failure(server) == f"redirect não seguido: {status}"
+    assert failure(server) == "redirect não seguido: 303"
     assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
 
 
-@pytest.mark.parametrize("status", [302, 307])
-def test_temporary_redirect_is_retried_once_but_never_followed(status):
+@pytest.mark.parametrize("status", [301, 302, 307, 308])
+def test_redirect_without_redirect_hosts_is_refused_and_not_repeated(status):
+    """DEC-066: sem `redirect_hosts` nem `redirect_is_throttle`, recusado e não repetido."""
     redirect = Reply(status, {"Location": "https://outro.example.org/rss.xml"})
     server = server_with(redirect)
-    assert failure(server) == f"redirect não seguido: {status}"
-    assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml", f"{HOST}/rss.xml"]
-    assert 20.0 in server.clock.sleeps
+    assert failure(server) == (
+        f"redirect recusado: {status} para https://outro.example.org/rss.xml: "
+        "endpoint sem redirect_hosts"
+    )
+    assert server.paths() == [f"{HOST}/robots.txt", f"{HOST}/rss.xml"]
+    assert 20.0 not in server.clock.sleeps
 
 
 @pytest.mark.parametrize("status", [201, 203, 204, 206, 400, 403, 404, 410, 429, 500, 503])
@@ -427,7 +430,7 @@ def test_temporary_failure_is_retried_once(status):
 
 
 def test_retry_can_succeed():
-    server = server_with([Reply(307, {"Location": "https://x.example.org/"}), feed(BODY)])
+    server = server_with([Reply(503, {"Content-Type": "text/plain"}), feed(BODY)])
     assert server.transport().fetch_feed(FEED_URL).body == BODY
 
 
@@ -702,7 +705,7 @@ def test_failed_request_also_counts_for_the_interval():
 
 def test_transport_exposes_only_fetch_feed():
     public = {name for name in vars(HttpsTransport) if not name.startswith("_")}
-    assert public == {"fetch_feed"}
+    assert public == {"fetch_feed", "drain_events"}
 
 
 NETWORK_MODULES = {"socket", "ssl", "http", "urllib.request", "urllib.robotparser", "asyncio"}
