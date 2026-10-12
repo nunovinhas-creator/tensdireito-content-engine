@@ -18,7 +18,13 @@ from tensdireito_content_engine.ai_draft import write_whatsapp
 from tensdireito_content_engine.collect import CollectError, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry, default_registry
 from tensdireito_content_engine.config import DEFAULT_CONFIG_DIR, sources_path
-from tensdireito_content_engine.daily import DEFAULT_REPORT_DIR, DailyResult, run_daily
+from tensdireito_content_engine.daily import (
+    DECISION_DRAFT,
+    DEFAULT_REPORT_DIR,
+    DailyArticle,
+    DailyResult,
+    run_daily,
+)
 from tensdireito_content_engine.domain.enums import EditorialStatus, VerificationStatus
 from tensdireito_content_engine.github_issues import (
     GitHubIssueError,
@@ -27,6 +33,7 @@ from tensdireito_content_engine.github_issues import (
 )
 from tensdireito_content_engine.llm import LLMError, load_provider
 from tensdireito_content_engine.normalize_command import run_normalize
+from tensdireito_content_engine.priority import Priority, Rule
 from tensdireito_content_engine.publish.whatsapp import (
     WhatsAppMessage,
     check_whatsapp_eligibility,
@@ -254,6 +261,7 @@ def daily_summary_markdown(result: DailyResult) -> str:
         f"| Rascunhos novos | {result.drafts_created} |",
         f"| Redigidos por IA | {result.ai_drafts} |",
         "",
+        *_funnel_markdown(result),
     ]
     if failed:
         lines += ["### Fontes com falha", "", "| Endpoint | Erro |", "|---|---|"]
@@ -270,6 +278,100 @@ def daily_summary_markdown(result: DailyResult) -> str:
     ]
     lines += ["", "</details>", ""]
     return "\n".join(lines) + "\n"
+
+
+# DEC-063: quantos itens da prioridade `rever` e da amostra de `baixa` aparecem no resumo.
+SUMMARY_REVIEW_ROWS = 30
+SUMMARY_LOW_SAMPLE = 10
+AUDIT_LOW_LINES = 5
+AUDIT_REVIEW_LINES = 3
+
+
+def _funnel_markdown(result: DailyResult) -> list[str]:
+    """Funil por prioridade e decisões, com listas para auditoria (DEC-063)."""
+    counts = result.priority_counts()
+    high = result.by_priority(Priority.HIGH)
+    review = result.by_priority(Priority.REVIEW)
+    low = result.by_priority(Priority.LOW)
+    high_decisions: dict[str, int] = {}
+    for article in high:
+        key = "mesmo tema" if article.decision.startswith("mesmo tema") else article.decision
+        high_decisions[key] = high_decisions.get(key, 0) + 1
+    lines = [
+        "### Funil do dia",
+        "",
+        "| Fase | Itens |",
+        "|---|---:|",
+        f"| Notícias do dia, sem duplicados | {len(result.articles)} |",
+        f"| Prioridade alta | {counts[Priority.HIGH.value]} |",
+    ]
+    lines += [f"| ↳ {_md_cell(name)} | {n} |" for name, n in sorted(high_decisions.items())]
+    lines.append(f"| Prioridade rever (aguarda classificação) | {counts[Priority.REVIEW.value]} |")
+    by_rule: dict[str, int] = {}
+    for article in review:
+        by_rule[article.priority_rule] = by_rule.get(article.priority_rule, 0) + 1
+    lines += [f"| ↳ {_md_cell(rule)} | {n} |" for rule, n in sorted(by_rule.items())]
+    lines += [
+        f"| Prioridade baixa (arquivada) | {counts[Priority.LOW.value]} |",
+        f"| Rascunhos novos nesta execução | {result.drafts_created} |",
+        "",
+    ]
+    not_drafted = [a for a in high if a.decision != DECISION_DRAFT]
+    if not_drafted:
+        lines += _article_table(
+            f"Prioridade alta sem rascunho ({len(not_drafted)})",
+            not_drafted,
+            "Decisão",
+            lambda a: a.decision,
+        )
+    if review:
+        shown = _review_first(review)[:SUMMARY_REVIEW_ROWS]
+        lines += _article_table(
+            f"Prioridade rever ({len(shown)} de {len(review)})",
+            shown,
+            "Motivo",
+            lambda a: a.priority_reason,
+        )
+    if low:
+        sample = _spread_sample(low, SUMMARY_LOW_SAMPLE)
+        lines += _article_table(
+            f"Amostra de baixa prioridade para auditoria ({len(sample)} de {len(low)})",
+            sample,
+            "Motivo",
+            lambda a: a.priority_reason,
+        )
+    return lines
+
+
+def _article_table(title, articles, column, value) -> list[str]:
+    lines = [
+        f"<details><summary>{title}</summary>",
+        "",
+        f"| Título | Fonte | {column} |",
+        "|---|---|---|",
+    ]
+    lines += [
+        f"| [{_md_cell(a.title)}]({a.url}) | {_md_cell(a.source_name)} | {_md_cell(value(a))} |"
+        for a in articles
+    ]
+    return [*lines, "", "</details>", ""]
+
+
+def _review_first(articles: Sequence[DailyArticle]) -> list[DailyArticle]:
+    """Ordem de leitura de `rever`: oficiais com termo forte, imprensa, restantes oficiais.
+
+    Os oficiais sem termo forte são centenas (sobretudo o DRE, 2.ª série) e ficam no fim.
+    """
+    order = {Rule.OFFICIAL_SUMMARY.value: 0, Rule.OFFICIAL.value: 2}
+    return sorted(articles, key=lambda a: order.get(a.priority_rule, 1))
+
+
+def _spread_sample(articles: Sequence[DailyArticle], k: int) -> tuple[DailyArticle, ...]:
+    """Amostra determinística espalhada pela lista (início, meio e fim)."""
+    if len(articles) <= k:
+        return tuple(articles)
+    step = (len(articles) - 1) / (k - 1)
+    return tuple(articles[round(index * step)] for index in range(k))
 
 
 def _md_cell(text: str) -> str:
@@ -527,11 +629,27 @@ def _daily_lines(result: DailyResult) -> tuple[int, list[str], list[str]]:
         f"  notícias selecionadas: {len(result.articles)}",
         f"  rascunhos WhatsApp gerados: {result.drafts_created}",
         f"relatório gerado: {result.report_path}",
+        *_audit_lines(result),
     ]
     errors = [
         f"- {outcome.id}: {outcome.error}" for outcome in collection.endpoints if outcome.error
     ]
     return code, out, errors
+
+
+def _audit_lines(result: DailyResult) -> list[str]:
+    """Linhas `FUNIL`/`AUDITORIA` que o workflow transforma em anotações (DEC-063)."""
+    counts = result.priority_counts()
+    lines = [
+        f"FUNIL: do dia {len(result.articles)}; alta {counts[Priority.HIGH.value]}; "
+        f"rever {counts[Priority.REVIEW.value]}; baixa {counts[Priority.LOW.value]}; "
+        f"rascunhos novos {result.drafts_created}"
+    ]
+    low = _spread_sample(result.by_priority(Priority.LOW), AUDIT_LOW_LINES)
+    review = _review_first(result.by_priority(Priority.REVIEW))[:AUDIT_REVIEW_LINES]
+    lines += [f"AUDITORIA baixa: {a.title} — {a.source_name}" for a in low]
+    lines += [f"AUDITORIA rever: {a.title} — {a.priority_reason}" for a in review]
+    return lines
 
 
 def build_parser() -> argparse.ArgumentParser:

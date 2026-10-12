@@ -6,7 +6,6 @@ from unicodedata import category
 from urllib.parse import urlsplit
 
 from tensdireito_content_engine.domain.enums import EditorialStatus, VerificationStatus
-from tensdireito_content_engine.domain.policy import MINIMUM_RELEVANCE_SCORE
 from tensdireito_content_engine.domain.validation import require_text
 
 ELIGIBLE_VERIFICATION_STATUSES = frozenset(
@@ -68,8 +67,6 @@ def check_whatsapp_eligibility(
         raise ValueError("is_duplicate tem de ser booleano")
 
     reasons: list[str] = []
-    if editorial_score < MINIMUM_RELEVANCE_SCORE:
-        reasons.append(f"score de relevância inferior a {MINIMUM_RELEVANCE_SCORE:g}")
     if verification_status not in ELIGIBLE_VERIFICATION_STATUSES:
         reasons.append("item não validado editorialmente ou oficialmente")
     if editorial_status is not EditorialStatus.APPROVED:

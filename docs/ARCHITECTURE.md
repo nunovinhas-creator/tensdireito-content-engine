@@ -115,9 +115,8 @@ Um único pacote Python, **`tensdireito_content_engine`**, com CLI **`tde`**, or
 
 O destino definido para a V1 é a geração de mensagens para **canais e grupos de transmissão do WhatsApp** (DEC-048). `tde publish --target whatsapp --input <JSON>` produz uma pré-visualização local; não envia mensagens, não usa a API do WhatsApp e não atribui `PUBLISHED`. A publicação efectiva continua manual/externa, em conformidade com o circuito `APPROVED → EXPORT`.
 
-O manifesto de entrada fornece o título, emoji, 2–3 pontos-chave, CTA, hiperligação HTTPS, score, estados editorial e de verificação, e indicador de duplicação. A mensagem usa título em `*negrito*`, pontos-chave em lista, CTA e `_Saiba mais:_` em itálico junto à hiperligação. A elegibilidade exige simultaneamente:
+O manifesto de entrada fornece o título, emoji, 2–3 pontos-chave, CTA, hiperligação HTTPS, score, estados editorial e de verificação, e indicador de duplicação. A mensagem usa título em `*negrito*`, pontos-chave em lista, CTA e `_Saiba mais:_` em itálico junto à hiperligação. A elegibilidade exige simultaneamente (desde DEC-063, o score lexical não é critério; a relevância decide-se pela prioridade na fila e pela revisão humana):
 
-- `editorial_score ≥ 65` (`SELECT_THRESHOLD`);
 - `verification_status ∈ {VERIFIED_EDITORIAL, VERIFIED_OFFICIAL}`;
 - `editorial_status = APPROVED` (aprovação humana);
 - item não duplicado.
