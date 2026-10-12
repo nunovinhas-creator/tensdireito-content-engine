@@ -253,6 +253,16 @@ areas:
       - violência doméstica apoio vítimas
       - igualdade salarial transparência
 
+# Prioridade editorial (DEC-063). Os nomes completos dos apoios e as pesquisas contam
+# como termos fortes (prioridade alta); as palavras-chave e os apelidos entre parênteses
+# contam como termos ambíguos (rever). Estas listas acrescentam termos às predefinições
+# de src/tensdireito_content_engine/priority.py. `outros_paises`: um título com termo forte
+# que também nomeie um destes países fica em rever.
+prioridade:
+  alta: []
+  rever: []
+  outros_paises: []
+
 # Pesquisas por organismo: notícias indexadas a partir dos sites oficiais.
 pesquisas_por_site:
   - seg-social.pt

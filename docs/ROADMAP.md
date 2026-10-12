@@ -808,7 +808,7 @@ Os testes existentes que fixam o conjunto de tabelas depois de `tde init`, ou os
 
 O alvo V1 é a geração de mensagens para **canais e grupos de transmissão do WhatsApp**. `tde publish --target whatsapp --input <JSON>` valida a elegibilidade e imprime uma pré-visualização; não envia a mensagem nem altera o estado editorial. A integração de envio fica para evolução futura.
 
-Formato: título apelativo iniciado por emoji, em `*negrito*`; 2–3 pontos-chave sobre o direito/notícia; CTA em destaque; e hiperligação HTTPS com `_Saiba mais:_` em itálico. A elegibilidade requer `editorial_score ≥ 65` (limiar de selecção), `VERIFIED_EDITORIAL` ou `VERIFIED_OFFICIAL`, `APPROVED` por revisão humana e item não duplicado. Entradas inválidas ou inelegíveis não produzem pré-visualização publicável.
+Formato: título apelativo iniciado por emoji, em `*negrito*`; 2–3 pontos-chave sobre o direito/notícia; CTA em destaque; e hiperligação HTTPS com `_Saiba mais:_` em itálico. A elegibilidade requer (DEC-063: sem limiar de score) `VERIFIED_EDITORIAL` ou `VERIFIED_OFFICIAL`, `APPROVED` por revisão humana e item não duplicado. Entradas inválidas ou inelegíveis não produzem pré-visualização publicável.
 
 ## Decisões pendentes
 

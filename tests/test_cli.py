@@ -85,7 +85,7 @@ def test_publish_whatsapp_rejects_ineligible_item(tmp_path, capsys):
                 "cta": "Consulte os detalhes",
                 "url": "https://example.org/direito",
                 "editorial_score": 64,
-                "verification_status": "verified_official",
+                "verification_status": "unverified",
                 "editorial_status": "approved",
                 "is_duplicate": False,
             }
@@ -98,7 +98,7 @@ def test_publish_whatsapp_rejects_ineligible_item(tmp_path, capsys):
     assert captured.out == ""
     assert captured.err.splitlines() == [
         "publish: NÃO ELEGÍVEL",
-        "- score de relevância inferior a 65",
+        "- item não validado editorialmente ou oficialmente",
     ]
 
 

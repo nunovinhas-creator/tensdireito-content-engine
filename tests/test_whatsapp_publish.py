@@ -2,7 +2,6 @@ import pytest
 
 from tensdireito_content_engine.domain.enums import EditorialStatus, VerificationStatus
 from tensdireito_content_engine.publish.whatsapp import (
-    MINIMUM_RELEVANCE_SCORE,
     WhatsAppMessage,
     check_whatsapp_eligibility,
     format_whatsapp_message,
@@ -43,10 +42,12 @@ def test_message_requires_emoji_and_absolute_https_link():
         create_message(url="http://example.org/direito")
 
 
-def test_eligibility_accepts_minimum_score_verified_and_approved_non_duplicate():
+def test_eligibility_accepts_verified_and_approved_non_duplicate_with_any_score():
+    # DEC-063: o score lexical só ordena; a relevância decide-se pela prioridade e pela
+    # revisão humana, e a publicação continua a exigir verificação e aprovação.
     assert (
         check_whatsapp_eligibility(
-            MINIMUM_RELEVANCE_SCORE,
+            10,
             VerificationStatus.VERIFIED_OFFICIAL,
             EditorialStatus.APPROVED,
             False,
@@ -58,13 +59,6 @@ def test_eligibility_accepts_minimum_score_verified_and_approved_non_duplicate()
 @pytest.mark.parametrize(
     ("score", "verification", "editorial", "duplicate", "expected_reason"),
     [
-        (
-            64.99,
-            VerificationStatus.VERIFIED_OFFICIAL,
-            EditorialStatus.APPROVED,
-            False,
-            "score de relevância",
-        ),
         (
             80,
             VerificationStatus.UNVERIFIED,

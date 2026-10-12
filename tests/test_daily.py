@@ -572,3 +572,174 @@ def test_undated_items_use_first_collection_when_endpoint_was_seen_before(
         [undated("https://news.example/a", t2), undated("https://news.example/b", t2)],
     )
     assert "notícias selecionadas: 1" in out
+
+
+# DEC-063 (fase 1): prioridade alta/rever/baixa em vez do limiar 65.
+
+
+def _invoke_with_summary(monkeypatch, tmp_path, sources, collector):
+    monkeypatch.setattr(cli, "default_registry", lambda: CollectorRegistry([collector]))
+    db = tmp_path / "tde.sqlite3"
+    report_dir = tmp_path / "reports"
+    summary = tmp_path / "summary.md"
+    code = cli.main(
+        [
+            "--config",
+            str(sources),
+            "--db",
+            str(db),
+            "daily",
+            "--date",
+            DAY.isoformat(),
+            "--report-dir",
+            str(report_dir),
+            "--summary-md",
+            str(summary),
+        ]
+    )
+    report = (report_dir / f"{DAY.isoformat()}.txt").read_text(encoding="utf-8")
+    return code, db, report, summary.read_text(encoding="utf-8")
+
+
+def test_relevant_title_with_low_lexical_score_becomes_a_draft(monkeypatch, tmp_path, capsys):
+    from tensdireito_content_engine.normalize import normalize_raw_item
+    from tensdireito_content_engine.scoring import score_item
+
+    sources = config_dir(tmp_path / "config", "news_feed")
+    relevant = item(
+        "news_feed",
+        title="Abono de família: pagamento de outubro chega esta semana",
+        raw="<item><description>Os valores mantêm-se.</description></item>",
+    )
+    # O caso que o limiar 65 deitava fora.
+    assert score_item(normalize_raw_item(relevant)).value < 65
+
+    code, db, report, _ = _invoke_with_summary(
+        monkeypatch, tmp_path, sources, FakeRss(lambda _: [relevant])
+    )
+    capsys.readouterr()
+    assert code == 0
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone() == (1,)
+    assert "Prioridade: alta — título refere «abono»" in report
+    assert "Decisão: rascunho" in report
+
+    # A aprovação humana deixou de depender do score lexical.
+    assert (
+        cli.main(
+            [
+                "--db",
+                str(db),
+                "drafts",
+                "approve",
+                "1",
+                "--verification-status",
+                "verified_editorial",
+            ]
+        )
+        == 0
+    )
+    assert "rascunho 1: aprovado" in capsys.readouterr().out
+
+
+def test_review_and_low_items_stay_visible_without_drafts(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "news_feed")
+    items = [
+        item(
+            "news_feed",
+            title="Segurança Social paga hoje subsídio de desemprego",
+            url="https://news.example/alta",
+            raw="<item><description>Texto alta.</description></item>",
+        ),
+        item(
+            "news_feed",
+            title="Agricultores exigem pacote de apoios de 140 milhões",
+            url="https://news.example/rever",
+            raw="<item><description>Texto rever.</description></item>",
+        ),
+        item(
+            "news_feed",
+            title="Benfica vence em Braga e reforça liderança",
+            url="https://news.example/baixa",
+            raw="<item><description>Texto baixa.</description></item>",
+        ),
+    ]
+    code, db, report, summary = _invoke_with_summary(
+        monkeypatch, tmp_path, sources, FakeRss(lambda _: items)
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone() == (1,)
+    # Nenhum candidato desaparece: os três estão no relatório com prioridade e decisão.
+    assert "Prioridade: alta 1; rever 1; baixa 1" in report
+    assert "Prioridade: rever — título ambíguo: «apoio»" in report
+    assert "Decisão: aguarda classificação (fase 3)" in report
+    assert "Prioridade: baixa — sem termos de apoios no título nem no resumo" in report
+    assert "Decisão: arquivada" in report
+    # Resumo do run: funil e listas de auditoria.
+    assert "### Funil do dia" in summary
+    assert "| Prioridade alta | 1 |" in summary
+    assert "| ↳ rascunho | 1 |" in summary
+    assert "Prioridade rever (1 de 1)" in summary
+    assert "| ↳ termo ambíguo no título | 1 |" in summary
+    assert "Amostra de baixa prioridade para auditoria (1 de 1)" in summary
+    assert "[Benfica vence em Braga e reforça liderança](https://news.example/baixa)" in summary
+    # Linhas que o workflow transforma em anotações.
+    assert "FUNIL: do dia 3; alta 1; rever 1; baixa 1; rascunhos novos 1" in output
+    assert "AUDITORIA baixa: Benfica vence em Braga e reforça liderança — Fonte 0" in output
+    assert "AUDITORIA rever: Agricultores exigem pacote de apoios" in output
+
+
+def test_official_source_items_are_never_low(monkeypatch, tmp_path, capsys):
+    sources = config_dir(tmp_path / "config", "official_feed")
+    path = sources / "sources.yaml"
+    path.write_text(path.read_text(encoding="utf-8").replace("tier: T3", "tier: T1"))
+    official = item("official_feed", title="Despacho de nomeação de dirigente regional")
+
+    code, db, report, _ = _invoke_with_summary(
+        monkeypatch, tmp_path, sources, FakeRss(lambda _: [official])
+    )
+    capsys.readouterr()
+    assert code == 0
+    assert "Prioridade: rever — fonte oficial (T1)" in report
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone() == (0,)
+
+
+def test_drafts_are_capped_per_run_and_the_rest_is_reported(monkeypatch, tmp_path, capsys):
+    from tensdireito_content_engine.daily import MAX_DRAFTS_PER_RUN
+
+    places = (
+        "Aveiro Beja Braga Bragança Coimbra Évora Faro Guarda Leiria Lisboa Portalegre "
+        "Porto Santarém Setúbal Viseu Funchal Ponta Angra Horta Sabugal Covilhã Tomar "
+        "Elvas Lagos Peniche"
+    ).split()
+    activities = (
+        "teatro pintura natação xadrez música dança cinema leitura ciência robótica "
+        "cerâmica fotografia escultura poesia jardinagem culinária astronomia ténis "
+        "vela canoagem atletismo ciclismo andebol voleibol ginástica"
+    ).split()
+    assert len(places) > MAX_DRAFTS_PER_RUN
+    items = [
+        item(
+            "news_feed",
+            title=f"{place}: abono para {activity}",
+            url=f"https://news.example/{index}",
+            raw=f"<item><description>Oficina {index}.</description></item>",
+        )
+        for index, (place, activity) in enumerate(zip(places, activities, strict=True))
+    ]
+    sources = config_dir(tmp_path / "config", "news_feed")
+    code, db, report, summary = _invoke_with_summary(
+        monkeypatch, tmp_path, sources, FakeRss(lambda _: items)
+    )
+    capsys.readouterr()
+    assert code == 0
+    with sqlite3.connect(db) as connection:
+        drafts = connection.execute("SELECT COUNT(*) FROM whatsapp_draft").fetchone()[0]
+    assert drafts == MAX_DRAFTS_PER_RUN
+    limited = report.count(f"Decisão: limite de {MAX_DRAFTS_PER_RUN} rascunhos por run")
+    assert limited == len(items) - MAX_DRAFTS_PER_RUN
+    assert f"Prioridade alta sem rascunho ({limited})" in summary
