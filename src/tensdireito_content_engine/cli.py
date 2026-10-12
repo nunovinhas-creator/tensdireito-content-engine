@@ -255,7 +255,7 @@ def daily_summary_markdown(result: DailyResult) -> str:
         "",
         "| Métrica | Valor |",
         "|---|---|",
-        f"| Fontes consultadas | {len(outcomes)} ({len(failed)} com falha) |",
+        f"| Fontes consultadas | {len(outcomes)} ({_states_text(result.collection)}) |",
         f"| Itens obtidos | {result.collection.new + result.collection.existing} |",
         f"| Notícias do dia | {len(result.articles)} |",
         f"| Duplicados | {result.duplicates} |",
@@ -268,6 +268,21 @@ def daily_summary_markdown(result: DailyResult) -> str:
     if failed:
         lines += ["### Fontes com falha", "", "| Endpoint | Erro |", "|---|---|"]
         lines += [f"| `{o.id}` | {_md_cell(o.error or '')} |" for o in failed]
+        lines.append("")
+    attention = [o for o in outcomes if o.warning or o.state == "vazio"]
+    if attention:
+        # DEC-072: vazio (respondeu sem itens), suspeito (abaixo do mínimo em 2 runs) e
+        # falha repetida, para não passarem por "ok".
+        lines += [
+            "### Fontes vazias, suspeitas ou com falha repetida",
+            "",
+            "| Endpoint | Estado | Aviso |",
+            "|---|---|---|",
+        ]
+        lines += [
+            f"| `{o.id}` | {o.state} | {_md_cell(o.warning or 'respondeu sem itens')} |"
+            for o in attention
+        ]
         lines.append("")
     noted = [outcome for outcome in outcomes if outcome.notes]
     if noted:
@@ -286,9 +301,7 @@ def daily_summary_markdown(result: DailyResult) -> str:
         "| Endpoint | Novos | Já existentes | Estado |",
         "|---|---:|---:|---|",
     ]
-    lines += [
-        f"| `{o.id}` | {o.new} | {o.existing} | {'falha' if o.error else 'ok'} |" for o in outcomes
-    ]
+    lines += [f"| `{o.id}` | {o.new} | {o.existing} | {o.state} |" for o in outcomes]
     lines += ["", "</details>", ""]
     return "\n".join(lines) + "\n"
 
@@ -710,8 +723,23 @@ def _audit_lines(result: DailyResult) -> list[str]:
             f"CANDIDATOS: {stats.candidates} notícias, {stats.new_candidates} novas; "
             f"métodos: {methods or 'nenhum'}"
         )
+    lines.append(_sources_line(result.collection))
     lines.append(_transport_line(result.collection))
     return lines
+
+
+def _states_text(collection: CollectResult) -> str:
+    counts = collection.state_counts()
+    return (
+        f"ok {counts['ok']}, vazias {counts['vazio']}, suspeitas {counts['suspeito']}, "
+        f"com falha {counts['falha']}"
+    )
+
+
+def _sources_line(collection: CollectResult) -> str:
+    """Linha `FONTES` (DEC-072): estados dos endpoints e avisos repetidos."""
+    repeated = len(collection.warnings)
+    return f"FONTES: {_states_text(collection)}; avisos de 2 runs seguidos {repeated}"
 
 
 def _transport_line(collection: CollectResult) -> str:

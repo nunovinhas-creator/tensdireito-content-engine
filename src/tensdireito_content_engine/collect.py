@@ -13,8 +13,8 @@ todo o acesso à base de dados passa pelas funções de `storage`.
   `run` com `finished_at` nulo (execução interrompida).
 """
 
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -26,6 +26,7 @@ from tensdireito_content_engine.storage import (
     active_endpoints,
     finish_run,
     open_existing_database,
+    previous_run_stats,
     record_endpoint_failure,
     save_endpoint_items,
     source_exists,
@@ -36,6 +37,13 @@ COMMAND = "collect"
 SUCCESS = "success"
 PARTIAL = "partial"
 FAILED = "failed"
+
+# DEC-072 (especificação §3.3 e §5): estado de cada endpoint no run.
+STATE_OK = "ok"
+STATE_EMPTY = "vazio"  # respondeu bem, sem itens
+STATE_SUSPECT = "suspeito"  # abaixo de `expect_min_items` em 2 runs seguidos
+STATE_FAILED = "falha"
+STATES = (STATE_OK, STATE_EMPTY, STATE_SUSPECT, STATE_FAILED)
 
 
 class CollectError(Exception):
@@ -51,6 +59,13 @@ class EndpointOutcome:
     error: str | None = None
     # DEC-070: limitações, novas tentativas e redirects seguidos neste endpoint.
     notes: tuple[str, ...] = ()
+    # DEC-072: estado no run e aviso quando o problema se repete do run anterior.
+    state: str = STATE_OK
+    warning: str | None = None
+
+    @property
+    def items(self) -> int:
+        return self.new + self.existing
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +91,17 @@ class CollectResult:
     def existing(self) -> int:
         return sum(outcome.existing for outcome in self.endpoints)
 
+    def state_counts(self) -> dict[str, int]:
+        """Endpoints por estado (DEC-072), sempre com os quatro estados."""
+        counts = dict.fromkeys(STATES, 0)
+        for outcome in self.endpoints:
+            counts[outcome.state] += 1
+        return counts
+
+    @property
+    def warnings(self) -> tuple[EndpointOutcome, ...]:
+        return tuple(outcome for outcome in self.endpoints if outcome.warning)
+
     def transport_counts(self) -> dict[str, int]:
         """Contagens de DEC-066/070 para o resumo: o que o transporte fez além do pedido."""
         counts = {LIMITATION: 0, RETRY: 0, REDIRECT: 0, "redirect recusado": 0}
@@ -99,6 +125,8 @@ class CollectResult:
                     "existing": outcome.existing,
                     "error": outcome.error,
                     "notes": list(outcome.notes),
+                    "state": outcome.state,
+                    "warning": outcome.warning,
                 }
                 for outcome in self.endpoints
             ],
@@ -109,6 +137,7 @@ class CollectResult:
                 "new": self.new,
                 "existing": self.existing,
                 "transport": self.transport_counts(),
+                "states": self.state_counts(),
             },
         }
 
@@ -118,8 +147,12 @@ def run_collect(
     registry: CollectorRegistry,
     source_id: str | None = None,
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
+    expect_min_items: Mapping[str, int] | None = None,
 ) -> CollectResult:
     """Executa a recolha local e devolve o resultado do `run` concluído.
+
+    `expect_min_items` (DEC-072): mínimo por endpoint, do YAML; o estado de cada endpoint
+    compara-se com o `run` de recolha anterior.
 
     Pré-condições → `StorageError` ou `CollectError`, sem `run`. Erro da `storage`
     durante a execução → `StorageError`, com o `run` por concluir.
@@ -130,9 +163,12 @@ def run_collect(
         if source_id is not None and not source_exists(conn, source_id):
             raise CollectError(f"a fonte {source_id} não existe em source_registry")
         run_id = start_run(conn, COMMAND, now())
+        previous = _previous_outcomes(previous_run_stats(conn, COMMAND, run_id))
+        minimums = expect_min_items or {}
         outcomes: list[EndpointOutcome] = []
         for endpoint in active_endpoints(conn, source_id):
-            outcomes.append(_collect_endpoint(conn, registry, endpoint, run_id, now))
+            outcome = _collect_endpoint(conn, registry, endpoint, run_id, now)
+            outcomes.append(_with_health(outcome, previous.get(endpoint.id), minimums))
         result = CollectResult(
             path=path, run_id=run_id, status=_status(outcomes), endpoints=tuple(outcomes)
         )
@@ -140,6 +176,41 @@ def run_collect(
     finally:
         conn.close()
     return result
+
+
+def _previous_outcomes(stats: dict | None) -> dict[str, tuple[str, int]]:
+    """Resultado e itens de cada endpoint no run anterior; entradas mal formadas ignoradas."""
+    if not stats or not isinstance(stats.get("endpoints"), list):
+        return {}
+    previous: dict[str, tuple[str, int]] = {}
+    for entry in stats["endpoints"]:
+        if not isinstance(entry, dict) or not isinstance(entry.get("id"), str):
+            continue
+        new, existing = entry.get("new"), entry.get("existing")
+        if not isinstance(new, int) or not isinstance(existing, int):
+            continue
+        previous[entry["id"]] = (str(entry.get("result")), new + existing)
+    return previous
+
+
+def _with_health(
+    outcome: EndpointOutcome,
+    previous: tuple[str, int] | None,
+    minimums: Mapping[str, int],
+) -> EndpointOutcome:
+    """Estado do endpoint (DEC-072): falha, suspeito, vazio ou ok, com aviso se repetido."""
+    if outcome.result == FAILED:
+        repeated = previous is not None and previous[0] == FAILED
+        warning = "falha em 2 runs seguidos" if repeated else None
+        return replace(outcome, state=STATE_FAILED, warning=warning)
+    minimum = minimums.get(outcome.id)
+    if minimum is not None and outcome.items < minimum:
+        if previous is not None and previous[0] == SUCCESS and previous[1] < minimum:
+            warning = f"abaixo do mínimo esperado ({outcome.items} < {minimum}) em 2 runs seguidos"
+            return replace(outcome, state=STATE_SUSPECT, warning=warning)
+    if outcome.items == 0:
+        return replace(outcome, state=STATE_EMPTY)
+    return replace(outcome, state=STATE_OK)
 
 
 def _collect_endpoint(

@@ -6,10 +6,12 @@ transacção própria.
 """
 
 import json
+import sqlite3
 from collections.abc import Mapping
 from datetime import datetime
 
 from tensdireito_content_engine.storage.database import to_utc_iso, transaction
+from tensdireito_content_engine.storage.errors import StorageError
 from tensdireito_content_engine.storage.interfaces import Connection
 
 RUN_STATUSES = ("success", "partial", "failed")
@@ -46,3 +48,25 @@ def finish_run(
             "UPDATE run SET finished_at = ?, status = ?, stats = ?, updated_at = ? WHERE id = ?",
             (timestamp, status, json.dumps(stats, ensure_ascii=False), timestamp, run_id),
         )
+
+
+def previous_run_stats(conn: Connection, command: str, before_id: int) -> dict | None:
+    """`stats` do último `run` concluído de `command` anterior a `before_id` (ou `None`).
+
+    Um `stats` ilegível conta como ausente: a saúde dos endpoints (DEC-072) recomeça.
+    """
+    try:
+        row = conn.execute(
+            "SELECT stats FROM run WHERE command = ? AND id < ? AND finished_at IS NOT NULL "
+            "AND stats IS NOT NULL ORDER BY id DESC LIMIT 1",
+            (command, before_id),
+        ).fetchone()
+    except sqlite3.Error as exc:
+        raise StorageError(f"não foi possível ler o run anterior: {exc}") from exc
+    if row is None:
+        return None
+    try:
+        stats = json.loads(row[0])
+    except (TypeError, ValueError):
+        return None
+    return stats if isinstance(stats, dict) else None

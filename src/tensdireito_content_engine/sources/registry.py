@@ -61,6 +61,7 @@ ENDPOINT_OPTIONAL = (
     "validated_by",
     "redirect_hosts",
     "redirect_is_throttle",
+    "expect_min_items",
 )
 
 
@@ -185,6 +186,7 @@ def _parse_endpoint(
     _put(fields, "validated_at", _timestamp(item, "validated_at", problems))
     _put(fields, "redirect_hosts", _text_list(item, "redirect_hosts", problems))
     _put(fields, "redirect_is_throttle", _boolean(item, "redirect_is_throttle", problems))
+    _put(fields, "expect_min_items", _integer(item, "expect_min_items", problems))
     fetch = item.get("fetch")
     if fetch is not None and not isinstance(fetch, dict):
         problems.append(f"fetch tem de ser um mapeamento, recebido {_kind(fetch)}")
@@ -270,6 +272,18 @@ def _text_list(item: Mapping, key: str, problems: list[str]) -> object:
         problems.append(f"{key} só pode conter texto, recebido {_kind(bad[0])}")
         return _MISSING
     return tuple(value)
+
+
+def _integer(item: Mapping, key: str, problems: list[str]) -> object:
+    if key not in item:
+        return _MISSING
+    value = item[key]
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool):
+        problems.append(f"{key} tem de ser inteiro, recebido {_kind(value)}")
+        return _MISSING
+    return value
 
 
 def _boolean(item: Mapping, key: str, problems: list[str]) -> object:

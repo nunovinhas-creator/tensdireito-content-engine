@@ -683,3 +683,10 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Estado:** Aceite
 - **Data:** 2026-10-12
 
+### DEC-072 — Estado de cada endpoint no run: ok, vazio, suspeito, falha
+- **Problema:** Um endpoint que respondia bem mas sem itens aparecia no resumo como `ok`, igual a um que trazia notícias; a especificação (§3.3, §5 e o teste de aceitação da §9 "um endpoint vazio e um endpoint em erro aparecem com estados diferentes") pede estados distintos, o canário `expect_min_items` e um aviso para falhas repetidas.
+- **Decisão:** (1) `tde collect` dá a cada endpoint um estado: `falha` (erro), `suspeito` (abaixo de `expect_min_items` neste run e no run de recolha anterior, ambos bem-sucedidos), `vazio` (respondeu sem itens) ou `ok`. Uma falha em 2 runs seguidos tem o aviso "falha em 2 runs seguidos". O run anterior é o último `run` de `collect` concluído, lido de `run.stats`. (2) `expect_min_items` é um campo opcional do endpoint em `sources.yaml` (inteiro positivo), lido pelo `daily` e passado ao `collect`; não é projectado em SQLite, como `fetch`. (3) `run.stats` ganha `state` e `warning` por endpoint e `totals.states`; o resumo mostra os estados na linha "Fontes consultadas", na coluna "Estado" de "Itens por fonte" e numa tabela "Fontes vazias, suspeitas ou com falha repetida"; a anotação `FONTES` resume o mesmo. (4) Nenhum endpoint tem ainda `expect_min_items`: os valores escolhem-se a partir dos itens por endpoint de alguns dias de runs, um PR à parte.
+- **Limitações:** Sem `expect_min_items`, um endpoint que encolhe mas não chega a zero não é sinalizado. A coluna "só encontrados por ele" por endpoint (§3.3) fica para depois; hoje a exclusividade mede-se por método. Um `tde collect --source` conta como run anterior para os endpoints dessa fonte.
+- **Estado:** Aceite
+- **Data:** 2026-10-12
+

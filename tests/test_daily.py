@@ -470,7 +470,7 @@ def test_daily_appends_markdown_summary(monkeypatch, tmp_path, capsys):
     text = summary.read_text(encoding="utf-8")
     assert code == 0
     assert text.startswith("antes\n## Pipeline diário — 2026-10-09")
-    assert "| Fontes consultadas | 1 (0 com falha) |" in text
+    assert "| Fontes consultadas | 1 (ok 1, vazias 0, suspeitas 0, com falha 0) |" in text
     assert "| `news_feed` | 1 | 0 | ok |" in text
 
 

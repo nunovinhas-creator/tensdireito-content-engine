@@ -391,6 +391,8 @@ def test_run_stats_keep_the_dec031_structure(db, monkeypatch):
                     "existing": 0,
                     "error": None,
                     "notes": [],
+                    "state": "ok",
+                    "warning": None,
                 }
             ],
             "totals": {
@@ -400,6 +402,7 @@ def test_run_stats_keep_the_dec031_structure(db, monkeypatch):
                 "new": 3,
                 "existing": 0,
                 "transport": NO_TRANSPORT_EVENTS,
+                "states": {"ok": 1, "vazio": 0, "suspeito": 0, "falha": 0},
             },
         },
         {
@@ -411,6 +414,8 @@ def test_run_stats_keep_the_dec031_structure(db, monkeypatch):
                     "existing": 0,
                     "error": "o collector falhou: FeedError: item 2: sem link",
                     "notes": [],
+                    "state": "falha",
+                    "warning": None,
                 }
             ],
             "totals": {
@@ -420,6 +425,7 @@ def test_run_stats_keep_the_dec031_structure(db, monkeypatch):
                 "new": 0,
                 "existing": 0,
                 "transport": NO_TRANSPORT_EVENTS,
+                "states": {"ok": 0, "vazio": 0, "suspeito": 0, "falha": 1},
             },
         },
     ]

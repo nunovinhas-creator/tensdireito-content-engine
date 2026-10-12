@@ -70,10 +70,10 @@ jobs:
           set -e
           cat daily.txt
 
-          # DEC-063/070: funil, candidatos, transporte e amostras de auditoria também como
-          # anotações do run. O GitHub só mostra 10 anotações `notice` por passo: os
+          # DEC-063/070/072: funil, candidatos, fontes, transporte e amostras de auditoria
+          # também como anotações do run. O GitHub só mostra 10 anotações `notice` por passo: os
           # resumos vêm primeiro e as amostras ocupam o resto.
-          { grep -E '^(FUNIL|CANDIDATOS|TRANSPORTE)' daily.txt; grep -E '^AUDITORIA' daily.txt; } | head -10 | while IFS= read -r line; do
+          { grep -E '^(FUNIL|CANDIDATOS|FONTES|TRANSPORTE)' daily.txt; grep -E '^AUDITORIA' daily.txt; } | head -10 | while IFS= read -r line; do
             line="${line//'%'/%25}"
             echo "::notice title=${line%%:*}::${line#*: }"
           done || true

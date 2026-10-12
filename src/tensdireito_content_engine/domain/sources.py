@@ -91,6 +91,9 @@ class SourceEndpoint:
     # excepção do Bing, em que um 302/307 é limitação. Não se combinam.
     redirect_hosts: tuple[str, ...] = ()
     redirect_is_throttle: bool = False
+    # DEC-072: mínimo de itens esperado por run; abaixo disso em 2 runs seguidos, o endpoint
+    # fica "suspeito" (canário). Lido do YAML pelo `daily`; não é projectado em SQLite.
+    expect_min_items: int | None = None
 
     def __post_init__(self) -> None:
         require_text(self.id, "id")
@@ -112,6 +115,12 @@ class SourceEndpoint:
             raise DomainValidationError("redirect_is_throttle tem de ser bool")
         if self.redirect_hosts and self.redirect_is_throttle:
             raise DomainValidationError("redirect_hosts e redirect_is_throttle não se combinam")
+        if self.expect_min_items is not None and (
+            not isinstance(self.expect_min_items, int)
+            or isinstance(self.expect_min_items, bool)
+            or self.expect_min_items < 1
+        ):
+            raise DomainValidationError("expect_min_items tem de ser um inteiro positivo")
 
         if self.endpoint_status in (EndpointStatus.VALIDATED, EndpointStatus.ACTIVE):
             _require_manual_validation(self.validated_at, self.validated_by)

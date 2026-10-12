@@ -44,7 +44,12 @@ from tensdireito_content_engine.storage.raw_items import (
     prune_raw_items,
     save_endpoint_items,
 )
-from tensdireito_content_engine.storage.runs import RUN_STATUSES, finish_run, start_run
+from tensdireito_content_engine.storage.runs import (
+    RUN_STATUSES,
+    finish_run,
+    previous_run_stats,
+    start_run,
+)
 from tensdireito_content_engine.storage.schema import open_existing_database
 from tensdireito_content_engine.storage.source_documents import (
     PendingRawItem,
@@ -81,6 +86,7 @@ __all__ = [
     "create_pending_draft",
     "export_approved_drafts",
     "finish_run",
+    "previous_run_stats",
     "init_database",
     "insert_source_document",
     "load_migrations",
