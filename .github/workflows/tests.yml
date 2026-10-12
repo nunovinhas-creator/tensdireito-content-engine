@@ -31,4 +31,7 @@ jobs:
         run: uv run ruff check src tests
 
       - name: Tests
-        run: uv run pytest -q
+        shell: bash
+        run: |
+          uv run pytest -q | tee pytest.txt
+          echo "::notice title=Testes::$(tail -n 1 pytest.txt)"
