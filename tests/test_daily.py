@@ -683,6 +683,7 @@ def test_review_and_low_items_stay_visible_without_drafts(monkeypatch, tmp_path,
     assert "| Prioridade alta | 1 |" in summary
     assert "| ↳ rascunho | 1 |" in summary
     assert "Prioridade rever (1 de 1)" in summary
+    assert "| ↳ termo ambíguo no título | 1 |" in summary
     assert "Amostra de baixa prioridade para auditoria (1 de 1)" in summary
     assert "[Benfica vence em Braga e reforça liderança](https://news.example/baixa)" in summary
     # Linhas que o workflow transforma em anotações.

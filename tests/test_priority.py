@@ -12,6 +12,7 @@ import pytest
 from tensdireito_content_engine.priority import (
     Priority,
     PriorityTerms,
+    Rule,
     classify,
     load_priority_terms,
 )
@@ -187,3 +188,23 @@ def test_classification_is_deterministic(repo_terms):
     first = [classify(t, "", "T3", repo_terms) for t in RELEVANT_TITLES]
     second = [classify(t, "", "T3", repo_terms) for t in RELEVANT_TITLES]
     assert first == second
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Macau transfere 1,76 mil milhões de euros para cobrir défice do Fundo de Pensões",
+        "Cabo Verde. Universidade pública com propinas gratuitas",
+    ],
+)
+def test_strong_term_about_another_country_goes_to_review(title, repo_terms):
+    decision = classify(title, "", "T3", repo_terms)
+    assert decision.level is Priority.REVIEW
+    assert decision.rule is Rule.FOREIGN
+
+
+def test_decisions_carry_the_rule(repo_terms):
+    assert classify(RELEVANT_TITLES[0], "", "T3", repo_terms).rule is Rule.HIGH_TITLE
+    assert classify(IRRELEVANT_TITLES[0], "", "T1", repo_terms).rule is Rule.OFFICIAL
+    assert classify(AMBIGUOUS_TITLES[0], "", "T3", repo_terms).rule is Rule.AMBIGUOUS_TITLE
+    assert classify(IRRELEVANT_TITLES[0], "", "T3", repo_terms).rule is Rule.NONE

@@ -33,7 +33,7 @@ from tensdireito_content_engine.github_issues import (
 )
 from tensdireito_content_engine.llm import LLMError, load_provider
 from tensdireito_content_engine.normalize_command import run_normalize
-from tensdireito_content_engine.priority import Priority
+from tensdireito_content_engine.priority import Priority, Rule
 from tensdireito_content_engine.publish.whatsapp import (
     WhatsAppMessage,
     check_whatsapp_eligibility,
@@ -306,8 +306,12 @@ def _funnel_markdown(result: DailyResult) -> list[str]:
         f"| Prioridade alta | {counts[Priority.HIGH.value]} |",
     ]
     lines += [f"| ↳ {_md_cell(name)} | {n} |" for name, n in sorted(high_decisions.items())]
+    lines.append(f"| Prioridade rever (aguarda classificação) | {counts[Priority.REVIEW.value]} |")
+    by_rule: dict[str, int] = {}
+    for article in review:
+        by_rule[article.priority_rule] = by_rule.get(article.priority_rule, 0) + 1
+    lines += [f"| ↳ {_md_cell(rule)} | {n} |" for rule, n in sorted(by_rule.items())]
     lines += [
-        f"| Prioridade rever (aguarda classificação) | {counts[Priority.REVIEW.value]} |",
         f"| Prioridade baixa (arquivada) | {counts[Priority.LOW.value]} |",
         f"| Rascunhos novos nesta execução | {result.drafts_created} |",
         "",
@@ -321,7 +325,7 @@ def _funnel_markdown(result: DailyResult) -> list[str]:
             lambda a: a.decision,
         )
     if review:
-        shown = review[:SUMMARY_REVIEW_ROWS]
+        shown = _review_first(review)[:SUMMARY_REVIEW_ROWS]
         lines += _article_table(
             f"Prioridade rever ({len(shown)} de {len(review)})",
             shown,
@@ -351,6 +355,11 @@ def _article_table(title, articles, column, value) -> list[str]:
         for a in articles
     ]
     return [*lines, "", "</details>", ""]
+
+
+def _review_first(articles: Sequence[DailyArticle]) -> list[DailyArticle]:
+    """Os `rever` da imprensa primeiro; os das fontes oficiais (muitos, p. ex. DRE) no fim."""
+    return sorted(articles, key=lambda a: a.priority_rule == Rule.OFFICIAL.value)
 
 
 def _spread_sample(articles: Sequence[DailyArticle], k: int) -> tuple[DailyArticle, ...]:
@@ -633,7 +642,7 @@ def _audit_lines(result: DailyResult) -> list[str]:
         f"rascunhos novos {result.drafts_created}"
     ]
     low = _spread_sample(result.by_priority(Priority.LOW), AUDIT_LOW_LINES)
-    review = result.by_priority(Priority.REVIEW)[:AUDIT_REVIEW_LINES]
+    review = _review_first(result.by_priority(Priority.REVIEW))[:AUDIT_REVIEW_LINES]
     lines += [f"AUDITORIA baixa: {a.title} — {a.source_name}" for a in low]
     lines += [f"AUDITORIA rever: {a.title} — {a.priority_reason}" for a in review]
     return lines

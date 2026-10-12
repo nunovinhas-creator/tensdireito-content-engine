@@ -64,6 +64,7 @@ class DailyArticle:
     # DEC-063: prioridade (alta/rever/baixa), o motivo e o que aconteceu ao candidato.
     priority: str = Priority.LOW.value
     priority_reason: str = ""
+    priority_rule: str = ""
     decision: str = ""
 
 
@@ -166,6 +167,7 @@ def run_daily(
                 source_tier=stored.source_tier,
                 priority=decision.level.value,
                 priority_reason=decision.reason,
+                priority_rule=decision.rule.value,
             )
         )
     articles.sort(key=_article_order)

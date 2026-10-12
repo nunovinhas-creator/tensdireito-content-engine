@@ -138,7 +138,7 @@ Este score é apenas uma ordenação lexical, não determina a veracidade, estad
 
 O limiar de 65 deixou de ser critério de exclusão. Cada notícia do dia recebe uma prioridade e um motivo, por esta ordem de regras:
 
-1. título com termo forte (nome completo de um apoio ou pesquisa de `config/apoios.yaml`, termos da secção `prioridade.alta` ou predefinições de `priority.py`) → `alta`;
+1. título com termo forte (nome completo de um apoio ou pesquisa de `config/apoios.yaml`, termos da secção `prioridade.alta` ou predefinições de `priority.py`) → `alta`; se o título também nomear outro país (lista em `priority.py`, extensível em `prioridade.outros_paises`), → `rever`;
 2. fonte oficial (T1/T2) → `rever` (as fontes oficiais nunca ficam em `baixa`);
 3. título com termo ambíguo (palavras-chave e apelidos entre parênteses de `apoios.yaml`, secção `prioridade.rever`, predefinições) → `rever`;
 4. resumo com termo forte → `rever`;

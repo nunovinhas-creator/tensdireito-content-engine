@@ -6,7 +6,8 @@ fase. `rever` fica à espera da classificação por IA (fase 3) e da revisão hu
 `baixa` fica arquivada, com uma amostra no resumo do run para auditoria.
 
 Regras, por ordem:
-1. o título contém um termo forte (apoio nomeado, pesquisa ou termo de `alta`) → alta;
+1. o título contém um termo forte (apoio nomeado, pesquisa ou termo de `alta`) → alta,
+   ou rever se o título também nomeia outro país;
 2. a fonte é oficial (T1/T2) → rever (as fontes oficiais nunca ficam em baixa);
 3. o título contém um termo ambíguo (palavra-chave ou termo de `rever`) → rever;
 4. o resumo contém um termo forte → rever;
@@ -103,6 +104,48 @@ DEFAULT_REVIEW_TERMS = (
     "reforma",
 )
 
+# Um título com termo forte que nomeia outro país desce para rever (run de 2026-10-12:
+# "Macau … Fundo de Pensões", "Cabo Verde … propinas"). Não exclui: fica para análise.
+DEFAULT_FOREIGN_TERMS = (
+    "macau",
+    "cabo verde",
+    "brasil",
+    "angola",
+    "mocambique",
+    "guine-bissau",
+    "sao tome",
+    "timor",
+    "espanha",
+    "franca",
+    "alemanha",
+    "italia",
+    "reino unido",
+    "irlanda",
+    "belgica",
+    "paises baixos",
+    "suica",
+    "estados unidos",
+    "eua",
+    "canada",
+    "china",
+    "japao",
+    "russia",
+    "ucrania",
+    "venezuela",
+    "argentina",
+)
+
+
+class Rule(StrEnum):
+    """Regra que decidiu a prioridade; usada no funil do resumo."""
+
+    HIGH_TITLE = "termo forte no título"
+    FOREIGN = "outro país no título"
+    OFFICIAL = "fonte oficial"
+    AMBIGUOUS_TITLE = "termo ambíguo no título"
+    SUMMARY = "termo forte no resumo"
+    NONE = "sem termos"
+
 
 @dataclass(frozen=True, slots=True)
 class PriorityTerms:
@@ -110,12 +153,14 @@ class PriorityTerms:
 
     high: tuple[str, ...]
     review: tuple[str, ...]
+    foreign: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class PriorityDecision:
     level: Priority
     reason: str
+    rule: Rule = Rule.NONE
 
 
 def load_priority_terms(path: Path) -> PriorityTerms:
@@ -126,6 +171,7 @@ def load_priority_terms(path: Path) -> PriorityTerms:
     """
     high: set[str] = {fold(term) for term in DEFAULT_HIGH_TERMS}
     review: set[str] = {fold(term) for term in DEFAULT_REVIEW_TERMS}
+    foreign: set[str] = {fold(term) for term in DEFAULT_FOREIGN_TERMS}
     path = Path(path)
     if path.is_file():
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -141,23 +187,30 @@ def load_priority_terms(path: Path) -> PriorityTerms:
         section = data.get("prioridade") or {}
         high.update(_folded(section.get("alta")))
         review.update(_folded(section.get("rever")))
+        foreign.update(_folded(section.get("outros_paises")))
     high = {term for term in high if len(term) >= 3}
     review = {term for term in review if len(term) >= 3} - high
-    return PriorityTerms(high=tuple(sorted(high)), review=tuple(sorted(review)))
+    return PriorityTerms(
+        high=tuple(sorted(high)), review=tuple(sorted(review)), foreign=tuple(sorted(foreign))
+    )
 
 
 def classify(title: str, text: str, tier: str | None, terms: PriorityTerms) -> PriorityDecision:
     """Decide a prioridade de um candidato e devolve o motivo legível."""
     folded_title = fold(title)
     if term := _first_match(folded_title, terms.high):
-        return PriorityDecision(Priority.HIGH, f"título refere «{term}»")
+        if country := _first_match(folded_title, terms.foreign):
+            return PriorityDecision(
+                Priority.REVIEW, f"título refere «{term}», mas também «{country}»", Rule.FOREIGN
+            )
+        return PriorityDecision(Priority.HIGH, f"título refere «{term}»", Rule.HIGH_TITLE)
     if tier in OFFICIAL_TIERS:
-        return PriorityDecision(Priority.REVIEW, f"fonte oficial ({tier})")
+        return PriorityDecision(Priority.REVIEW, f"fonte oficial ({tier})", Rule.OFFICIAL)
     if term := _first_match(folded_title, terms.review):
-        return PriorityDecision(Priority.REVIEW, f"título ambíguo: «{term}»")
+        return PriorityDecision(Priority.REVIEW, f"título ambíguo: «{term}»", Rule.AMBIGUOUS_TITLE)
     if term := _first_match(fold(text), terms.high):
-        return PriorityDecision(Priority.REVIEW, f"resumo refere «{term}»")
-    return PriorityDecision(Priority.LOW, "sem termos de apoios no título nem no resumo")
+        return PriorityDecision(Priority.REVIEW, f"resumo refere «{term}»", Rule.SUMMARY)
+    return PriorityDecision(Priority.LOW, "sem termos de apoios no título nem no resumo", Rule.NONE)
 
 
 def _folded(values: object) -> set[str]:
