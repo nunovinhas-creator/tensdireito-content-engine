@@ -20,6 +20,7 @@ from tensdireito_content_engine.normalize.rss import (
     extract_rss_item,
     html_to_text,
 )
+from tensdireito_content_engine.normalize.sitemap import extract_sitemap_entry
 from tensdireito_content_engine.normalize.text import normalize_text, normalize_title
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "RssExtraction",
     "deduplicate_exact",
     "extract_rss_item",
+    "extract_sitemap_entry",
     "fingerprint",
     "html_to_text",
     "normalize_published_at",

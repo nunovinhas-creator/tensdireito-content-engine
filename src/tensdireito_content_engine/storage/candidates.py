@@ -101,6 +101,10 @@ class MethodStats:
     candidates: int = 0
     exclusive: int = 0
     new_discoveries: int = 0
+    # DEC-069: o mesmo, só nas notícias do dia (destino diferente de `fora_do_dia`), para
+    # comparar métodos na mesma janela editorial.
+    today_candidates: int = 0
+    today_exclusive: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,7 +228,12 @@ def _record(
         new_candidates=new_candidates,
         transitions=transitions,
         by_state=_states(conn, list(best)),
-        by_method=_method_stats(conn, list(best), new_discoveries),
+        by_method=_method_stats(
+            conn,
+            list(best),
+            new_discoveries,
+            {cid for cid, obs in best.items() if obs.target != OUT_OF_DAY},
+        ),
     )
 
 
@@ -385,7 +394,10 @@ def _states(conn: Connection, ids: Collection[int]) -> dict[str, int]:
 
 
 def _method_stats(
-    conn: Connection, ids: Collection[int], new_discoveries: dict[str, int]
+    conn: Connection,
+    ids: Collection[int],
+    new_discoveries: dict[str, int],
+    today: Collection[int] = (),
 ) -> dict[str, MethodStats]:
     methods_of: dict[int, set[str]] = defaultdict(set)
     for chunk in _chunks(list(ids)):
@@ -396,12 +408,16 @@ def _method_stats(
         ):
             methods_of[int(candidate_id)].add(method)
     stats: dict[str, MethodStats] = {}
+    today = set(today)
     for method in sorted({m for ms in methods_of.values() for m in ms} | set(new_discoveries)):
         holders = [ms for ms in methods_of.values() if method in ms]
+        holders_today = [ms for cid, ms in methods_of.items() if cid in today and method in ms]
         stats[method] = MethodStats(
             candidates=len(holders),
             exclusive=sum(1 for ms in holders if ms == {method}),
             new_discoveries=new_discoveries.get(method, 0),
+            today_candidates=len(holders_today),
+            today_exclusive=sum(1 for ms in holders_today if ms == {method}),
         )
     return stats
 

@@ -102,13 +102,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          uv run tde drafts sync-issues | tee sync.txt
+          set +e
+          uv run tde drafts sync-issues > sync.txt 2> sync.err
+          status=$?
+          set -e
+          cat sync.txt
+          # DEC-069: o erro também como anotação (os logs nem sempre estão acessíveis).
+          if [ "$status" -ne 0 ]; then
+            head -5 sync.err | while IFS= read -r line; do
+              line="${line//'%'/%25}"
+              echo "::error title=sync-issues::$line"
+            done || true
+          fi
           {
             echo "### Issues"
             echo
             sed 's/^/- /; s/^- - /  - /' sync.txt
             echo
           } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
       # DEC-058: só interessam notícias do dia; rascunhos com mais de 3 dias são fechados.
       - name: Close stale draft issues
