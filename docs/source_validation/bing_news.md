@@ -83,3 +83,9 @@
 | V4 Adequação editorial | fonte | pendente | idem |
 | V5 Autorização de recolha (termos, robots.txt) | cada endpoint | pendente | idem |
 
+## Acrescento de 2026-10-12 (DEC-073) — pesquisas `site:` sem resultados
+
+### Observações técnicas automáticas
+
+Nos seis runs de recolha lidos da base (2026-10-11 e 2026-10-12, até ao run das 15:19 UTC), estas pesquisas responderam sem erro e sem nenhuma notícia em todos: `bn-site-cga`, `bn-site-dges`, `bn-site-financas`, `bn-site-iefp`, `bn-site-parlamento`, `bn-site-portaldahabitacao`, `bn-site-seg-social`. O Bing Notícias não indexa estes sites oficiais como fonte de notícias. Passam a `INACTIVE` por decisão do pull request; as fontes oficiais entram na fase 4 pelo mecanismo próprio de cada uma. `bn-site-portugal` devolve notícias e mantém-se `ACTIVE`.
+

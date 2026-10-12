@@ -690,3 +690,9 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Estado:** Aceite
 - **Data:** 2026-10-12
 
+### DEC-073 — Pesquisas `site:` do Bing sem resultados passam a INACTIVE
+- **Problema:** Com os estados de DEC-072, sete pesquisas `site:` do Bing Notícias aparecem vazias; o histórico dos seis runs de recolha guardados mostra-as vazias em todos. Cada uma é um pedido ao Bing (com o intervalo de 5 s e o risco de limitação) sem nenhuma notícia.
+- **Decisão:** `bn-site-cga`, `bn-site-dges`, `bn-site-financas`, `bn-site-iefp`, `bn-site-parlamento`, `bn-site-portaldahabitacao` e `bn-site-seg-social` passam a `INACTIVE`. Observações em `docs/source_validation/bing_news.md`. As fontes oficiais correspondentes ficam para a fase 4.
+- **Estado:** Aceite
+- **Data:** 2026-10-12
+
