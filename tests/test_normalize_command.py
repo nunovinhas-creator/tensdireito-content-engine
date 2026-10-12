@@ -225,9 +225,10 @@ def test_empty_database_gets_0001_and_0002(tmp_path, capsys):
     db = tmp_path / "novo" / "tde.sqlite3"
     assert cli.main(["--db", str(db), "init"]) == 0
     assert capsys.readouterr().out.splitlines()[1] == (
-        "migrações aplicadas: 0001_init, 0002_source_document, 0003_whatsapp_draft"
+        "migrações aplicadas: 0001_init, 0002_source_document, 0003_whatsapp_draft, "
+        "0004_candidate"
     )
-    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [1, 2, 3]
+    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [1, 2, 3, 4]
     assert query(db, "SELECT COUNT(*) FROM source_document") == [(0,)]
 
 
@@ -248,13 +249,15 @@ def test_existing_database_with_only_0001_gets_only_0002_and_keeps_data(tmp_path
     schema_before = query(
         db,
         "SELECT name, sql FROM sqlite_master "
-        "WHERE tbl_name NOT IN ('source_document', 'whatsapp_draft') ORDER BY 1",
+        "WHERE tbl_name NOT IN ('source_document', 'whatsapp_draft', 'candidate', "
+        "'candidate_group', 'candidate_discovery', 'candidate_transition') "
+        "ORDER BY 1",
     )
 
     assert cli.main(["--db", str(db), "init"]) == 0
     assert capsys.readouterr().out.splitlines() == [
         f"init: OK — {db}",
-        "migrações aplicadas: 0002_source_document, 0003_whatsapp_draft",
+        "migrações aplicadas: 0002_source_document, 0003_whatsapp_draft, 0004_candidate",
     ]
     for table in tables_0001[1:]:
         assert table_snapshot(db, table) == before[table]
@@ -262,7 +265,8 @@ def test_existing_database_with_only_0001_gets_only_0002_and_keeps_data(tmp_path
     assert query(
         db,
         "SELECT name, sql FROM sqlite_master "
-        "WHERE tbl_name NOT IN ('source_document', 'whatsapp_draft') "
+        "WHERE tbl_name NOT IN ('source_document', 'whatsapp_draft', 'candidate', "
+        "'candidate_group', 'candidate_discovery', 'candidate_transition') "
         "AND name != 'schema_migration' ORDER BY 1",
     ) == [row for row in schema_before if row[0] != "schema_migration"]
     assert init_database(db).applied == ()
@@ -280,7 +284,7 @@ def test_normalize_on_database_without_0002_fails_without_run_or_migration(tmp_p
     assert captured.err.splitlines() == [
         f"normalize: ERRO — {db}",
         "- esquema não conforme: migrações pendentes: 0002_source_document, "
-        "0003_whatsapp_draft; execute `tde init`",
+        "0003_whatsapp_draft, 0004_candidate; execute `tde init`",
     ]
     assert query(db, "SELECT type, name, sql FROM sqlite_master ORDER BY name") == before
     assert query(db, "SELECT COUNT(*) FROM run") == [(0,)]

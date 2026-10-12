@@ -35,6 +35,9 @@ class StoredRawItem:
     source_name: str
     registry_status: str | None
     source_tier: str | None = None
+    # Fase 2a: para o método de descoberta (`candidate_discovery.method`).
+    endpoint_type: str | None = None
+    endpoint_url: str | None = None
 
 
 def list_raw_items(path: Path) -> tuple[StoredRawItem, ...]:
@@ -44,7 +47,7 @@ def list_raw_items(path: Path) -> tuple[StoredRawItem, ...]:
         rows = conn.execute(
             "SELECT r.id, r.url, r.title, r.raw_content, r.fetched_at, r.source_endpoint_id, "
             "r.external_id, r.published_at_raw, r.manual_note, s.id, s.name, "
-            "s.registry_status, s.tier "
+            "s.registry_status, s.tier, e.endpoint_type, e.url "
             "FROM raw_item r LEFT JOIN source_endpoint e ON e.id = r.source_endpoint_id "
             "LEFT JOIN source_registry s ON s.id = e.source_id "
             "ORDER BY r.fetched_at, r.source_endpoint_id, r.url, r.id"
@@ -71,6 +74,8 @@ def list_raw_items(path: Path) -> tuple[StoredRawItem, ...]:
             source_name=row[10] or "Fonte não identificada",
             registry_status=row[11],
             source_tier=row[12],
+            endpoint_type=row[13],
+            endpoint_url=row[14],
         )
         for row in rows
     )
@@ -142,21 +147,55 @@ def prune_raw_items(path: Path, before: datetime) -> int:
     transacção e compacta o ficheiro. Devolve o número de `raw_item` apagados.
     """
     cutoff = to_utc_iso(before)
-    old = "SELECT id FROM raw_item WHERE fetched_at < ?"
+    # DEC-068: as capturas e os candidatos com rascunho aprovado não são apagados. Os
+    # rascunhos `pending` ficam assim para sempre (a issue fecha ao fim de 3 dias, a base
+    # não muda), por isso não são protegidos: protegê-los impediria qualquer limpeza.
+    kept = "SELECT raw_item_id FROM whatsapp_draft WHERE status = 'approved'"
+    old = f"SELECT id FROM raw_item WHERE fetched_at < ? AND id NOT IN ({kept})"
     docs = f"SELECT id FROM source_document WHERE raw_item_id IN ({old})"
+    kept_candidates = (
+        "SELECT candidate_id FROM whatsapp_draft "
+        "WHERE status = 'approved' AND candidate_id IS NOT NULL"
+    )
+    old_candidates = (
+        f"SELECT id FROM candidate WHERE last_seen_at < ? AND id NOT IN ({kept_candidates})"
+    )
     conn = open_existing_database(Path(path))
     try:
         with transaction(conn, "não foi possível limpar raw_item antigos"):
-            count = conn.execute(
-                "SELECT COUNT(*) FROM raw_item WHERE fetched_at < ?", (cutoff,)
-            ).fetchone()[0]
+            count = conn.execute(f"SELECT COUNT(*) FROM ({old})", (cutoff,)).fetchone()[0]
+            # Ordem das chaves sem ON DELETE (DEC-029; especificação §1.7).
+            conn.execute(
+                f"DELETE FROM candidate_transition WHERE candidate_id IN ({old_candidates})",
+                (cutoff,),
+            )
+            conn.execute(
+                f"DELETE FROM candidate_discovery WHERE candidate_id IN ({old_candidates}) "
+                f"OR raw_item_id IN ({old})",
+                (cutoff, cutoff),
+            )
+            conn.execute(
+                f"UPDATE whatsapp_draft SET candidate_id = NULL "
+                f"WHERE candidate_id IN ({old_candidates})",
+                (cutoff,),
+            )
+            conn.execute(
+                f"UPDATE candidate SET representative_document_id = NULL "
+                f"WHERE representative_document_id IN ({docs})",
+                (cutoff,),
+            )
+            conn.execute(f"DELETE FROM candidate WHERE id IN ({old_candidates})", (cutoff,))
+            conn.execute(
+                "DELETE FROM candidate_group WHERE id NOT IN "
+                "(SELECT group_id FROM candidate WHERE group_id IS NOT NULL)"
+            )
             conn.execute(f"DELETE FROM whatsapp_draft WHERE raw_item_id IN ({old})", (cutoff,))
             conn.execute(
                 f"UPDATE source_document SET duplicate_of = NULL WHERE duplicate_of IN ({docs})",
                 (cutoff,),
             )
             conn.execute(f"DELETE FROM source_document WHERE raw_item_id IN ({old})", (cutoff,))
-            conn.execute("DELETE FROM raw_item WHERE fetched_at < ?", (cutoff,))
+            conn.execute(f"DELETE FROM raw_item WHERE id IN ({old})", (cutoff,))
         if count:
             try:
                 conn.execute("VACUUM")

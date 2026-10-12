@@ -101,6 +101,7 @@ def test_there_are_migration_files():
         "0001_init.sql",
         "0002_source_document.sql",
         "0003_whatsapp_draft.sql",
+        "0004_candidate.sql",
     ]
 
 

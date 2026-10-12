@@ -222,7 +222,7 @@ def test_empty_file_without_schema_fails_and_applies_nothing(tmp_path, config, c
     assert run_cli(config, db) == 1
     assert (
         "esquema não conforme: migrações pendentes: 0001_init, 0002_source_document, "
-        "0003_whatsapp_draft; "
+        "0003_whatsapp_draft, 0004_candidate; "
         "execute `tde init`"
     ) in capsys.readouterr().err
     assert db.read_bytes() == b""
@@ -244,7 +244,8 @@ def test_pending_migration_fails_without_migrating(db, config, capsys):
     before = snapshot(db)
     assert run_cli(config, db) == 1
     assert (
-        "migrações pendentes: 0001_init, 0002_source_document, 0003_whatsapp_draft; "
+        "migrações pendentes: 0001_init, 0002_source_document, 0003_whatsapp_draft, "
+        "0004_candidate; "
         "execute `tde init`"
     ) in (
         capsys.readouterr().err
