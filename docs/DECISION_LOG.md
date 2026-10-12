@@ -620,3 +620,32 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** Sem alteração ao esquema SQLite nem aos códigos de saída; `whatsapp_draft.editorial_score` continua a guardar o score lexical. Testes de aceitação em `tests/test_priority.py` e `tests/test_daily.py`.
 - **Estado:** Aceite
 - **Data:** 2026-10-12
+
+### DEC-064 — `source_document` mantém-se como documento de cada captura
+- **Problema:** A especificação das fases 2–4 (PR #58) introduz `candidate` (uma linha por notícia) e deixava em aberto se `source_document` (0002, um documento por captura, escrito por `tde normalize`) seria absorvido ou mantido, com risco de duas fontes de verdade para o texto.
+- **Decisão:** Opção B da §1.6 da especificação. `source_document` continua a ser o documento normalizado de cada captura; `candidate` agrupa as capturas da mesma notícia e aponta para o documento representante (`representative_document_id`); `tde normalize` mantém-se e passa a ser chamado pelo `daily`. Na fase 3, a página extraída é uma captura nova normalizada como `source_document` com `document_kind = page`; não há tabela `candidate_text`.
+- **Razão:** Preserva a rastreabilidade e a auditoria por captura e reaproveita código já testado (M2.11); a simplificação da opção A não compensa a perda da distinção entre captura e notícia.
+- **Impacto:** Decisão de modelo; nada implementado. Condiciona a migração 0004 da fase 2, que continua por aprovar.
+- **Estado:** Aceite
+- **Data:** 2026-10-12
+
+### DEC-065 — Política de redirects aprovada (§7 da especificação)
+- **Problema:** DEC-033 não segue nenhum redirect, e vários endpoints ficaram inactivos por isso.
+- **Decisão:** Aprovada a política da §7 da especificação das fases 2–4: redirects só para anfitriões listados por endpoint em `redirect_hosts`; no máximo um salto; só HTTPS → HTTPS; o destino é revalidado como um pedido novo (anfitrião na lista, IP público, robots.txt, limites). Condição: a implementação tem de impedir redirects para endereços internos ou não autorizados, e os testes de segurança da §9 são obrigatórios antes de activar qualquer `redirect_hosts`.
+- **Impacto:** Altera DEC-033 quando for implementada, na fase 2; até lá, DEC-033 mantém-se. Não decide a revisão de DEC-062 (tratamento de 302/307), que continua em aberto.
+- **Estado:** Aceite (por implementar)
+- **Data:** 2026-10-12
+
+### DEC-066 — Redirects separados das novas tentativas (revisão de DEC-062)
+- **Problema:** DEC-062 repete, após 20 s, os pedidos com 302, 307, 429 e 503. Um 302/307 é uma instrução de redirect, não uma falha transitória; repeti-lo pode só reproduzir o mesmo resultado, e com a política de DEC-065 o mesmo código passaria a ter dois tratamentos.
+- **Decisão:** (1) 302/307 seguem a política de redirects de DEC-065 (§7 da especificação): só para endpoints com `redirect_hosts`, um salto, HTTPS, destino revalidado; sem autorização, a recusa é registada e o pedido não é repetido. (2) 429/503 têm uma nova tentativa, respeitando o `Retry-After` até 60 s; sem cabeçalho ou com valor inválido, 20 s. (3) As pesquisas do Bing mantêm uma excepção documentada (`redirect_is_throttle: true`): o 307 é tratado como limitação e repetido uma vez; não é regra global. (4) Esta decisão não activa redirects em nenhum endpoint: isso exige a implementação e os testes de segurança.
+- **Condição:** os testes cobrem redirects para endereços internos, destinos não autorizados, cadeias de redirects e respostas 429/503 com e sem `Retry-After`.
+- **Impacto:** Altera DEC-062 quando for implementada, na fase 2; até lá, o transporte mantém o comportamento de DEC-062. Nada implementado.
+- **Estado:** Aceite (por implementar)
+- **Data:** 2026-10-12
+
+### DEC-067 — Especificação das fases 2 a 4 aprovada
+- **Decisão:** A especificação `docs/ESPECIFICACAO_FASES_2_4.md`, revisão 4 (PR #58), é aprovada, com as decisões DEC-064 (`source_document` mantém-se), DEC-065 (política de redirects) e DEC-066 (302/307 separados de 429/503).
+- **Impacto:** A fase 2 (registo persistente e descoberta redundante) pode começar, num PR próprio, com os entregáveis e critérios de aceitação da §9. As decisões que dependem de dados (persistência, quarto run, parser HTML, amostra de referência) continuam abertas na §10. Nada implementado por esta decisão.
+- **Estado:** Aceite
+- **Data:** 2026-10-12
