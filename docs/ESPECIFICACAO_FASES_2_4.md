@@ -1,8 +1,8 @@
 # Especificação técnica — Fases 2 a 4 da recolha
 
-> Estado: **proposta para aprovação, revisão 3** (2026-10-12). Nada aqui está implementado. Cada fase só começa depois de aprovada e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
+> Estado: **proposta para aprovação, revisão 4** (2026-10-12). Nada aqui está implementado. Cada fase só começa depois de aprovada e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
 >
-> Revisão 3: decisões registadas — `source_document` mantém-se (opção B, DEC-064) e a política de redirects de §7 está aprovada (DEC-065). A revisão de DEC-062 (§5) continua por decidir. Nenhuma decisão implica implementar a fase 2.
+> Revisão 4: decisões registadas — `source_document` mantém-se (opção B, DEC-064), a política de redirects de §7 está aprovada (DEC-065) e o tratamento de 302/307 fica separado do de 429/503 (DEC-066). Nenhuma decisão implica implementar a fase 2, que continua a precisar da aprovação desta especificação.
 >
 > Revisão 2, após a revisão do PR #58: redirects só para destinos aprovados por endpoint (§7); 302/307 separados de 429/503 (§5); invariantes da base, transições atómicas e índices (§1.7); estado `expirado` distinto de `fora_do_dia` (§2); opções para `source_document` descritas e decisão exigida antes da migração 0004 (§1.6); normalização de URLs, evidência literal, equidade da fila e retenção concretizadas; testes de aceitação novos (§9).
 
@@ -211,13 +211,13 @@ Na fase 3, `source_document.text_hash` igual em URLs diferentes (p. ex. a mesma 
 
 ## 5. Tentativas e recuperação de falhas
 
-Um redirect não é uma falha transitória: é uma instrução. Por isso a fase 2 separa os dois casos e revê o comportamento actual de DEC-062, que repete 302/307 como se fossem temporários.
+Um redirect não é uma falha transitória: é uma instrução. Por isso a fase 2 separa os dois casos e revê o comportamento actual de DEC-062, que repete 302/307 como se fossem temporários. **Decidido: separar (DEC-066, 2026-10-12).** A decisão muda a política de execução, mas não activa redirects em nenhum endpoint: isso só acontece depois de a implementação passar os testes de segurança de §9.
 
 | Resposta ou falha | Comportamento |
 | --- | --- |
 | 302, 307 (e 301, 308) | se o endpoint tiver destinos aprovados (§7) e o `Location` for um deles, segue um único salto, com as verificações de §7; senão, regista "redirect recusado: <destino>" e não repete o pedido |
-| 302/307 que são limitação conhecida | só para endpoints marcados `redirect_is_throttle: true` (hoje, as pesquisas do Bing, onde o 307 observado em 2026-10-11 era limitação): uma nova tentativa, e o resumo conta-a como limitação, não como redirect |
-| 429, 503 | nova tentativa; espera o `Retry-After` se vier (segundos ou data HTTP), com um máximo de 60 s; sem cabeçalho, 20 s; no máximo uma nova tentativa por run |
+| 302/307 que são limitação conhecida | excepção documentada, não regra global: só para endpoints marcados `redirect_is_throttle: true` (hoje, as pesquisas do Bing, onde o 307 observado em 2026-10-11 era limitação): uma nova tentativa, e o resumo conta-a como limitação, não como redirect |
+| 429, 503 | nova tentativa; espera o `Retry-After` se vier (segundos ou data HTTP), com um máximo de 60 s; sem cabeçalho, ou com um valor inválido, 20 s; no máximo uma nova tentativa por run |
 | Endpoint em erro | regista `last_error`; os outros endpoints continuam (já é assim); 2 runs seguidos em erro → aviso no resumo |
 | Extracção falhada | `attempts + 1`, `next_attempt_at` = run seguinte; 3 falhas → `bloqueado` |
 | IA sem resposta, quota esgotada ou JSON inválido | tenta o fornecedor seguinte da cadeia; se todos falharem, `attempts + 1`; 3 falhas → `pendente_revisao` |
@@ -275,7 +275,8 @@ Testes de aceitação:
 - `tde prune` sobre uma base com candidatos de todos os estados não viola nenhuma chave estrangeira e não apaga candidatos com rascunho pendente ou aprovado.
 - **Recuperação após interrupção:** um run interrompido a meio (simulado por excepção depois de N candidatos) é retomado pelo run seguinte sem duplicar candidatos, descobertas nem transições.
 - **Redirects (segurança):** com transporte falso, cada caso tem teste — destino fora de `redirect_hosts` recusado; segundo salto recusado; HTTPS → HTTP recusado; destino que resolve para 127.0.0.1, 10.0.0.0/8 ou ::1 recusado; destino com robots.txt a proibir recusado; 307 em endpoint `redirect_is_throttle` repetido uma vez e contado como limitação.
-- **429/503:** `Retry-After` em segundos e em data HTTP respeitado até 60 s; sem cabeçalho, 20 s; uma só nova tentativa.
+- **429/503:** `Retry-After` em segundos e em data HTTP respeitado até 60 s; sem cabeçalho ou com valor inválido, 20 s; uma só nova tentativa.
+- **Separação (DEC-066):** um 302/307 em endpoint sem `redirect_hosts` e sem `redirect_is_throttle` não é repetido; o mesmo código num endpoint `redirect_is_throttle` é repetido uma vez; um 429/503 nunca é tratado como redirect.
 - **Sitemaps:** índice de sitemaps (profundidade 1), namespaces `sitemap/0.9` e `news/0.9` com prefixos diferentes, entrada sem `news:publication_date` (fica `published_at_source = none`), data mal formada, XML truncado (erro, não vazio), sitemap válido sem entradas (vazio, não erro), ficheiro acima do limite de tamanho (erro).
 - **URL:** cada linha da tabela de §4.1 tem um teste.
 - **Fila:** com 100 `alta` e 10 `rever` e limite 60, entram pelo menos 10 `rever`.
@@ -318,13 +319,13 @@ Decididas em 2026-10-12:
 - `source_document`: opção B (DEC-064).
 - Política de redirects de §7: aprovada, com a condição de §7 (DEC-065).
 
-Bloqueia ainda a abertura da fase 2:
+- Tratamento de 302/307 de DEC-062 (§5): separado do de 429/503, com a excepção do Bing documentada (DEC-066).
 
-1. Revisão do tratamento de 302/307 de DEC-062 (§5): separar redirects de limitações temporárias, ou manter a nova tentativa em 302, 307, 429 e 503.
+Já não há decisões de arquitectura a bloquear a fase 2; falta a aprovação desta especificação.
 
 Decidem-se com dados, durante as fases:
 
-2. Persistência (§8): na primeira semana da fase 2, com o tamanho medido da base e a perda aceitável.
-3. Quarto run ao fim da noite (§6): pelas notícias tardias e expiradas observadas em vários dias.
-4. Parser HTML para `html_list`: comparar alternativas com páginas reais antes de acrescentar a dependência.
-5. Amostra de referência da fase 3: quem marca, como, e com que frequência se repete; definida antes de comparar Gemini e Groq.
+1. Persistência (§8): na primeira semana da fase 2, com o tamanho medido da base e a perda aceitável.
+2. Quarto run ao fim da noite (§6): pelas notícias tardias e expiradas observadas em vários dias.
+3. Parser HTML para `html_list`: comparar alternativas com páginas reais antes de acrescentar a dependência.
+4. Amostra de referência da fase 3: quem marca, como, e com que frequência se repete; definida antes de comparar Gemini e Groq.

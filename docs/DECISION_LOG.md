@@ -635,3 +635,11 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** Altera DEC-033 quando for implementada, na fase 2; até lá, DEC-033 mantém-se. Não decide a revisão de DEC-062 (tratamento de 302/307), que continua em aberto.
 - **Estado:** Aceite (por implementar)
 - **Data:** 2026-10-12
+
+### DEC-066 — Redirects separados das novas tentativas (revisão de DEC-062)
+- **Problema:** DEC-062 repete, após 20 s, os pedidos com 302, 307, 429 e 503. Um 302/307 é uma instrução de redirect, não uma falha transitória; repeti-lo pode só reproduzir o mesmo resultado, e com a política de DEC-065 o mesmo código passaria a ter dois tratamentos.
+- **Decisão:** (1) 302/307 seguem a política de redirects de DEC-065 (§7 da especificação): só para endpoints com `redirect_hosts`, um salto, HTTPS, destino revalidado; sem autorização, a recusa é registada e o pedido não é repetido. (2) 429/503 têm uma nova tentativa, respeitando o `Retry-After` até 60 s; sem cabeçalho ou com valor inválido, 20 s. (3) As pesquisas do Bing mantêm uma excepção documentada (`redirect_is_throttle: true`): o 307 é tratado como limitação e repetido uma vez; não é regra global. (4) Esta decisão não activa redirects em nenhum endpoint: isso exige a implementação e os testes de segurança.
+- **Condição:** os testes cobrem redirects para endereços internos, destinos não autorizados, cadeias de redirects e respostas 429/503 com e sem `Retry-After`.
+- **Impacto:** Altera DEC-062 quando for implementada, na fase 2; até lá, o transporte mantém o comportamento de DEC-062. Nada implementado.
+- **Estado:** Aceite (por implementar)
+- **Data:** 2026-10-12
