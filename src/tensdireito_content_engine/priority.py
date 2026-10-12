@@ -8,7 +8,8 @@ fase. `rever` fica à espera da classificação por IA (fase 3) e da revisão hu
 Regras, por ordem:
 1. o título contém um termo forte (apoio nomeado, pesquisa ou termo de `alta`) → alta,
    ou rever se o título também nomeia outro país;
-2. a fonte é oficial (T1/T2) → rever (as fontes oficiais nunca ficam em baixa);
+2. a fonte é oficial (T1/T2) → rever (as fontes oficiais nunca ficam em baixa); se o
+   resumo tiver um termo forte, o motivo diz qual e o item aparece primeiro na lista;
 3. o título contém um termo ambíguo (palavra-chave ou termo de `rever`) → rever;
 4. o resumo contém um termo forte → rever;
 5. nada disto → baixa.
@@ -73,6 +74,11 @@ DEFAULT_HIGH_TERMS = (
     "taxas moderadoras",
     "beneficiario",
     "indexante dos apoios sociais",
+    # Auditoria de 2026-10-12: estavam em rever ou baixa e são do público do site.
+    "trabalhadores independentes",
+    "recibos verdes",
+    "credito habitacao jovem",
+    "credito a habitacao jovem",
 )
 
 # Termos que, no título, justificam análise mas não chegam para a prioridade alta.
@@ -102,6 +108,14 @@ DEFAULT_REVIEW_TERMS = (
     "pagamento",
     "desemprego",
     "reforma",
+    # Auditoria de 2026-10-12: falsos negativos encontrados nas notícias em baixa.
+    "oe",
+    "funcao publica",
+    "funcionarios publicos",
+    "beneficios fiscais",
+    "arrendar",
+    "arrendatario",
+    "habitacao social",
 )
 
 # Um título com termo forte que nomeia outro país desce para rever (run de 2026-10-12:
@@ -141,6 +155,7 @@ class Rule(StrEnum):
 
     HIGH_TITLE = "termo forte no título"
     FOREIGN = "outro país no título"
+    OFFICIAL_SUMMARY = "fonte oficial com termo forte no resumo"
     OFFICIAL = "fonte oficial"
     AMBIGUOUS_TITLE = "termo ambíguo no título"
     SUMMARY = "termo forte no resumo"
@@ -169,8 +184,8 @@ def load_priority_terms(path: Path) -> PriorityTerms:
     A secção opcional `prioridade: {alta: [...], rever: [...]}` acrescenta termos. Um termo
     que esteja nas duas listas conta como alta. Sem ficheiro, ficam só as predefinições.
     """
-    high: set[str] = {fold(term) for term in DEFAULT_HIGH_TERMS}
-    review: set[str] = {fold(term) for term in DEFAULT_REVIEW_TERMS}
+    high: set[str] = set()
+    review: set[str] = set()
     foreign: set[str] = {fold(term) for term in DEFAULT_FOREIGN_TERMS}
     path = Path(path)
     if path.is_file():
@@ -188,8 +203,11 @@ def load_priority_terms(path: Path) -> PriorityTerms:
         high.update(_folded(section.get("alta")))
         review.update(_folded(section.get("rever")))
         foreign.update(_folded(section.get("outros_paises")))
-    high = {term for term in high if len(term) >= 3}
-    review = {term for term in review if len(term) >= 3} - high
+    # Os termos do YAML precisam de 3 letras; as predefinições são escolhidas à mão e
+    # podem ser mais curtas ("OE").
+    high = {term for term in high if len(term) >= 3} | {fold(t) for t in DEFAULT_HIGH_TERMS}
+    review = {term for term in review if len(term) >= 3} | {fold(t) for t in DEFAULT_REVIEW_TERMS}
+    review -= high
     return PriorityTerms(
         high=tuple(sorted(high)), review=tuple(sorted(review)), foreign=tuple(sorted(foreign))
     )
@@ -205,6 +223,13 @@ def classify(title: str, text: str, tier: str | None, terms: PriorityTerms) -> P
             )
         return PriorityDecision(Priority.HIGH, f"título refere «{term}»", Rule.HIGH_TITLE)
     if tier in OFFICIAL_TIERS:
+        # Os títulos do DRE só têm o número do diploma; o assunto está no resumo.
+        if term := _first_match(fold(text), terms.high):
+            return PriorityDecision(
+                Priority.REVIEW,
+                f"fonte oficial ({tier}); resumo refere «{term}»",
+                Rule.OFFICIAL_SUMMARY,
+            )
         return PriorityDecision(Priority.REVIEW, f"fonte oficial ({tier})", Rule.OFFICIAL)
     if term := _first_match(folded_title, terms.review):
         return PriorityDecision(Priority.REVIEW, f"título ambíguo: «{term}»", Rule.AMBIGUOUS_TITLE)

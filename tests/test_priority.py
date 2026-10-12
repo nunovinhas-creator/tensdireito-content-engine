@@ -208,3 +208,58 @@ def test_decisions_carry_the_rule(repo_terms):
     assert classify(IRRELEVANT_TITLES[0], "", "T1", repo_terms).rule is Rule.OFFICIAL
     assert classify(AMBIGUOUS_TITLES[0], "", "T3", repo_terms).rule is Rule.AMBIGUOUS_TITLE
     assert classify(IRRELEVANT_TITLES[0], "", "T3", repo_terms).rule is Rule.NONE
+
+
+# Auditoria de 2026-10-12 (run 38239212880): as 269 notícias em baixa foram lidas uma a
+# uma. Estes falsos negativos ficam como testes de regressão.
+AUDIT_FALSE_NEGATIVES = (
+    "Aumentos na Função Pública sem “alteração”, assegura ministro das Finanças",
+    "Prédios reabilitados e baldios mantêm benefícios fiscais por mais cinco anos",
+    "Governo quer blindar benefícios fiscais dos residentes não habituais",
+    "Arrendar casa com animais de estimação: o que diz a lei e como evitar problemas",
+    "Arrendar casa no Porto ficou 76% mais caro. E comprar?",
+    "OE: os bastidores também contam",
+)
+
+# Estavam em rever e são do público do site: passam a alta.
+AUDIT_PROMOTED = (
+    "Trabalhadores independentes: 5 datas a cumprir até dezembro",
+    "Crédito habitação jovem: o que é e como escolher",
+    "Crédito à habitação jovem: quais os bancos com melhores condições para poupar?",
+)
+
+# Ruído confirmado na auditoria: continua em baixa.
+AUDIT_NOISE = (
+    "Nobel da Economia atribuído a Robert E. Hall e Michael Woodford",
+    "UE aprova maior pacote de sanções contra a Rússia desde o início da guerra",
+    "Temperaturas máximas vão subir e chegar aos 30 graus na maior parte do território",
+    "Luís Neves afasta Ricardo Carrilho, secretário-geral do MAI",
+)
+
+
+@pytest.mark.parametrize("title", AUDIT_FALSE_NEGATIVES)
+def test_audit_false_negatives_are_no_longer_low(title, repo_terms):
+    assert classify(title, "", "T3", repo_terms).level is not Priority.LOW
+
+
+@pytest.mark.parametrize("title", AUDIT_PROMOTED)
+def test_audit_promoted_titles_are_high(title, repo_terms):
+    assert classify(title, "", "T3", repo_terms).level is Priority.HIGH
+
+
+@pytest.mark.parametrize("title", AUDIT_NOISE)
+def test_audit_noise_stays_low(title, repo_terms):
+    assert classify(title, "", "T3", repo_terms).level is Priority.LOW
+
+
+def test_official_title_without_subject_uses_the_summary(repo_terms):
+    # Os títulos do DRE só trazem o número do diploma (auditoria de 2026-10-12).
+    decision = classify(
+        "Portaria n.º 452/2026/1 - Diário da República n.º 197/2026, Série I de 2026-10-12",
+        "Trabalho, Solidariedade e Segurança Social Procede à atualização anual das pensões.",
+        "T1",
+        repo_terms,
+    )
+    assert decision.level is Priority.REVIEW
+    assert decision.rule is Rule.OFFICIAL_SUMMARY
+    assert "resumo refere «atualizacao anual das pensoes»" in decision.reason

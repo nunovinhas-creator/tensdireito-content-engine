@@ -358,8 +358,12 @@ def _article_table(title, articles, column, value) -> list[str]:
 
 
 def _review_first(articles: Sequence[DailyArticle]) -> list[DailyArticle]:
-    """Os `rever` da imprensa primeiro; os das fontes oficiais (muitos, p. ex. DRE) no fim."""
-    return sorted(articles, key=lambda a: a.priority_rule == Rule.OFFICIAL.value)
+    """Ordem de leitura de `rever`: oficiais com termo forte, imprensa, restantes oficiais.
+
+    Os oficiais sem termo forte são centenas (sobretudo o DRE, 2.ª série) e ficam no fim.
+    """
+    order = {Rule.OFFICIAL_SUMMARY.value: 0, Rule.OFFICIAL.value: 2}
+    return sorted(articles, key=lambda a: order.get(a.priority_rule, 1))
 
 
 def _spread_sample(articles: Sequence[DailyArticle], k: int) -> tuple[DailyArticle, ...]:
