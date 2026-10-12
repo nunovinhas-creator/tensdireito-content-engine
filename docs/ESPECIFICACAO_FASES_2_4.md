@@ -1,8 +1,8 @@
 # Especificação técnica — Fases 2 a 4 da recolha
 
-> Estado: **proposta para aprovação, revisão 4** (2026-10-12). Nada aqui está implementado. Cada fase só começa depois de aprovada e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
+> Estado: **aprovada, revisão 4** (2026-10-12, DEC-067). Nada aqui está implementado. Cada fase é implementada num PR próprio e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
 >
-> Revisão 4: decisões registadas — `source_document` mantém-se (opção B, DEC-064), a política de redirects de §7 está aprovada (DEC-065) e o tratamento de 302/307 fica separado do de 429/503 (DEC-066). Nenhuma decisão implica implementar a fase 2, que continua a precisar da aprovação desta especificação.
+> Revisão 4: decisões registadas — `source_document` mantém-se (opção B, DEC-064), a política de redirects de §7 está aprovada (DEC-065) e o tratamento de 302/307 fica separado do de 429/503 (DEC-066). Nenhuma decisão implica, por si só, implementar a fase 2.
 >
 > Revisão 2, após a revisão do PR #58: redirects só para destinos aprovados por endpoint (§7); 302/307 separados de 429/503 (§5); invariantes da base, transições atómicas e índices (§1.7); estado `expirado` distinto de `fora_do_dia` (§2); opções para `source_document` descritas e decisão exigida antes da migração 0004 (§1.6); normalização de URLs, evidência literal, equidade da fila e retenção concretizadas; testes de aceitação novos (§9).
 
@@ -320,7 +320,7 @@ Decididas em 2026-10-12:
 - Política de redirects de §7: aprovada, com a condição de §7 (DEC-065).
 - Tratamento de 302/307 de DEC-062 (§5): separado do de 429/503, com a excepção do Bing documentada (DEC-066).
 
-Já não há decisões de arquitectura a bloquear a fase 2; falta a aprovação desta especificação.
+Já não há decisões de arquitectura a bloquear a fase 2. A especificação foi aprovada em 2026-10-12 (DEC-067).
 
 Decidem-se com dados, durante as fases:
 

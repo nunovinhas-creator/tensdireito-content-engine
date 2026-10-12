@@ -643,3 +643,9 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** Altera DEC-062 quando for implementada, na fase 2; até lá, o transporte mantém o comportamento de DEC-062. Nada implementado.
 - **Estado:** Aceite (por implementar)
 - **Data:** 2026-10-12
+
+### DEC-067 — Especificação das fases 2 a 4 aprovada
+- **Decisão:** A especificação `docs/ESPECIFICACAO_FASES_2_4.md`, revisão 4 (PR #58), é aprovada, com as decisões DEC-064 (`source_document` mantém-se), DEC-065 (política de redirects) e DEC-066 (302/307 separados de 429/503).
+- **Impacto:** A fase 2 (registo persistente e descoberta redundante) pode começar, num PR próprio, com os entregáveis e critérios de aceitação da §9. As decisões que dependem de dados (persistência, quarto run, parser HTML, amostra de referência) continuam abertas na §10. Nada implementado por esta decisão.
+- **Estado:** Aceite
+- **Data:** 2026-10-12
