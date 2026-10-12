@@ -696,3 +696,9 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Estado:** Aceite
 - **Data:** 2026-10-12
 
+### DEC-074 — `jn-news-sitemap` e `economiafinancas-rss` passam a INACTIVE
+- **Problema:** Com os estados de DEC-072, os dois endpoints aparecem com "falha em 2 runs seguidos" nos runs do `main` de 2026-10-12 (15:19 e 17:48 UTC): `jn-news-sitemap` com HTTP 403 (nunca teve sucesso no `main`) e `economiafinancas-rss` com redirect recusado para o follow.it.
+- **Decisão:** Os dois passam a `INACTIVE`. Não se acrescenta `follow.it` a `redirect_hosts`: o feed do follow.it tem links de rastreio em vez dos URLs do site e indica um segundo redirect. Observações em `docs/source_validation/jornal_noticias.md` e `economia_financas.md`. Reactivar exige nova verificação humana (JN) ou outro mecanismo (Economia e Finanças: API JSON do WordPress, fase 4).
+- **Estado:** Aceite
+- **Data:** 2026-10-12
+

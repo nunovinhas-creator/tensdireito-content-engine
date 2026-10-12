@@ -47,3 +47,9 @@
 - `method`: leitura dos runs reais do PR #72 (fase 2b) no GitHub Actions, incluindo o run 38261967714.
 - `observation` (nas palavras de Nuno): «acessível no CI em 2026-10-12; 403 observado fora desse ambiente».
 - Declarado por Nuno ao aprovar o merge do PR #72. Este registo não altera os anteriores; as linhas `pendente` acima ficam como histórico.
+
+## Acrescento de 2026-10-12 (DEC-074) — `jn-news-sitemap` passa a INACTIVE
+
+### Observações técnicas automáticas
+
+Nos dois runs do daily no `main` depois do merge do PR #72 (15:19 e 17:48 UTC), o pedido ao sitemap teve HTTP 403; `last_success_at` continua nulo na base do `main`. O registo humano anterior («acessível no CI em 2026-10-12») mantém-se como histórico. O endpoint passa a `INACTIVE` por decisão do pull request; volta a `ACTIVE` só com nova verificação humana de que o sitemap responde ao `User-Agent` do projecto a partir do GitHub Actions.

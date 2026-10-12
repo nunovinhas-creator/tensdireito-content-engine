@@ -143,7 +143,7 @@
     url: https://www.jn.pt/rss
   - id: jn-news-sitemap
     endpoint_type: news_sitemap
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-074
     validated_at: '2026-10-12T00:00:00Z'
     validated_by: nuno
     url: https://www.jn.pt/feed/news/sitemap.xml
@@ -966,7 +966,7 @@
   endpoints:
   - id: economiafinancas-rss
     endpoint_type: rss
-    endpoint_status: ACTIVE
+    endpoint_status: INACTIVE  # DEC-074
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: https://economiafinancas.com/feed/

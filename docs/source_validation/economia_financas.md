@@ -23,3 +23,8 @@
 | V4 Adequação editorial | fonte | pendente | idem |
 | V5 Autorização de recolha (termos, robots.txt) | cada endpoint | pendente | idem |
 
+## Acrescento de 2026-10-12 (DEC-074) — `economiafinancas-rss` passa a INACTIVE
+
+### Observações técnicas automáticas
+
+Desde o run das 15:19 UTC, `https://economiafinancas.com/feed/` responde 302 para `https://follow.it/economiafinancas/rss` (em seis pedidos de teste às 19:3x UTC, com e sem `Accept` de feed, todos 302). O feed do follow.it (cópia enviada por Nuno em 2026-10-12) declara-se como `follow.it/economia-e-financas/rss` (indício de um segundo redirect) e os links dos itens são de rastreio (`api.follow.it/track-rss-story-click/...`), não os URLs do site: não serve como fonte. O site não tem news sitemap (`/news-sitemap.xml` → 404); o `post-sitemap.xml` do Yoast não tem `news:news`. O endpoint passa a `INACTIVE` por decisão do pull request; alternativa a avaliar na fase 4 (API JSON do WordPress, `json_api`).
