@@ -260,6 +260,7 @@ def test_zero_active_endpoints_is_success(tmp_path):
         "new": 0,
         "existing": 0,
         "transport": NO_TRANSPORT_EVENTS,
+        "states": {"ok": 0, "vazio": 0, "suspeito": 0, "falha": 0},
     }
     assert raw_items(db) == []
 
@@ -621,6 +622,8 @@ def test_stats_structure_is_deterministic(db):
                     "existing": 0,
                     "error": "o collector falhou: RuntimeError: falhou",
                     "notes": [],
+                    "state": "falha",
+                    "warning": None,
                 },
                 {
                     "id": "a_pagina",
@@ -629,6 +632,8 @@ def test_stats_structure_is_deterministic(db):
                     "existing": 1,
                     "error": None,
                     "notes": [],
+                    "state": "ok",
+                    "warning": None,
                 },
                 {
                     "id": "b_feed",
@@ -637,6 +642,8 @@ def test_stats_structure_is_deterministic(db):
                     "existing": 1,
                     "error": None,
                     "notes": [],
+                    "state": "ok",
+                    "warning": None,
                 },
             ],
             "totals": {
@@ -646,6 +653,7 @@ def test_stats_structure_is_deterministic(db):
                 "new": 2,
                 "existing": 2,
                 "transport": NO_TRANSPORT_EVENTS,
+                "states": {"ok": 2, "vazio": 0, "suspeito": 0, "falha": 1},
             },
         },
         ensure_ascii=False,

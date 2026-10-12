@@ -127,7 +127,13 @@ def run_daily(
     loaded = load_sources(config_path)
     init_database(db_path, now=fixed_now)
     sync_sources(db_path, loaded.sources, loaded.endpoints, now=fixed_now)
-    collection = run_collect(db_path, registry, now=fixed_now)
+    # DEC-072: mínimos por endpoint, do YAML, para o canário de fonte suspeita.
+    minimums = {
+        endpoint.id: endpoint.expect_min_items
+        for endpoint in loaded.endpoints
+        if endpoint.expect_min_items is not None
+    }
+    collection = run_collect(db_path, registry, now=fixed_now, expect_min_items=minimums)
     # DEC-064: o documento de cada captura fica em `source_document`. Uma falha aqui não
     # impede o resto do run; fica registada no resumo.
     try:

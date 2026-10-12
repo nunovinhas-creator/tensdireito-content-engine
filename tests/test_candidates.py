@@ -337,6 +337,9 @@ def test_empty_and_failed_endpoints_look_different_in_the_summary(monkeypatch, t
     code, _, summary = daily_with_summary(monkeypatch, tmp_path, sources, FakeRss(produce))
     capsys.readouterr()
     assert code == 2
-    assert "| `vazio` | 0 | 0 | ok |" in summary
+    # DEC-072 (especificação §9): vazio e falha são estados diferentes.
+    assert "| `vazio` | 0 | 0 | vazio |" in summary
+    assert "| Fontes consultadas | 2 (ok 0, vazias 1, suspeitas 0, com falha 1) |" in summary
+    assert "| `vazio` | vazio | respondeu sem itens |" in summary
     assert "| `em_erro` | 0 | 0 | falha |" in summary
     assert "### Fontes com falha" in summary and "feed indisponível" in summary
