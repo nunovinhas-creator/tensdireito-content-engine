@@ -149,7 +149,7 @@ def test_cli_init_creates_database_and_reports(tmp_path, capsys):
     assert captured.out.splitlines() == [
         f"init: OK — {db}",
         "migrações aplicadas: 0001_init, 0002_source_document, 0003_whatsapp_draft, "
-        "0004_candidate",
+        "0004_candidate, 0005_endpoint_redirects",
     ]
     assert captured.err == ""
     assert db.is_file()
@@ -164,6 +164,7 @@ def test_init_registers_migrations_with_checksum(tmp_path):
         "0002_source_document",
         "0003_whatsapp_draft",
         "0004_candidate",
+        "0005_endpoint_redirects",
     )
     applied_at = "2026-10-07T12:00:00.000000+00:00"
     assert migration_rows(db) == [
@@ -185,6 +186,13 @@ def test_init_registers_migrations_with_checksum(tmp_path):
         (
             4,
             hashlib.sha256((MIGRATIONS_DIR / "0004_candidate.sql").read_bytes()).hexdigest(),
+            applied_at,
+        ),
+        (
+            5,
+            hashlib.sha256(
+                (MIGRATIONS_DIR / "0005_endpoint_redirects.sql").read_bytes()
+            ).hexdigest(),
             applied_at,
         ),
     ]
@@ -229,6 +237,7 @@ def test_init_accepts_existing_empty_file(tmp_path):
         "0002_source_document",
         "0003_whatsapp_draft",
         "0004_candidate",
+        "0005_endpoint_redirects",
     )
 
 
@@ -280,6 +289,8 @@ EXPECTED_COLUMNS = {
         "last_error": ("TEXT", False, 0),
         "created_at": ("TEXT", True, 0),
         "updated_at": ("TEXT", True, 0),
+        "redirect_hosts": ("TEXT", False, 0),
+        "redirect_is_throttle": ("INTEGER", False, 0),
     },
     "raw_item": {
         "id": ("INTEGER", True, 1),
@@ -447,8 +458,9 @@ def test_load_migrations_reads_package_resource():
         "0002_source_document",
         "0003_whatsapp_draft",
         "0004_candidate",
+        "0005_endpoint_redirects",
     ]
-    assert [m.version for m in migrations] == [1, 2, 3, 4]
+    assert [m.version for m in migrations] == [1, 2, 3, 4, 5]
 
 
 def test_migration_filenames_follow_convention():
@@ -512,12 +524,12 @@ def test_database_newer_than_code_fails(tmp_path, capsys):
     with sqlite3.connect(db) as conn:
         conn.execute(
             "INSERT INTO schema_migration (version, checksum, applied_at) "
-            "VALUES (5, 'abc', '2026-10-07T12:00:00.000000+00:00')"
+            "VALUES (6, 'abc', '2026-10-07T12:00:00.000000+00:00')"
         )
     assert main(["--db", str(db), "init"]) == 1
     assert capsys.readouterr().err.splitlines() == [
         f"init: ERRO — {db}",
-        "- a base de dados tem a migração 0005, desconhecida desta versão do código "
+        "- a base de dados tem a migração 0006, desconhecida desta versão do código "
         "(base de dados mais recente que o código)",
     ]
 

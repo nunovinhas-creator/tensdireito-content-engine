@@ -39,6 +39,10 @@ from tensdireito_content_engine.domain.validation import (
 
 _SHA256_HEX = re.compile(r"[0-9a-f]{64}")
 _LANGUAGE = re.compile(r"[a-z]{2,3}")
+# Nome de anfitrião (sem esquema, porta, caminho nem IP literal), em minúsculas.
+_HOST = re.compile(
+    r"(?=.*[a-z])[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+"
+)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -83,6 +87,10 @@ class SourceEndpoint:
     validated_by: str | None = None
     last_success_at: datetime | None = None
     last_error: str | None = None
+    # DEC-065/066: anfitriões exactos para onde se aceita um redirect (vazio = nenhum) e a
+    # excepção do Bing, em que um 302/307 é limitação. Não se combinam.
+    redirect_hosts: tuple[str, ...] = ()
+    redirect_is_throttle: bool = False
 
     def __post_init__(self) -> None:
         require_text(self.id, "id")
@@ -94,6 +102,16 @@ class SourceEndpoint:
         optional_human_actor(self.validated_by, "validated_by")
         optional_utc(self.last_success_at, "last_success_at")
         optional_text(self.last_error, "last_error")
+        require_text_tuple(self.redirect_hosts, "redirect_hosts")
+        for host in self.redirect_hosts:
+            if not _HOST.fullmatch(host):
+                raise DomainValidationError(
+                    f"redirect_hosts só aceita nomes de anfitrião em minúsculas: {host!r}"
+                )
+        if not isinstance(self.redirect_is_throttle, bool):
+            raise DomainValidationError("redirect_is_throttle tem de ser bool")
+        if self.redirect_hosts and self.redirect_is_throttle:
+            raise DomainValidationError("redirect_hosts e redirect_is_throttle não se combinam")
 
         if self.endpoint_status in (EndpointStatus.VALIDATED, EndpointStatus.ACTIVE):
             _require_manual_validation(self.validated_at, self.validated_by)

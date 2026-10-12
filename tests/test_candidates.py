@@ -300,7 +300,7 @@ def test_migration_0004_keeps_raw_items_and_drafts(tmp_path):
             table: conn.execute(f"SELECT * FROM {table}").fetchall()
             for table in ("raw_item", "whatsapp_draft")
         }
-    assert init_database(db).applied == ("0004_candidate",)
+    assert init_database(db).applied == ("0004_candidate", "0005_endpoint_redirects")
     with sqlite3.connect(db) as conn:
         assert conn.execute("SELECT * FROM raw_item").fetchall() == before["raw_item"]
         # O rascunho ganha só a coluna nova, nula.

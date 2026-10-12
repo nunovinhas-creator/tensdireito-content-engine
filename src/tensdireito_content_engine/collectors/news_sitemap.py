@@ -53,14 +53,18 @@ class NewsSitemapCollector:
         if endpoint.url is None:
             raise TransportError("URL ausente")
         fetched_at = self._now()
-        body = self._transport.fetch_feed(endpoint.url).body
+        redirects = {
+            "redirect_hosts": endpoint.redirect_hosts,
+            "redirect_is_throttle": endpoint.redirect_is_throttle,
+        }
+        body = self._transport.fetch_feed(endpoint.url, **redirects).body
         root = parse_document(body)
         if root.tag == _URLSET:
             return entries(root, endpoint.id, fetched_at)
         children = child_sitemaps(root, endpoint.url)
         items: list[RawItem] = []
         for child_url in children:
-            child = parse_document(self._transport.fetch_feed(child_url).body)
+            child = parse_document(self._transport.fetch_feed(child_url, **redirects).body)
             if child.tag != _URLSET:
                 raise FeedError("índice de sitemaps dentro de índice (só profundidade 1)")
             items.extend(entries(child, endpoint.id, fetched_at))

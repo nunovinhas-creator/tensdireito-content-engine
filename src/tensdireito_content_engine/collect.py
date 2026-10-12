@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from tensdireito_content_engine.collectors import CollectorRegistry
+from tensdireito_content_engine.collectors.http import LIMITATION, REDIRECT, RETRY
 from tensdireito_content_engine.domain import RawItem, SourceEndpoint
 from tensdireito_content_engine.storage import (
     Connection,
@@ -48,6 +49,8 @@ class EndpointOutcome:
     new: int = 0
     existing: int = 0
     error: str | None = None
+    # DEC-070: limitações, novas tentativas e redirects seguidos neste endpoint.
+    notes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +76,18 @@ class CollectResult:
     def existing(self) -> int:
         return sum(outcome.existing for outcome in self.endpoints)
 
+    def transport_counts(self) -> dict[str, int]:
+        """Contagens de DEC-066/070 para o resumo: o que o transporte fez além do pedido."""
+        counts = {LIMITATION: 0, RETRY: 0, REDIRECT: 0, "redirect recusado": 0}
+        for outcome in self.endpoints:
+            for note in outcome.notes:
+                kind = note.split(":", 1)[0]
+                if kind in counts:
+                    counts[kind] += 1
+            if outcome.error and "redirect recusado" in outcome.error:
+                counts["redirect recusado"] += 1
+        return counts
+
     def stats(self) -> dict[str, object]:
         """`run.stats`, com os endpoints pela ordem de selecção (ROADMAP.md M2.8)."""
         return {
@@ -83,6 +98,7 @@ class CollectResult:
                     "new": outcome.new,
                     "existing": outcome.existing,
                     "error": outcome.error,
+                    "notes": list(outcome.notes),
                 }
                 for outcome in self.endpoints
             ],
@@ -92,6 +108,7 @@ class CollectResult:
                 "failed": self.failed,
                 "new": self.new,
                 "existing": self.existing,
+                "transport": self.transport_counts(),
             },
         }
 
@@ -132,12 +149,16 @@ def _collect_endpoint(
     run_id: int,
     now: Callable[[], datetime],
 ) -> EndpointOutcome:
+    registry.drain_events()  # o que sobrou de outro endpoint não é deste
     items, error = _fetch(registry, endpoint)
+    notes = tuple(f"{event.kind}: {event.detail}" for event in registry.drain_events())
     if error is not None:
         record_endpoint_failure(conn, endpoint.id, error)
-        return EndpointOutcome(id=endpoint.id, result=FAILED, error=error)
+        return EndpointOutcome(id=endpoint.id, result=FAILED, error=error, notes=notes)
     saved = save_endpoint_items(conn, endpoint.id, items, run_id, now())
-    return EndpointOutcome(id=endpoint.id, result=SUCCESS, new=saved.new, existing=saved.existing)
+    return EndpointOutcome(
+        id=endpoint.id, result=SUCCESS, new=saved.new, existing=saved.existing, notes=notes
+    )
 
 
 def _fetch(

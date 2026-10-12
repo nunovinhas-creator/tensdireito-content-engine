@@ -51,6 +51,8 @@ ENDPOINT_FIELDS = (
     "endpoint_status",
     "validated_at",
     "validated_by",
+    "redirect_hosts",
+    "redirect_is_throttle",
 )
 
 Row = tuple[object, ...]
@@ -132,6 +134,8 @@ def endpoint_row(endpoint: SourceEndpoint) -> Row:
         endpoint.endpoint_status.value,
         _optional_iso(endpoint.validated_at),
         endpoint.validated_by,
+        _json_list(endpoint.redirect_hosts),
+        int(endpoint.redirect_is_throttle),
     )
 
 

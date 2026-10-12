@@ -500,366 +500,427 @@
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=presta%C3%A7%C3%A3o+social+%C3%BAnica&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-abono-de-familia
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=abono+de+fam%C3%ADlia&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-subsidio-parental
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=subs%C3%ADdio+parental&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-licenca-parental
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=licen%C3%A7a+parental&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-creche-gratuita
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=creche+gratuita&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-garantia-para-a-infancia
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=garantia+para+a+inf%C3%A2ncia&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-acao-social-escolar
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=a%C3%A7%C3%A3o+social+escolar&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-bolsa-de-estudo-ensino-superior
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=bolsa+de+estudo+ensino+superior&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-manuais-escolares-gratuitos
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=manuais+escolares+gratuitos&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-propinas-ensino-superior
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=propinas+ensino+superior&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-passe-sub-23
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=passe+sub-23&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-subsidio-de-desemprego
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=subs%C3%ADdio+de+desemprego&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-rendimento-social-de-insercao
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=rendimento+social+de+inser%C3%A7%C3%A3o&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-subsidio-de-doenca-baixa-medica
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=subs%C3%ADdio+de+doen%C3%A7a+baixa+m%C3%A9dica&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-salario-minimo-nacional
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=sal%C3%A1rio+m%C3%ADnimo+nacional&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-indexante-dos-apoios-sociais
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=indexante+dos+apoios+sociais&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-irs-jovem
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=IRS+Jovem&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-iefp-apoios
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=IEFP+apoios&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-trabalhadores-independentes-seguranca-so
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=trabalhadores+independentes+seguran%C3%A7a+social&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-lei-laboral-codigo-do-trabalho
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=lei+laboral+c%C3%B3digo+do+trabalho&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-porta-65
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=Porta+65&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-apoio-a-renda
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=apoio+%C3%A0+renda&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-credito-habitacao-jovens-garantia-public
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=cr%C3%A9dito+habita%C3%A7%C3%A3o+jovens+garantia+p%C3%BAblica&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-imt-jovem
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=IMT+jovem&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-atualizacao-das-rendas
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=atualiza%C3%A7%C3%A3o+das+rendas&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-imi-isencao
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=IMI+isen%C3%A7%C3%A3o&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-tarifa-social-de-energia
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=tarifa+social+de+energia&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-apoio-familias-vulneraveis
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=apoio+fam%C3%ADlias+vulner%C3%A1veis&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-fatura-da-luz-preco-eletricidade
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=fatura+da+luz+pre%C3%A7o+eletricidade&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-complemento-solidario-para-idosos
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=complemento+solid%C3%A1rio+para+idosos&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-prestacao-social-para-a-inclusao
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=presta%C3%A7%C3%A3o+social+para+a+inclus%C3%A3o&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-cuidador-informal
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=cuidador+informal&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-atestado-multiuso-incapacidade
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=atestado+multiuso+incapacidade&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-pessoas-com-deficiencia-apoios
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=pessoas+com+defici%C3%AAncia+apoios&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-lares-erpi-idosos
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=lares+ERPI+idosos&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-aumento-das-pensoes
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=aumento+das+pens%C3%B5es&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-idade-da-reforma
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=idade+da+reforma&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-reforma-antecipada
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=reforma+antecipada&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-pensao-de-sobrevivencia
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=pens%C3%A3o+de+sobreviv%C3%AAncia&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-suplemento-extraordinario-pensoes
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=suplemento+extraordin%C3%A1rio+pens%C3%B5es&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-caixa-geral-de-aposentacoes
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=Caixa+Geral+de+Aposenta%C3%A7%C3%B5es&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-sns-utentes-apoio
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=SNS+utentes+apoio&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-cheque-dentista
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=cheque-dentista&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-comparticipacao-medicamentos
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=comparticipa%C3%A7%C3%A3o+medicamentos&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-irs-escaloes-reembolso
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=IRS+escal%C3%B5es+reembolso&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-orcamento-do-estado-2027
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=Or%C3%A7amento+do+Estado+2027&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-retencao-na-fonte
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=reten%C3%A7%C3%A3o+na+fonte&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-seguranca-social-pagamentos
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=Seguran%C3%A7a+Social+pagamentos&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-apoios-sociais-portugal
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=apoios+sociais+Portugal&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-prestacoes-sociais
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=presta%C3%A7%C3%B5es+sociais&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-violencia-domestica-apoio-vitimas
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=viol%C3%AAncia+dom%C3%A9stica+apoio+v%C3%ADtimas&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-igualdade-salarial-transparencia
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=igualdade+salarial+transpar%C3%AAncia&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-seg-social
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aseg-social.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-portugal
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aportugal.gov.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-iefp
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aiefp.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-financas
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aportaldasfinancas.gov.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-sns
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Asns.gov.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-dges
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Adges.gov.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-portaldahabitacao
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aportaldahabitacao.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-cga
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Acga.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
   - id: bn-site-parlamento
     endpoint_type: rss
     endpoint_status: ACTIVE
     validated_at: '2026-10-11T00:00:00Z'
     validated_by: nuno
     url: 'https://www.bing.com/news/search?q=site%3Aparlamento.pt&format=rss&setlang=pt-PT&cc=PT'
+    redirect_is_throttle: true  # DEC-066: o 302/307 do Bing é limitação
 - id: eduqa
   name: EduQA - Educação e Qualidade (ex-DGE)
   entity_type: public_body

@@ -43,7 +43,11 @@ class RssCollector:
         """`since` é ignorado (sempre `None`, DEC-031)."""
         if endpoint.url is None:
             raise TransportError("URL ausente")
-        response = self._transport.fetch_feed(endpoint.url)
+        response = self._transport.fetch_feed(
+            endpoint.url,
+            redirect_hosts=endpoint.redirect_hosts,
+            redirect_is_throttle=endpoint.redirect_is_throttle,
+        )
         return parse_feed(response.body, endpoint.id, self._now())
 
 

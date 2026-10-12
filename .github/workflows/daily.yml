@@ -70,8 +70,8 @@ jobs:
           set -e
           cat daily.txt
 
-          # DEC-063: funil e amostras de auditoria também como anotações do run.
-          grep -E '^(FUNIL|AUDITORIA|CANDIDATOS)' daily.txt | head -10 | while IFS= read -r line; do
+          # DEC-063/070: funil, amostras de auditoria e transporte também como anotações do run.
+          grep -E '^(FUNIL|AUDITORIA|CANDIDATOS|TRANSPORTE)' daily.txt | head -12 | while IFS= read -r line; do
             line="${line//'%'/%25}"
             echo "::notice title=${line%%:*}::${line#*: }"
           done || true

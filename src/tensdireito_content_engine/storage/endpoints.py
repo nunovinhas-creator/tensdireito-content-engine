@@ -6,6 +6,7 @@
   altera campos projectados nem `updated_at` (DEC-028).
 """
 
+import json
 import sqlite3
 from datetime import datetime
 
@@ -21,7 +22,7 @@ from tensdireito_content_engine.storage.interfaces import Connection
 
 _COLUMNS = (
     "id, source_id, endpoint_type, url, endpoint_status, validated_at, validated_by, "
-    "last_success_at, last_error"
+    "last_success_at, last_error, redirect_hosts, redirect_is_throttle"
 )
 
 
@@ -33,9 +34,7 @@ def source_exists(conn: Connection, source_id: str) -> bool:
     return row is not None
 
 
-def active_endpoints(
-    conn: Connection, source_id: str | None = None
-) -> list[SourceEndpoint]:
+def active_endpoints(conn: Connection, source_id: str | None = None) -> list[SourceEndpoint]:
     """Endpoints `ACTIVE`, por `id`; com `source_id`, só os dessa fonte."""
     sql = f"SELECT {_COLUMNS} FROM source_endpoint WHERE endpoint_status = ?"
     params: tuple[str, ...] = (EndpointStatus.ACTIVE.value,)
@@ -79,9 +78,30 @@ def _endpoint(row: tuple[object, ...]) -> SourceEndpoint:
             validated_by=row[6],
             last_success_at=_optional_datetime(row[7]),
             last_error=row[8],
+            redirect_hosts=tuple(_json_text_list(row[9])),
+            redirect_is_throttle=_flag(row[10]),
         )
     except (DomainValidationError, ValueError, TypeError) as exc:
         raise StorageError(f"endpoint {endpoint_id} inválido na base de dados: {exc}") from exc
+
+
+def _json_text_list(value: object) -> list[str]:
+    if value is None:  # 0005: ainda não sincronizado → nenhum redirect
+        return []
+    if not isinstance(value, str):
+        raise TypeError(f"redirect_hosts inválido: {value!r}")
+    parsed = json.loads(value)
+    if not isinstance(parsed, list) or not all(isinstance(item, str) for item in parsed):
+        raise TypeError(f"redirect_hosts inválido: {value!r}")
+    return parsed
+
+
+def _flag(value: object) -> bool:
+    if value is None:  # 0005: ainda não sincronizado → não é limitação
+        return False
+    if value not in (0, 1) or isinstance(value, bool):
+        raise TypeError(f"redirect_is_throttle inválido: {value!r}")
+    return bool(value)
 
 
 def _optional_datetime(value: object) -> datetime | None:

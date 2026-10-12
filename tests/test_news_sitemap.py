@@ -22,9 +22,11 @@ class FakeTransport:
     def __init__(self, pages: dict[str, bytes | Exception]):
         self.pages = pages
         self.requested: list[str] = []
+        self.options: list[tuple[tuple[str, ...], bool]] = []
 
-    def fetch_feed(self, url: str) -> Response:
+    def fetch_feed(self, url: str, *, redirect_hosts=(), redirect_is_throttle=False) -> Response:
         self.requested.append(url)
+        self.options.append((tuple(redirect_hosts), redirect_is_throttle))
         page = self.pages[url]
         if isinstance(page, Exception):
             raise page

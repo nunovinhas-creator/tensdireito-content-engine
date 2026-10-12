@@ -7,6 +7,7 @@ nenhum socket é aberto. Os anfitriões usam domínios reservados (RFC 2606) e o
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from tensdireito_content_engine.collectors.http import HttpsTransport
 
@@ -145,6 +146,7 @@ class FakeServer:
         self.responses: list[FakeResponse] = []
         self.reads = 0
         self.clock = FakeClock()
+        self.wall = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)  # relógio de parede (Retry-After)
 
     def resolve(self, host: str, port: int) -> list[str]:
         assert port == 443
@@ -166,6 +168,7 @@ class FakeServer:
             connect=self.connect,
             monotonic=self.clock.monotonic,
             sleep=self.clock.sleep,
+            now=lambda: self.wall,
         )
 
     def paths(self) -> list[str]:

@@ -89,6 +89,8 @@ O registo vive num ficheiro versionado (a criar na implementação), revisto por
         rate_limit_seconds: 5
         max_items: 50
         selectors: {}               # apenas html_page
+      redirect_hosts: []            # DEC-065/070: anfitriões exactos para onde se aceita um redirect
+      redirect_is_throttle: false   # DEC-066/070: só as pesquisas do Bing (302/307 = limitação)
       validated_at: null
       validated_by: null            # obrigatório em VALIDATED/ACTIVE
 ```
@@ -98,6 +100,7 @@ Formato do ficheiro:
 - **Schema fechado:** cada fonte e cada endpoint só aceita os campos do exemplo acima; qualquer outro campo é erro. O conteúdo de `fetch` não é validado para além de ser um mapeamento (DEC-023).
 - **Estados:** `registry_status` e `endpoint_status` escrevem-se na forma documental em maiúsculas (`CANDIDATE`, `VALIDATED`, `ACTIVE`, `INACTIVE`); minúsculas são erro. Na implementação são convertidos para o valor interno em minúsculas. `entity_type`, `endpoint_type` e `tier` escrevem-se como no exemplo, que é também o valor interno (DEC-024).
 - **Datas:** `validated_at` em ISO 8601 com fuso explícito; nenhum fuso é assumido.
+- **Redirects (DEC-070):** `redirect_hosts` é opcional (por omissão, nenhum redirect é seguido) e cada anfitrião acrescentado exige o registo humano do destino em `docs/source_validation/<id>.md`; `redirect_is_throttle` é opcional (por omissão, `false`) e não se combina com `redirect_hosts`.
 
 Regras:
 - Um endpoint só é recolhido em `ACTIVE`, e só passa a `VALIDATED`/`ACTIVE` após validação manual (URL confirmado, mecanismo, termos de utilização, `robots.txt`), registada no próprio registo com `validated_at` e `validated_by` e revista por pull request.
