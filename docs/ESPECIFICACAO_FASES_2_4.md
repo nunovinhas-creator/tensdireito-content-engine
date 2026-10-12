@@ -318,7 +318,6 @@ Decididas em 2026-10-12:
 
 - `source_document`: opção B (DEC-064).
 - Política de redirects de §7: aprovada, com a condição de §7 (DEC-065).
-
 - Tratamento de 302/307 de DEC-062 (§5): separado do de 429/503, com a excepção do Bing documentada (DEC-066).
 
 Já não há decisões de arquitectura a bloquear a fase 2; falta a aprovação desta especificação.
