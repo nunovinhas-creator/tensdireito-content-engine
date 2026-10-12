@@ -219,6 +219,8 @@ AUDIT_FALSE_NEGATIVES = (
     "Arrendar casa com animais de estimação: o que diz a lei e como evitar problemas",
     "Arrendar casa no Porto ficou 76% mais caro. E comprar?",
     "OE: os bastidores também contam",
+    # 2.ª passagem: apoio municipal sem termo de apoios no título.
+    "Gavião cria seguro de saúde para abranger 1.500 pessoas",
 )
 
 # Estavam em rever e são do público do site: passam a alta.
@@ -263,3 +265,17 @@ def test_official_title_without_subject_uses_the_summary(repo_terms):
     assert decision.level is Priority.REVIEW
     assert decision.rule is Rule.OFFICIAL_SUMMARY
     assert "resumo refere «atualizacao anual das pensoes»" in decision.reason
+
+
+def test_services_procurement_in_the_summary_is_not_a_strong_term(repo_terms):
+    # 2.ª passagem da auditoria: anúncios de contratação do DRE com "prestação de serviços".
+    decision = classify(
+        "Anúncio de procedimento n.º 25089/2026 - Diário da República n.º 197/2026",
+        "Município de Braga Aquisição de prestação de serviços de limpeza.",
+        "T1",
+        repo_terms,
+    )
+    assert decision.rule is Rule.OFFICIAL
+    assert classify("Prestação de contas da autarquia", "", "T3", repo_terms).level is not (
+        Priority.HIGH
+    )

@@ -116,6 +116,7 @@ DEFAULT_REVIEW_TERMS = (
     "arrendar",
     "arrendatario",
     "habitacao social",
+    "seguro de saude",
 )
 
 # Um título com termo forte que nomeia outro país desce para rever (run de 2026-10-12:
@@ -147,6 +148,15 @@ DEFAULT_FOREIGN_TERMS = (
     "ucrania",
     "venezuela",
     "argentina",
+)
+
+
+# Expressões que contêm um termo forte com outro sentido; são retiradas antes de procurar
+# (2.ª passagem da auditoria: "prestação de serviços" nos anúncios de contratação do DRE).
+IGNORED_PHRASES = (
+    "prestacao de servicos",
+    "prestacao de contas",
+    "aquisicao de servicos",
 )
 
 
@@ -215,7 +225,8 @@ def load_priority_terms(path: Path) -> PriorityTerms:
 
 def classify(title: str, text: str, tier: str | None, terms: PriorityTerms) -> PriorityDecision:
     """Decide a prioridade de um candidato e devolve o motivo legível."""
-    folded_title = fold(title)
+    folded_title = _without_ignored(fold(title))
+    folded_text = _without_ignored(fold(text))
     if term := _first_match(folded_title, terms.high):
         if country := _first_match(folded_title, terms.foreign):
             return PriorityDecision(
@@ -224,7 +235,7 @@ def classify(title: str, text: str, tier: str | None, terms: PriorityTerms) -> P
         return PriorityDecision(Priority.HIGH, f"título refere «{term}»", Rule.HIGH_TITLE)
     if tier in OFFICIAL_TIERS:
         # Os títulos do DRE só têm o número do diploma; o assunto está no resumo.
-        if term := _first_match(fold(text), terms.high):
+        if term := _first_match(folded_text, terms.high):
             return PriorityDecision(
                 Priority.REVIEW,
                 f"fonte oficial ({tier}); resumo refere «{term}»",
@@ -233,9 +244,15 @@ def classify(title: str, text: str, tier: str | None, terms: PriorityTerms) -> P
         return PriorityDecision(Priority.REVIEW, f"fonte oficial ({tier})", Rule.OFFICIAL)
     if term := _first_match(folded_title, terms.review):
         return PriorityDecision(Priority.REVIEW, f"título ambíguo: «{term}»", Rule.AMBIGUOUS_TITLE)
-    if term := _first_match(fold(text), terms.high):
+    if term := _first_match(folded_text, terms.high):
         return PriorityDecision(Priority.REVIEW, f"resumo refere «{term}»", Rule.SUMMARY)
     return PriorityDecision(Priority.LOW, "sem termos de apoios no título nem no resumo", Rule.NONE)
+
+
+def _without_ignored(folded_text: str) -> str:
+    for phrase in IGNORED_PHRASES:
+        folded_text = _pattern(phrase).sub(" ", folded_text)
+    return folded_text
 
 
 def _folded(values: object) -> set[str]:
