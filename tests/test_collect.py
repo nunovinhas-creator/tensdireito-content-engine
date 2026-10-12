@@ -216,9 +216,18 @@ def test_registry_rejects_two_collectors_for_the_same_type():
         registry_of(FakeCollector(EndpointType.RSS), FakeCollector(EndpointType.RSS))
 
 
-def test_collectors_package_has_only_the_rss_collector_and_its_transport():
+def test_collectors_package_has_only_rss_news_sitemap_and_their_transport():
     names = sorted(path.name for path in (PACKAGE_DIR / "collectors").glob("*.py"))
-    assert names == ["__init__.py", "base.py", "http.py", "rss.py"]
+    assert names == ["__init__.py", "base.py", "http.py", "news_sitemap.py", "rss.py"]
+
+
+def test_default_registry_has_rss_and_news_sitemap():
+    from tensdireito_content_engine.domain import EndpointType
+
+    registry = default_registry()
+    assert registry.get(EndpointType.RSS) is not None
+    assert registry.get(EndpointType.NEWS_SITEMAP) is not None
+    assert registry.get(EndpointType.HTML_PAGE) is None
 
 
 # --- Zero endpoints e sucesso ---------------------------------------------------

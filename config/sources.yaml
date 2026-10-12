@@ -133,11 +133,59 @@
   categories:
   - nacional
   - laboral
+  domains:
+  - jn.pt
+  - www.jn.pt
   endpoints:
   - id: jn-rss
     endpoint_type: rss
     endpoint_status: INACTIVE
     url: https://www.jn.pt/rss
+  - id: jn-news-sitemap
+    endpoint_type: news_sitemap
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-12T00:00:00Z'
+    validated_by: nuno
+    url: https://www.jn.pt/feed/news/sitemap.xml
+- id: executive_digest
+  name: Executive Digest
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-12T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - economia
+  - apoios
+  domains:
+  - executivedigest.sapo.pt
+  endpoints:
+  - id: executivedigest-news-sitemap
+    endpoint_type: news_sitemap
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-12T00:00:00Z'
+    validated_by: nuno
+    url: https://executivedigest.sapo.pt/news-sitemap.xml
+- id: noticias_ao_minuto
+  name: Notícias ao Minuto
+  entity_type: press
+  tier: T3
+  registry_status: VALIDATED
+  validated_at: '2026-10-12T00:00:00Z'
+  validated_by: nuno
+  categories:
+  - nacional
+  - economia
+  domains:
+  - noticiasaominuto.com
+  - www.noticiasaominuto.com
+  endpoints:
+  - id: noticiasaominuto-news-sitemap
+    endpoint_type: news_sitemap
+    endpoint_status: ACTIVE
+    validated_at: '2026-10-12T00:00:00Z'
+    validated_by: nuno
+    url: https://www.noticiasaominuto.com/sitemap.xml
 - id: expresso
   name: Expresso
   entity_type: press

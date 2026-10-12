@@ -32,6 +32,7 @@ from tensdireito_content_engine.domain import (
 from tensdireito_content_engine.normalize import (
     RawContentError,
     extract_rss_item,
+    extract_sitemap_entry,
     normalize_published_at,
     normalize_title,
     text_fingerprint,
@@ -128,13 +129,16 @@ def run_normalize(
 
 
 def build_document(pending: PendingRawItem) -> SourceDocument:
-    """Campos do documento de um pendente `rss` (ROADMAP.md M2.11, *Esquema*).
+    """Campos do documento de um pendente `rss` ou `news_sitemap` (M2.11; DEC-069).
 
     `raw_content` ilegível → `RawContentError`; dados que violam o domínio →
     `DomainValidationError`. O documento chega sem `id`, com `duplicate_of` nulo e
     `status = normalized`; a deduplicação é decidida na inserção.
     """
-    extraction = extract_rss_item(pending.raw_content)
+    if pending.endpoint_type == EndpointType.NEWS_SITEMAP.value:
+        extraction = extract_sitemap_entry(pending.raw_content)  # DEC-069: sem corpo
+    else:
+        extraction = extract_rss_item(pending.raw_content)
     text = extraction.text
     return SourceDocument(
         raw_item_id=pending.id,
@@ -167,7 +171,7 @@ def _normalize_item(
 ) -> ItemOutcome:
     if pending.source_endpoint_id is None:
         return ItemOutcome(pending.id, UNSUPPORTED, "sem endpoint")
-    if pending.endpoint_type != EndpointType.RSS.value:
+    if pending.endpoint_type not in (EndpointType.RSS.value, EndpointType.NEWS_SITEMAP.value):
         return ItemOutcome(
             pending.id,
             UNSUPPORTED,

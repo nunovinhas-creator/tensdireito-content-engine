@@ -127,8 +127,8 @@ def test_same_article_by_feed_and_search_is_one_candidate_with_two_discoveries(
     assert rows(db, "SELECT COUNT(*) FROM candidate") == [(1,)]
     assert sorted(rows(db, "SELECT method FROM candidate_discovery")) == [("rss",), ("search",)]
     assert "### Registo de candidatos" in summary
-    assert "| rss | 1 | 0 | 1 |" in summary
-    assert "| search | 1 | 0 | 1 |" in summary
+    assert "| rss | 1 | 0 | 1 | 0 | 1 |" in summary
+    assert "| search | 1 | 0 | 1 | 0 | 1 |" in summary
 
 
 def test_each_phase_1_decision_becomes_a_state(monkeypatch, tmp_path, capsys):

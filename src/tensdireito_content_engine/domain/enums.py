@@ -89,6 +89,8 @@ class RegistryStatus(StrEnum):
 
 class EndpointType(StrEnum):
     RSS = "rss"
+    # DEC-069 (fase 2b): news sitemap do editor (`<news:news>`).
+    NEWS_SITEMAP = "news_sitemap"
     HTML_PAGE = "html_page"
     MANUAL = "manual"
 

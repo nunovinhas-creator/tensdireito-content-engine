@@ -172,7 +172,8 @@ def run_daily(
             out_reason = "sem data de publicação fiável"
         else:
             in_day = published.astimezone(LISBON).date() == selected_day
-            date_source = "feed"
+            # DEC-069: a data do news sitemap tem origem própria.
+            date_source = "sitemap" if stored.endpoint_type == "news_sitemap" else "feed"
             out_reason = "publicada noutro dia"
         if in_day and _url_date(stored.item.url) not in (None, selected_day):
             in_day = False
@@ -252,6 +253,7 @@ def run_daily(
     )
     drafts_created = persist_pending_drafts(db_path, draft_candidates, instant)
     observations, without_key = _observations(
+        _joinable_hosts(loaded.sources),
         seen_today,
         {a.raw_item_id: a for a in articles},
         group_of,
@@ -308,7 +310,22 @@ def candidate_target(
     return GROUPED, article.decision, None
 
 
+def _joinable_hosts(sources) -> frozenset[str]:
+    """Anfitriões cuja forma `www.` se junta à forma sem `www.` (§4.1; DEC-069).
+
+    Só quando a mesma fonte declara as duas formas em `domains`.
+    """
+    hosts: set[str] = set()
+    for source in sources:
+        domains = {domain.lower() for domain in source.domains}
+        for domain in domains:
+            if domain.startswith("www.") and domain[4:] in domains:
+                hosts |= {domain, domain[4:]}
+    return frozenset(hosts)
+
+
 def _observations(
+    joinable_hosts: frozenset[str],
     seen_today: list[tuple[StoredRawItem, NormalizedItem, str, str]],
     articles: dict[int, DailyArticle],
     group_of: dict[int, int],
@@ -319,7 +336,7 @@ def _observations(
     for stored, normalized, date_source, out_reason in seen_today:
         endpoint = stored.item.source_endpoint_id
         try:
-            key = url_key(stored.item.url)
+            key = url_key(stored.item.url, joinable_hosts)
         except UrlKeyError:
             without_key += 1
             continue

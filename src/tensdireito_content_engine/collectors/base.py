@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Protocol
 
 from tensdireito_content_engine.collectors.http import HttpsTransport
+from tensdireito_content_engine.collectors.news_sitemap import NewsSitemapCollector
 from tensdireito_content_engine.collectors.rss import RssCollector
 from tensdireito_content_engine.domain import EndpointType, RawItem, SourceEndpoint
 
@@ -35,9 +36,10 @@ class CollectorRegistry:
 
 
 def default_registry() -> CollectorRegistry:
-    """Registo de produção: só o collector `rss`, com o transporte real (M2.9).
+    """Registo de produção: `rss` e `news_sitemap` (DEC-069), com o transporte real.
 
-    Cada chamada cria um transporte novo: `robots.txt` e o intervalo por anfitrião valem
-    para uma execução de `tde collect`.
+    Cada chamada cria um transporte novo, partilhado pelos dois collectors: `robots.txt`
+    e o intervalo por anfitrião valem para uma execução de `tde collect`.
     """
-    return CollectorRegistry([RssCollector(HttpsTransport())])
+    transport = HttpsTransport()
+    return CollectorRegistry([RssCollector(transport), NewsSitemapCollector(transport)])

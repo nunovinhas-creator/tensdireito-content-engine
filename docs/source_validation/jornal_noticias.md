@@ -23,3 +23,18 @@
 | V4 Adequação editorial | fonte | pendente | idem |
 | V5 Autorização de recolha (termos, robots.txt) | cada endpoint | pendente | idem |
 
+
+## Acrescento de 2026-10-12 (DEC-069) — endpoint `jn-news-sitemap`
+
+### Observações técnicas automáticas (não substituem V1–V5)
+
+- `jn-news-sitemap` (ACTIVE) — https://www.jn.pt/feed/news/sitemap.xml — declarado no robots.txt de www.jn.pt (linha `Sitemap:`), lido em 2026-10-12. O robots.txt não proíbe `/feed/` para `User-agent: *`. A leitura do próprio sitemap a partir da sessão de trabalho falhou (erro do cliente); a primeira confirmação técnica é o run real do PR da fase 2b.
+- `domains` acrescentados: `jn.pt`, `www.jn.pt` (as duas formas, para a junção de `www.` da §4.1).
+
+### Registos de verificação do novo endpoint
+
+| Verificação | Âmbito | Estado |
+|---|---|---|
+| V2 Existência do endpoint | jn-news-sitemap | pendente |
+| V3 Validade técnica | jn-news-sitemap | pendente (ver observações acima) |
+| V5 Autorização de recolha (termos, robots.txt) | jn-news-sitemap | pendente |

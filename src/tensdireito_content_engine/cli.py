@@ -368,11 +368,13 @@ def _candidates_markdown(result: DailyResult) -> list[str]:
         lines.append("")
     if stats.by_method:
         lines += [
-            "| Método | Candidatos | Só por este método | Descobertas novas |",
-            "|---|---:|---:|---:|",
+            "| Método | Candidatos | Só por este método | Do dia | Do dia, só por este método "
+            "| Descobertas novas |",
+            "|---|---:|---:|---:|---:|---:|",
         ]
         lines += [
-            f"| {method} | {m.candidates} | {m.exclusive} | {m.new_discoveries} |"
+            f"| {method} | {m.candidates} | {m.exclusive} | {m.today_candidates} "
+            f"| {m.today_exclusive} | {m.new_discoveries} |"
             for method, m in stats.by_method.items()
         ]
         lines.append("")
@@ -688,7 +690,9 @@ def _audit_lines(result: DailyResult) -> list[str]:
     stats = result.candidate_stats
     if stats is not None:
         methods = "; ".join(
-            f"{method} {m.candidates} (só {m.exclusive})" for method, m in stats.by_method.items()
+            f"{method} {m.candidates} (só {m.exclusive}; do dia {m.today_candidates}, "
+            f"só {m.today_exclusive})"
+            for method, m in stats.by_method.items()
         )
         lines.append(
             f"CANDIDATOS: {stats.candidates} notícias, {stats.new_candidates} novas; "
