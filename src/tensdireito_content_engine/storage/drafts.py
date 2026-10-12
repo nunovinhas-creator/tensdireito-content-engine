@@ -7,7 +7,6 @@ from datetime import datetime
 from pathlib import Path
 
 from tensdireito_content_engine.domain.enums import VerificationStatus
-from tensdireito_content_engine.domain.policy import MINIMUM_RELEVANCE_SCORE
 from tensdireito_content_engine.storage.database import to_utc_iso, transaction
 from tensdireito_content_engine.storage.errors import StorageError
 from tensdireito_content_engine.storage.interfaces import Connection
@@ -224,7 +223,7 @@ def approve_draft(
             cursor = conn.execute(
                 "UPDATE whatsapp_draft SET verification_status = ?, status = ?, "
                 "approved_at = ?, updated_at = ? WHERE id = ? AND status = ? "
-                "AND editorial_score >= ? AND EXISTS ("
+                "AND EXISTS ("
                 "SELECT 1 FROM raw_item r "
                 "JOIN source_endpoint e ON e.id = r.source_endpoint_id "
                 "JOIN source_registry s ON s.id = e.source_id "
@@ -236,7 +235,6 @@ def approve_draft(
                     to_utc_iso(at),
                     draft_id,
                     PENDING,
-                    MINIMUM_RELEVANCE_SCORE,
                 ),
             )
             approved = cursor.rowcount == 1

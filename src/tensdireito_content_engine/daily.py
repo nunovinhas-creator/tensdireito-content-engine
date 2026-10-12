@@ -1,8 +1,9 @@
 """Execução diária: recolha persistida, normalização, deduplicação e relatório."""
 
 import re
+from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -11,7 +12,6 @@ from zoneinfo import ZoneInfo
 from tensdireito_content_engine.ai_draft import write_whatsapp
 from tensdireito_content_engine.collect import CollectResult, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry
-from tensdireito_content_engine.domain.policy import MINIMUM_RELEVANCE_SCORE
 from tensdireito_content_engine.llm import LoadedLLM
 from tensdireito_content_engine.normalize import (
     NormalizedItem,
@@ -20,6 +20,7 @@ from tensdireito_content_engine.normalize import (
     extract_rss_item,
     normalize_raw_item,
 )
+from tensdireito_content_engine.priority import Priority, classify, load_priority_terms
 from tensdireito_content_engine.publish.whatsapp import WhatsAppMessage, format_whatsapp_message
 from tensdireito_content_engine.scoring import load_topic_terms, score_item
 from tensdireito_content_engine.similarity import same_topic
@@ -36,6 +37,17 @@ from tensdireito_content_engine.topics import TOPICS_FILENAME, TopicMap, load_to
 LISBON = ZoneInfo("Europe/Lisbon")
 DEFAULT_REPORT_DIR = Path("data") / "reports" / "daily"
 
+# DEC-063: tecto de rascunhos por run; os excedentes ficam no relatório com o motivo.
+MAX_DRAFTS_PER_RUN = 20
+
+# Decisões registadas por notícia do dia (DEC-063). Nenhuma apaga o candidato.
+DECISION_DRAFT = "rascunho"
+DECISION_REVIEW = "aguarda classificação (fase 3)"
+DECISION_ARCHIVED = "arquivada"
+DECISION_UNVALIDATED = "fonte não validada"
+DECISION_NOT_HTTPS = "URL não HTTPS"
+DECISION_LIMIT = f"limite de {MAX_DRAFTS_PER_RUN} rascunhos por run"
+
 
 @dataclass(frozen=True, slots=True)
 class DailyArticle:
@@ -48,6 +60,11 @@ class DailyArticle:
     registry_status: str | None
     editorial_score: float
     excerpt: str | None
+    source_tier: str | None = None
+    # DEC-063: prioridade (alta/rever/baixa), o motivo e o que aconteceu ao candidato.
+    priority: str = Priority.LOW.value
+    priority_reason: str = ""
+    decision: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +77,14 @@ class DailyResult:
     report_path: Path
     drafts_created: int
     ai_drafts: int = 0
+
+    def priority_counts(self) -> dict[str, int]:
+        """Notícias do dia por prioridade, sempre com as três chaves."""
+        counts = Counter(article.priority for article in self.articles)
+        return {level.value: counts.get(level.value, 0) for level in Priority}
+
+    def by_priority(self, level: Priority) -> tuple[DailyArticle, ...]:
+        return tuple(article for article in self.articles if article.priority == level.value)
 
 
 def run_daily(
@@ -85,6 +110,7 @@ def run_daily(
     selected_day = day or instant.astimezone(LISBON).date()
     topics = load_topic_terms(Path(config_path).parent / TOPICS_FILENAME)
     topic_map = load_topic_map(Path(config_path).parent / TOPICS_FILENAME)
+    priority_terms = load_priority_terms(Path(config_path).parent / TOPICS_FILENAME)
 
     candidates: list[tuple[StoredRawItem, NormalizedItem]] = []
     scores_by_raw_item: dict[int, float] = {}
@@ -121,34 +147,54 @@ def run_daily(
 
     deduplicated = deduplicate_exact(normalized for _, normalized in candidates)
     records_by_item = {id(normalized): stored for stored, normalized in candidates}
-    articles = [
-        DailyArticle(
-            title=item.title,
-            url=item.raw_item.url,
-            source_name=records_by_item[id(item)].source_name,
-            published_at=item.published_at,
-            fetched_at=item.raw_item.fetched_at,
-            raw_item_id=records_by_item[id(item)].id,
-            registry_status=records_by_item[id(item)].registry_status,
-            editorial_score=scores_by_raw_item[records_by_item[id(item)].id],
-            excerpt=_source_excerpt(item.raw_item.raw_content),
+    articles: list[DailyArticle] = []
+    for item in deduplicated.representatives:
+        stored = records_by_item[id(item)]
+        # DEC-063: a prioridade substitui o limiar 65 como critério; o score só ordena.
+        decision = classify(item.title, item.text, stored.source_tier, priority_terms)
+        articles.append(
+            DailyArticle(
+                title=item.title,
+                url=item.raw_item.url,
+                source_name=stored.source_name,
+                published_at=item.published_at,
+                fetched_at=item.raw_item.fetched_at,
+                raw_item_id=stored.id,
+                registry_status=stored.registry_status,
+                editorial_score=scores_by_raw_item[stored.id],
+                excerpt=_source_excerpt(item.raw_item.raw_content),
+                source_tier=stored.source_tier,
+                priority=decision.level.value,
+                priority_reason=decision.reason,
+            )
         )
-        for item in deduplicated.representatives
-    ]
     articles.sort(key=_article_order)
 
-    eligible = [
-        article
-        for article in articles
-        if article.editorial_score >= MINIMUM_RELEVANCE_SCORE
-        and article.registry_status == "validated"
-        and _is_https_url(article.url)
-    ]
+    decisions: dict[int, str] = {}
+    eligible: list[DailyArticle] = []
+    for article in articles:
+        if article.priority == Priority.REVIEW.value:
+            decisions[article.raw_item_id] = DECISION_REVIEW
+        elif article.priority == Priority.LOW.value:
+            decisions[article.raw_item_id] = DECISION_ARCHIVED
+        elif article.registry_status != "validated":
+            decisions[article.raw_item_id] = DECISION_UNVALIDATED
+        elif not _is_https_url(article.url):
+            decisions[article.raw_item_id] = DECISION_NOT_HTTPS
+        else:
+            eligible.append(article)
     # DEC-059: notícias do mesmo tema dão um único rascunho, o de maior score.
     representatives: list[DailyArticle] = []
     for article in sorted(eligible, key=lambda a: (-a.editorial_score, _article_order(a))):
-        if not any(same_topic(article.title, kept.title) for kept in representatives):
+        kept = next((k for k in representatives if same_topic(article.title, k.title)), None)
+        if kept is not None:
+            decisions[article.raw_item_id] = f"mesmo tema que «{_shorten(kept.title, 60)}»"
+        elif len(representatives) >= MAX_DRAFTS_PER_RUN:
+            decisions[article.raw_item_id] = DECISION_LIMIT
+        else:
             representatives.append(article)
+            decisions[article.raw_item_id] = DECISION_DRAFT
+    articles = [replace(a, decision=decisions[a.raw_item_id]) for a in articles]
     composed = [
         (article, *_compose_draft(article, topic_map, writer)) for article in representatives
     ]
@@ -196,6 +242,7 @@ def _render_report(
         "",
         f"{len(articles)} notícias selecionadas",
         f"{normalized} normalizadas; {duplicates} duplicadas",
+        _priority_line(articles),
         "",
     ]
     if not articles:
@@ -212,10 +259,19 @@ def _render_report(
                 f"   Fonte: {article.source_name}",
                 f"   Data: {published}",
                 f"   URL: {article.url}",
+                f"   Prioridade: {article.priority} — {article.priority_reason}",
+                f"   Decisão: {article.decision}",
                 "",
             )
         )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _priority_line(articles: list[DailyArticle]) -> str:
+    counts = Counter(article.priority for article in articles)
+    return "Prioridade: " + "; ".join(
+        f"{level.value} {counts.get(level.value, 0)}" for level in Priority
+    )
 
 
 def _source_excerpt(raw_content: str) -> str | None:

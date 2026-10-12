@@ -65,9 +65,16 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           set +e
-          uv run tde daily --summary-md "$GITHUB_STEP_SUMMARY"
+          uv run tde daily --summary-md "$GITHUB_STEP_SUMMARY" > daily.txt
           status=$?
           set -e
+          cat daily.txt
+
+          # DEC-063: funil e amostras de auditoria também como anotações do run.
+          grep -E '^(FUNIL|AUDITORIA)' daily.txt | head -9 | while IFS= read -r line; do
+            line="${line//'%'/%25}"
+            echo "::notice title=${line%%:*}::${line#*: }"
+          done || true
 
           case "$status" in
             0)
