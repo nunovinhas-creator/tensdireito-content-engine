@@ -38,3 +38,12 @@
 | V2 Existência do endpoint | jn-news-sitemap | pendente |
 | V3 Validade técnica | jn-news-sitemap | pendente (ver observações acima) |
 | V5 Autorização de recolha (termos, robots.txt) | jn-news-sitemap | pendente |
+
+## Acrescento de 2026-10-12 — registo humano do endpoint `jn-news-sitemap`
+
+- `endpoint_id`: jn-news-sitemap
+- `checked_at`: 2026-10-12T15:32+01:00
+- `checked_by`: nuno
+- `method`: leitura dos runs reais do PR #72 (fase 2b) no GitHub Actions, incluindo o run 38261967714.
+- `observation` (nas palavras de Nuno): «acessível no CI em 2026-10-12; 403 observado fora desse ambiente».
+- Declarado por Nuno ao aprovar o merge do PR #72. Este registo não altera os anteriores; as linhas `pendente` acima ficam como histórico.
