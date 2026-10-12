@@ -620,3 +620,18 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Impacto:** Sem alteração ao esquema SQLite nem aos códigos de saída; `whatsapp_draft.editorial_score` continua a guardar o score lexical. Testes de aceitação em `tests/test_priority.py` e `tests/test_daily.py`.
 - **Estado:** Aceite
 - **Data:** 2026-10-12
+
+### DEC-064 — `source_document` mantém-se como documento de cada captura
+- **Problema:** A especificação das fases 2–4 (PR #58) introduz `candidate` (uma linha por notícia) e deixava em aberto se `source_document` (0002, um documento por captura, escrito por `tde normalize`) seria absorvido ou mantido, com risco de duas fontes de verdade para o texto.
+- **Decisão:** Opção B da §1.6 da especificação. `source_document` continua a ser o documento normalizado de cada captura; `candidate` agrupa as capturas da mesma notícia e aponta para o documento representante (`representative_document_id`); `tde normalize` mantém-se e passa a ser chamado pelo `daily`. Na fase 3, a página extraída é uma captura nova normalizada como `source_document` com `document_kind = page`; não há tabela `candidate_text`.
+- **Razão:** Preserva a rastreabilidade e a auditoria por captura e reaproveita código já testado (M2.11); a simplificação da opção A não compensa a perda da distinção entre captura e notícia.
+- **Impacto:** Decisão de modelo; nada implementado. Condiciona a migração 0004 da fase 2, que continua por aprovar.
+- **Estado:** Aceite
+- **Data:** 2026-10-12
+
+### DEC-065 — Política de redirects aprovada (§7 da especificação)
+- **Problema:** DEC-033 não segue nenhum redirect, e vários endpoints ficaram inactivos por isso.
+- **Decisão:** Aprovada a política da §7 da especificação das fases 2–4: redirects só para anfitriões listados por endpoint em `redirect_hosts`; no máximo um salto; só HTTPS → HTTPS; o destino é revalidado como um pedido novo (anfitrião na lista, IP público, robots.txt, limites). Condição: a implementação tem de impedir redirects para endereços internos ou não autorizados, e os testes de segurança da §9 são obrigatórios antes de activar qualquer `redirect_hosts`.
+- **Impacto:** Altera DEC-033 quando for implementada, na fase 2; até lá, DEC-033 mantém-se. Não decide a revisão de DEC-062 (tratamento de 302/307), que continua em aberto.
+- **Estado:** Aceite (por implementar)
+- **Data:** 2026-10-12

@@ -1,6 +1,8 @@
 # Especificação técnica — Fases 2 a 4 da recolha
 
-> Estado: **proposta para aprovação, revisão 2** (2026-10-12). Nada aqui está implementado. Cada fase só começa depois de aprovada e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
+> Estado: **proposta para aprovação, revisão 3** (2026-10-12). Nada aqui está implementado. Cada fase só começa depois de aprovada e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
+>
+> Revisão 3: decisões registadas — `source_document` mantém-se (opção B, DEC-064) e a política de redirects de §7 está aprovada (DEC-065). A revisão de DEC-062 (§5) continua por decidir. Nenhuma decisão implica implementar a fase 2.
 >
 > Revisão 2, após a revisão do PR #58: redirects só para destinos aprovados por endpoint (§7); 302/307 separados de 429/503 (§5); invariantes da base, transições atómicas e índices (§1.7); estado `expirado` distinto de `fora_do_dia` (§2); opções para `source_document` descritas e decisão exigida antes da migração 0004 (§1.6); normalização de URLs, evidência literal, equidade da fila e retenção concretizadas; testes de aceitação novos (§9).
 
@@ -40,6 +42,7 @@ O `raw_item` continua a ser a captura bruta e imutável. O que falta hoje é uma
 | `next_attempt_at` | TEXT | quando pode ser retomado |
 | `last_error` | TEXT | motivo da última falha |
 | `group_id` | INTEGER FK `candidate_group` | acontecimento (secção 4.3) |
+| `representative_document_id` | INTEGER FK `source_document` | documento da captura que representa a notícia (DEC-064); nulo até haver um |
 | `created_at` / `updated_at` | TEXT NOT NULL | |
 
 ### 1.2 `candidate_discovery` — cada vez que um método encontrou a notícia
@@ -55,9 +58,9 @@ O `raw_item` continua a ser a captura bruta e imutável. O que falta hoje é uma
 
 É esta tabela que permite medir a **cobertura incremental**: notícias que só um método encontrou.
 
-### 1.3 `candidate_text` (fase 3) — texto extraído
+### 1.3 Texto extraído (fase 3) — em `source_document` (DEC-064)
 
-`candidate_id` (PK/FK), `extractor` (`trafilatura` + versão), `status` (`ok`, `empty`, `blocked`, `error`), `http_status`, `text`, `text_hash`, `extracted_at`. Fica numa tabela própria para a `candidate` não crescer com texto. Se a opção B de §1.6 for a escolhida, esta tabela não existe: o texto vive em `source_document`.
+Não há tabela `candidate_text`. A página do artigo descarregada na fase 3 é guardada como uma captura nova (`raw_item` do mesmo endpoint, com o HTML original) e normalizada como `source_document` com `document_kind = page`. O texto, o `text_hash` e o estado da extracção ficam aí; `candidate.representative_document_id` aponta para esse documento. O estado da extracção (`ok`, `empty`, `blocked`, `error`), o extractor e a sua versão entram em `source_document` por migração própria da fase 3. O HTML guardado conta para o tamanho da base e é apagado com o resto por `tde prune` (§6).
 
 ### 1.4 `candidate_classification` (fase 3) — saída da IA
 
@@ -86,16 +89,18 @@ O `raw_item` continua a ser a captura bruta e imutável. O que falta hoje é uma
 | Interfaces que mudam | `normalize_command.py`, `SourceDocument` de domínio, testes de 0002 | `daily.py` passa a ler `source_document` em vez de normalizar em memória |
 | Risco | perder auditoria por captura | mais uma junção em cada consulta; duas noções de "documento" a explicar |
 
-Em qualquer das opções há uma só fonte de verdade para o texto: em A, `candidate_text`; em B, `source_document`. A escolha é feita e registada em DEC na abertura da fase 2, antes de qualquer SQL da 0004.
+Em qualquer das opções há uma só fonte de verdade para o texto: em A, `candidate_text`; em B, `source_document`.
+
+**Decidido: opção B (DEC-064, 2026-10-12).** `source_document` mantém o documento de cada captura e a auditoria por captura; `candidate` agrupa as capturas da mesma notícia; `tde normalize` mantém-se e passa a ser chamado pelo `daily`. O resto desta especificação já segue esta opção.
 
 ### 1.7 Invariantes da base de dados
 
 A auditoria não pode depender de o código "se lembrar" de manter a base consistente.
 
-- **Valores enumerados:** `priority`, `state`, `published_at_source`, `method`, `relevant`, `status` de `candidate_text` têm `CHECK (coluna IN (...))`. É uma excepção explícita à convenção de 0001/0002 (enumerações só validadas no domínio); `CHECK ... IN` tem equivalente directo em PostgreSQL, por isso respeita DEC-013. A validação no domínio mantém-se.
-- **Chaves estrangeiras:** `PRAGMA foreign_keys = ON` já é aplicado em cada ligação (`storage/database.py`). Seguindo DEC-029, não se usa `ON DELETE`: `tde prune` apaga explicitamente por esta ordem, numa transacção: `candidate_transition` → `candidate_classification` → `candidate_text` → `candidate_discovery` → `whatsapp_draft` ligados → `candidate` → `candidate_group` sem membros → `raw_item` sem descobertas. Um teste falha se a ordem violar uma chave.
-- **Unicidade:** `candidate.url_key` UNIQUE; `candidate_discovery (candidate_id, endpoint_id)` UNIQUE; `candidate_text.candidate_id` PK.
-- **Índices:** `candidate (state, next_attempt_at)` para a fila; `candidate (published_at)` para a janela do dia; `candidate (group_id)`; `candidate_discovery (endpoint_id, seen_at)` para a cobertura por método; `candidate_transition (candidate_id, at)` para auditoria; `candidate_text (text_hash)` para §4.2.
+- **Valores enumerados:** `priority`, `state`, `published_at_source`, `method`, `relevant` têm `CHECK (coluna IN (...))`. É uma excepção explícita à convenção de 0001/0002 (enumerações só validadas no domínio); `CHECK ... IN` tem equivalente directo em PostgreSQL, por isso respeita DEC-013. A validação no domínio mantém-se.
+- **Chaves estrangeiras:** `PRAGMA foreign_keys = ON` já é aplicado em cada ligação (`storage/database.py`). Seguindo DEC-029, não se usa `ON DELETE`: `tde prune` apaga explicitamente por esta ordem, numa transacção: `candidate_transition` → `candidate_classification` → `candidate_discovery` → `whatsapp_draft` ligados → `candidate` → `candidate_group` sem membros → `source_document` das capturas a apagar → `raw_item` sem descobertas (a ordem actual de `prune_raw_items` já apaga `source_document` antes de `raw_item`). Um teste falha se a ordem violar uma chave.
+- **Unicidade:** `candidate.url_key` UNIQUE; `candidate_discovery (candidate_id, endpoint_id)` UNIQUE; `source_document.raw_item_id` já é UNIQUE (0002).
+- **Índices:** `candidate (state, next_attempt_at)` para a fila; `candidate (published_at)` para a janela do dia; `candidate (group_id)`; `candidate_discovery (endpoint_id, seen_at)` para a cobertura por método; `candidate_transition (candidate_id, at)` para auditoria; `source_document (text_hash)` já existe (0002) e serve §4.2.
 - **Transições atómicas:** só uma função de `storage` muda o estado, `transition(conn, candidate_id, expected_state, new_state, reason, run_id)`. Faz `UPDATE candidate SET state = ? ... WHERE id = ? AND state = ?` e, só se uma linha mudou, `INSERT` em `candidate_transition`, tudo na mesma transacção. Se nenhuma linha mudou (outro passo já mexeu no candidato), a transição falha sem efeitos. As transições permitidas estão numa tabela no código (§2); qualquer outra levanta erro antes do SQL.
 
 ## 2. Estados e transições
@@ -195,7 +200,7 @@ Uma segunda descoberta do mesmo `url_key` acrescenta uma linha em `candidate_dis
 
 ### 4.2 Mesmo texto
 
-Na fase 3, `candidate_text.text_hash` igual em URLs diferentes (p. ex. a mesma peça da Lusa em vários jornais) junta os candidatos no mesmo grupo e marca os restantes como `no_grupo`.
+Na fase 3, `source_document.text_hash` igual em URLs diferentes (p. ex. a mesma peça da Lusa em vários jornais) junta os candidatos no mesmo grupo e marca os restantes como `no_grupo`.
 
 ### 4.3 Mesmo acontecimento
 
@@ -230,7 +235,7 @@ Um redirect não é uma falha transitória: é uma instrução. Por isso a fase 
 
 ## 7. Política de redirects
 
-Hoje nenhum redirect é seguido (DEC-033), e vários endpoints ficaram inactivos por isso. Proposta, a aprovar:
+Hoje nenhum redirect é seguido (DEC-033), e vários endpoints ficaram inactivos por isso. **Política aprovada (DEC-065, 2026-10-12), por implementar na fase 2.** Condição da aprovação: a implementação valida o anfitrião e o destino final de forma a impedir redirects para endereços internos ou não autorizados; os testes de segurança de §9 são obrigatórios antes de activar qualquer `redirect_hosts`.
 
 - **Só destinos aprovados, por endpoint.** Em `sources.yaml`, um endpoint pode ter `redirect_hosts: [jn.pt]`, a lista **exacta** de anfitriões para onde se aceita ir. Sem a lista, nenhum redirect é seguido. Não há cálculo de "domínio registável": comparar os dois últimos rótulos ou manter uma lista de sufixos à mão dá decisões erradas. Se algum dia for preciso aceitar destinos de forma genérica, usa-se uma implementação da Public Suffix List, por DEC própria.
 - **No máximo um salto**, e só HTTPS → HTTPS. Um segundo redirect é recusado.
@@ -280,7 +285,7 @@ Critério de conclusão: o resumo mostra, por método, quantas notícias novas c
 
 ### Fase 3 — Extracção e classificação
 
-Entregáveis: `candidate_text` e `candidate_classification`; extracção com trafilatura; classificação JSON com validação por esquema; fila `pendente_revisao`; rascunhos redigidos a partir dos campos extraídos.
+Entregáveis: `candidate_classification`; estado da extracção em `source_document` (DEC-064); extracção com trafilatura; classificação JSON com validação por esquema; fila `pendente_revisao`; rascunhos redigidos a partir dos campos extraídos.
 
 Antes de escrever código:
 - **Conjunto de extracção:** 30 a 50 páginas reais de sites portugueses (incluindo sites com bloqueio, JavaScript e datas mal formatadas), guardadas em `tests/fixtures/`. Mede-se texto útil, data e título por site. Onde o trafilatura falhar, avaliam-se parsers do Fundus ou regras próprias.
@@ -308,14 +313,18 @@ Critério de conclusão por fonte: teste funcional a passar, estado de saúde no
 
 ## 10. Questões em aberto
 
-Bloqueiam a abertura da fase 2:
+Decididas em 2026-10-12:
 
-1. `source_document`: opção A ou B de §1.6.
-2. Política de redirects de §7 e revisão do tratamento de 302/307 de DEC-062 (§5).
+- `source_document`: opção B (DEC-064).
+- Política de redirects de §7: aprovada, com a condição de §7 (DEC-065).
+
+Bloqueia ainda a abertura da fase 2:
+
+1. Revisão do tratamento de 302/307 de DEC-062 (§5): separar redirects de limitações temporárias, ou manter a nova tentativa em 302, 307, 429 e 503.
 
 Decidem-se com dados, durante as fases:
 
-3. Persistência (§8): na primeira semana da fase 2, com o tamanho medido da base e a perda aceitável.
-4. Quarto run ao fim da noite (§6): pelas notícias tardias e expiradas observadas em vários dias.
-5. Parser HTML para `html_list`: comparar alternativas com páginas reais antes de acrescentar a dependência.
-6. Amostra de referência da fase 3: quem marca, como, e com que frequência se repete; definida antes de comparar Gemini e Groq.
+2. Persistência (§8): na primeira semana da fase 2, com o tamanho medido da base e a perda aceitável.
+3. Quarto run ao fim da noite (§6): pelas notícias tardias e expiradas observadas em vários dias.
+4. Parser HTML para `html_list`: comparar alternativas com páginas reais antes de acrescentar a dependência.
+5. Amostra de referência da fase 3: quem marca, como, e com que frequência se repete; definida antes de comparar Gemini e Groq.
