@@ -1,6 +1,8 @@
 # Especificação técnica — Fases 2 a 4 da recolha
 
-> Estado: **proposta para aprovação** (2026-10-12). Nada aqui está implementado. Cada fase só começa depois de aprovada e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
+> Estado: **proposta para aprovação, revisão 2** (2026-10-12). Nada aqui está implementado. Cada fase só começa depois de aprovada e fecha com uma entrada no `DECISION_LOG`. A fase 1 (prioridade alta/rever/baixa) está em DEC-063.
+>
+> Revisão 2, após a revisão do PR #58: redirects só para destinos aprovados por endpoint (§7); 302/307 separados de 429/503 (§5); invariantes da base, transições atómicas e índices (§1.7); estado `expirado` distinto de `fora_do_dia` (§2); opções para `source_document` descritas e decisão exigida antes da migração 0004 (§1.6); normalização de URLs, evidência literal, equidade da fila e retenção concretizadas; testes de aceitação novos (§9).
 
 Regra que atravessa todo o documento: **descobrir não é verificar, verificar não é aprovar, aprovar não é publicar.** Nenhuma fase automatiza a verificação, a aprovação ou a publicação.
 
@@ -55,11 +57,14 @@ O `raw_item` continua a ser a captura bruta e imutável. O que falta hoje é uma
 
 ### 1.3 `candidate_text` (fase 3) — texto extraído
 
-`candidate_id` (PK/FK), `extractor` (`trafilatura` + versão), `status` (`ok`, `empty`, `blocked`, `error`), `http_status`, `text`, `text_hash`, `extracted_at`. Fica numa tabela própria para a `candidate` não crescer com texto.
+`candidate_id` (PK/FK), `extractor` (`trafilatura` + versão), `status` (`ok`, `empty`, `blocked`, `error`), `http_status`, `text`, `text_hash`, `extracted_at`. Fica numa tabela própria para a `candidate` não crescer com texto. Se a opção B de §1.6 for a escolhida, esta tabela não existe: o texto vive em `source_document`.
 
 ### 1.4 `candidate_classification` (fase 3) — saída da IA
 
-`candidate_id`, `provider`, `model`, `prompt_version`, `relevant` (`sim`, `nao`, `incerto`), `topic`, `event_type`, `beneficiaries`, `amounts_and_dates` (JSON), `evidence` (JSON com excertos literais), `official_verification_needed` (0/1), `reason`, `classified_at`. Uma linha por tentativa válida; a mais recente é a que conta.
+`candidate_id`, `provider`, `model`, `prompt_version`, `relevant` (`sim`, `nao`, `incerto`), `topic`, `event_type`, `beneficiaries`, `amounts_and_dates` (JSON), `evidence` (JSON), `official_verification_needed` (0/1), `reason`, `classified_at`. Uma linha por tentativa válida; a mais recente é a que conta.
+
+- `evidence` é uma lista de **excertos literais** do texto extraído, cada um com a posição (`start`, `end`) em `text`. A validação confirma que `text[start:end]` é igual ao excerto; um excerto que não se encontra rejeita a resposta inteira.
+- `amounts_and_dates` separa o original do normalizado: cada entrada tem `original` (tal como aparece, p. ex. "537,13 €" ou "31 de outubro"), `normalized` (p. ex. `537.13`, `2026-10-31`) e `evidence_index` (o excerto que o contém). A validação exige que `original` esteja literalmente no excerto; `normalized` é verificado por conversão determinística, não por igualdade de texto.
 
 ### 1.5 `candidate_group` e `candidate_transition`
 
@@ -69,8 +74,29 @@ O `raw_item` continua a ser a captura bruta e imutável. O que falta hoje é uma
 ### 1.6 Ligação ao que já existe
 
 - `whatsapp_draft` passa a poder referir `candidate_id` (coluna nova, nula para os rascunhos antigos). `raw_item_id` mantém-se.
-- `source_document` (0002) não é usado pelo `daily`. A fase 2 decide se é absorvido por `candidate`/`candidate_text` ou se fica para o `tde normalize`; não se mantêm duas fontes de verdade.
-- `tde prune` passa a apagar candidatos terminados há mais de N dias, com as suas descobertas, textos e transições.
+- `tde prune` passa a apagar candidatos por idade (§6), com as suas descobertas, textos, classificações e transições.
+
+**`source_document` — decisão exigida antes de escrever a migração 0004.** Hoje `source_document` (0002) é o documento normalizado de cada `raw_item`, escrito por `tde normalize`; o `daily` não o usa. As duas opções preservam coisas diferentes:
+
+| | A. Absorver em `candidate` + `candidate_text` | B. Manter `source_document` como camada de documento |
+| --- | --- | --- |
+| Unidade | uma linha por notícia (`candidate`); o texto da página em `candidate_text` | uma linha por captura (`source_document`, por `raw_item`); `candidate` agrupa capturas e aponta para a representante |
+| Dados que preserva | texto da página extraída (fase 3); perde-se o documento normalizado por captura | texto normalizado de cada captura, `document_kind`, `duplicate_of`, `text_hash` por captura; o texto da página extraída passa a ser um `source_document` com `document_kind = page` |
+| Responsabilidades | `tde normalize` fica obsoleto e é retirado por DEC | `tde normalize` mantém-se e passa a ser chamado pelo `daily`; a extracção da fase 3 escreve em `source_document` |
+| Interfaces que mudam | `normalize_command.py`, `SourceDocument` de domínio, testes de 0002 | `daily.py` passa a ler `source_document` em vez de normalizar em memória |
+| Risco | perder auditoria por captura | mais uma junção em cada consulta; duas noções de "documento" a explicar |
+
+Em qualquer das opções há uma só fonte de verdade para o texto: em A, `candidate_text`; em B, `source_document`. A escolha é feita e registada em DEC na abertura da fase 2, antes de qualquer SQL da 0004.
+
+### 1.7 Invariantes da base de dados
+
+A auditoria não pode depender de o código "se lembrar" de manter a base consistente.
+
+- **Valores enumerados:** `priority`, `state`, `published_at_source`, `method`, `relevant`, `status` de `candidate_text` têm `CHECK (coluna IN (...))`. É uma excepção explícita à convenção de 0001/0002 (enumerações só validadas no domínio); `CHECK ... IN` tem equivalente directo em PostgreSQL, por isso respeita DEC-013. A validação no domínio mantém-se.
+- **Chaves estrangeiras:** `PRAGMA foreign_keys = ON` já é aplicado em cada ligação (`storage/database.py`). Seguindo DEC-029, não se usa `ON DELETE`: `tde prune` apaga explicitamente por esta ordem, numa transacção: `candidate_transition` → `candidate_classification` → `candidate_text` → `candidate_discovery` → `whatsapp_draft` ligados → `candidate` → `candidate_group` sem membros → `raw_item` sem descobertas. Um teste falha se a ordem violar uma chave.
+- **Unicidade:** `candidate.url_key` UNIQUE; `candidate_discovery (candidate_id, endpoint_id)` UNIQUE; `candidate_text.candidate_id` PK.
+- **Índices:** `candidate (state, next_attempt_at)` para a fila; `candidate (published_at)` para a janela do dia; `candidate (group_id)`; `candidate_discovery (endpoint_id, seen_at)` para a cobertura por método; `candidate_transition (candidate_id, at)` para auditoria; `candidate_text (text_hash)` para §4.2.
+- **Transições atómicas:** só uma função de `storage` muda o estado, `transition(conn, candidate_id, expected_state, new_state, reason, run_id)`. Faz `UPDATE candidate SET state = ? ... WHERE id = ? AND state = ?` e, só se uma linha mudou, `INSERT` em `candidate_transition`, tudo na mesma transacção. Se nenhuma linha mudou (outro passo já mexeu no candidato), a transição falha sem efeitos. As transições permitidas estão numa tabela no código (§2); qualquer outra levanta erro antes do SQL.
 
 ## 2. Estados e transições
 
@@ -92,25 +118,32 @@ stateDiagram-v2
     classificado --> agrupado: relevante = sim
     agrupado --> rascunho: representante do grupo
     agrupado --> no_grupo: outro artigo representa o grupo
+    a_extrair --> expirado: mudou o dia
+    a_classificar --> expirado: mudou o dia
+    pendente_revisao --> expirado: 3 dias sem revisão
+    arquivado --> descoberto: reaberto por pessoa
+    descartado --> descoberto: reaberto por pessoa
     rascunho --> [*]
 ```
 
 | Estado | Terminal | Quem o resolve |
 | --- | --- | --- |
-| `fora_do_dia` | sim | regra editorial do próprio dia |
-| `arquivado` | sim, auditável | amostra no resumo; a pessoa pode reabrir com `tde candidates reopen ID` |
+| `fora_do_dia` | sim | já foi descoberta fora do dia de publicação |
+| `arquivado` | sim, reabrível | amostra no resumo; `tde candidates reopen ID` |
+| `descartado` | sim, reabrível | amostra no resumo, como `arquivado` |
 | `bloqueado` | sim, visível | aparece no resumo com o último erro |
-| `descartado` | sim, auditável | amostra no resumo, como `arquivado` |
 | `pendente_revisao` | não | revisão humana (issue com etiqueta `por-classificar`) |
+| `expirado` | sim, visível | trabalho que não terminou a tempo; ver abaixo |
 | `no_grupo` | sim | a fonte fica guardada no grupo |
 | `rascunho` | sim, para este sistema | segue o circuito actual: issue → aprovação → exportação |
 
 Regras:
 
-1. Cada transição é gravada em `candidate_transition`, com o motivo.
+1. Cada transição é gravada em `candidate_transition`, com o motivo, de forma atómica (§1.7).
 2. Nenhuma transição apaga linhas. Só `tde prune` apaga, por idade.
 3. Na fase 2 ainda não há extracção nem IA: os candidatos `alta` passam directamente de `descoberto` a `agrupado` e o resto do circuito é o da fase 1. As transições de extracção e classificação entram na fase 3.
-4. Às 00:00 de Lisboa, os candidatos do dia anterior ainda em `a_extrair` ou `a_classificar` passam a `fora_do_dia` com o motivo `expirou antes de concluir`, e o resumo do primeiro run do dia conta-os.
+4. **Mudança de dia.** No primeiro run depois das 00:00 de Lisboa, os candidatos do dia anterior em `a_extrair` ou `a_classificar` passam a `expirado`. `expirado` é diferente de `fora_do_dia`: quer dizer "havia trabalho por fazer". A transição guarda o estado anterior, as tentativas e o último erro; nenhum destes campos é limpo. O resumo do run mostra quantos expiraram e de que estado vieram, para separar notícias tardias de falhas técnicas.
+5. **Revisão humana no dia seguinte.** Um candidato em `pendente_revisao` continua visível depois da meia-noite, com o seu histórico. A regra do próprio dia mantém-se: não gera rascunho depois do seu dia. A revisão serve então para marcar se era relevante, o que alimenta a amostra de referência da fase 3 e a medição de falsos negativos. Ao fim de 3 dias sem decisão (o mesmo prazo das issues, DEC-058), passa a `expirado` com o motivo `sem revisão`.
 
 ## 3. Contratos dos collectors
 
@@ -144,7 +177,21 @@ Mantém-se o protocolo actual (`fetch(endpoint, since) -> Iterable[RawItem]`, DE
 
 ### 4.1 Mesmo artigo
 
-`url_key` = URL com o esquema e o anfitrião em minúsculas, sem fragmento, sem parâmetros de rastreio (`utm_*`, `fbclid`, `gclid`, `ocid`), sem barra final e sem variantes AMP conhecidas (`/amp/`, `?amp`). Uma segunda descoberta do mesmo `url_key` acrescenta uma linha em `candidate_discovery` e actualiza `last_seen_at`; não cria candidato novo.
+`url_key` é calculado por regras fixas, cada uma com teste:
+
+| Caso | Regra | Exemplo |
+| --- | --- | --- |
+| Esquema e anfitrião | minúsculas; só `https` (DEC-033) | `HTTPS://WWW.JN.pt/a` → `https://www.jn.pt/a` |
+| Porta predefinida | `:443` removida; outra porta mantém-se | `https://eco.sapo.pt:443/x` → `https://eco.sapo.pt/x` |
+| Fragmento | removido | `…/a#comentarios` → `…/a` |
+| Rastreio | removidos `utm_*`, `fbclid`, `gclid`, `ocid`, `mc_cid`, `mc_eid` | |
+| Restantes parâmetros | mantidos e ordenados por nome | `?b=2&a=1` → `?a=1&b=2` |
+| Barra final | removida, excepto na raiz | `…/artigo/` → `…/artigo` |
+| AMP | `/amp/` final, `?amp`, `?outputType=amp` removidos; `amp.` no anfitrião só se o editor o tiver em `domains` | |
+| Anfitriões equivalentes | `www.` e sem `www.` só se juntam quando ambos estão em `domains` da mesma fonte no `sources.yaml`; não há equivalências adivinhadas | |
+| Codificação | percent-encoding normalizado para maiúsculas; caracteres não reservados descodificados | `%c3%a7` → `%C3%A7` |
+
+Uma segunda descoberta do mesmo `url_key` acrescenta uma linha em `candidate_discovery` e actualiza `last_seen_at`; não cria candidato novo.
 
 ### 4.2 Mesmo texto
 
@@ -155,36 +202,41 @@ Na fase 3, `candidate_text.text_hash` igual em URLs diferentes (p. ex. a mesma p
 - Fase 2: `same_topic` actual (DEC-059) entre candidatos dos últimos 3 dias cria ou reutiliza um `candidate_group`.
 - Fase 3: a IA devolve também uma frase curta do acontecimento; o agrupamento passa a usar título + essa frase.
 - Vários jornais com a mesma notícia contam como **um** acontecimento e **não** como confirmação. O representante do grupo é a fonte de nível mais alto (T1 > T2 > T3), depois a mais antiga.
+- Testes com pares reais guardados em `tests/fixtures/grouping/`: títulos diferentes sobre o mesmo acontecimento que **devem** juntar-se (p. ex. "PSU entra em vigor" / "Prestação Social Única chega a 31 de dezembro") e acontecimentos parecidos que **não** devem (p. ex. o calendário de pagamentos de outubro e o de novembro; o aumento das pensões e o aumento do salário mínimo).
 
 ## 5. Tentativas e recuperação de falhas
 
-| Falha | Comportamento |
+Um redirect não é uma falha transitória: é uma instrução. Por isso a fase 2 separa os dois casos e revê o comportamento actual de DEC-062, que repete 302/307 como se fossem temporários.
+
+| Resposta ou falha | Comportamento |
 | --- | --- |
+| 302, 307 (e 301, 308) | se o endpoint tiver destinos aprovados (§7) e o `Location` for um deles, segue um único salto, com as verificações de §7; senão, regista "redirect recusado: <destino>" e não repete o pedido |
+| 302/307 que são limitação conhecida | só para endpoints marcados `redirect_is_throttle: true` (hoje, as pesquisas do Bing, onde o 307 observado em 2026-10-11 era limitação): uma nova tentativa, e o resumo conta-a como limitação, não como redirect |
+| 429, 503 | nova tentativa; espera o `Retry-After` se vier (segundos ou data HTTP), com um máximo de 60 s; sem cabeçalho, 20 s; no máximo uma nova tentativa por run |
 | Endpoint em erro | regista `last_error`; os outros endpoints continuam (já é assim); 2 runs seguidos em erro → aviso no resumo |
-| HTTP 302/307/429/503 | uma nova tentativa após 20 s (DEC-062) |
 | Extracção falhada | `attempts + 1`, `next_attempt_at` = run seguinte; 3 falhas → `bloqueado` |
 | IA sem resposta, quota esgotada ou JSON inválido | tenta o fornecedor seguinte da cadeia; se todos falharem, `attempts + 1`; 3 falhas → `pendente_revisao` |
-| Run interrompido | o run seguinte retoma os candidatos não terminais; cada passo é idempotente |
+| Run interrompido | o run seguinte retoma os candidatos não terminais; cada passo é idempotente e cada transição é atómica (§1.7) |
 
-Limites por run: até 60 extracções e até 60 classificações (configuráveis), por ordem de prioridade e de data. O excedente fica em fila com o motivo `limite do run`.
+**Limites por run e equidade da fila.** Até 60 extracções e até 60 classificações por run (configuráveis). A fila não é só por prioridade, para os `rever` não ficarem para sempre atrás dos `alta`: dois terços dos lugares vão para `alta` e um terço para `rever`; lugares não usados por uma passam para a outra. Dentro de cada prioridade, primeiro os mais antigos (`first_seen_at`). O excedente fica na fila com o motivo `limite do run`, e o resumo mostra a idade do item mais antigo em espera.
 
 ## 6. Limites temporais
 
 - **Regra editorial (mantém-se):** só gera rascunho o que foi publicado no próprio dia, em Lisboa.
 - **Data de publicação, por precedência:** `news:publication_date` → `pubDate`/`updated` do feed → `datePublished` da página (JSON-LD, fase 3) → data no URL → primeira recolha (só se o endpoint já tinha sido recolhido antes, DEC-061) → nenhuma. A origem fica em `published_at_source`.
-- **Janela técnica:** os candidatos ficam guardados 60 dias (`tde prune`). Com a regra do próprio dia, esta janela serve deduplicação, agrupamento e auditoria; não recupera notícias para publicar. A recuperação de falhas faz-se dentro do dia, pelos três runs e pela fila de pendentes.
+- **Janela técnica:** com a regra do próprio dia, guardar candidatos serve deduplicação, agrupamento e auditoria; não recupera notícias para publicar. A recuperação de falhas faz-se dentro do dia, pelos três runs e pela fila de pendentes.
+- **Retenção (`tde prune`):** N = 60 dias, o valor já usado no workflow. Contam a partir de `last_seen_at`, e um candidato com rascunho ainda `pending` ou `approved` não é apagado. Apaga-se o candidato com as suas descobertas, textos, classificações e transições, pela ordem de §1.7. O que fica para auditoria de longo prazo é o agregado por run (contagens por estado, método, prioridade e fonte) em `run.stats`, que `prune` não apaga.
 - **Questão para decidir:** um quarto run ao fim da noite (p. ex. 22:37 UTC) reduz as notícias do fim do dia que nunca entram. Custo: mais minutos de Actions e mais pedidos aos editores.
 
 ## 7. Política de redirects
 
 Hoje nenhum redirect é seguido (DEC-033), e vários endpoints ficaram inactivos por isso. Proposta, a aprovar:
 
-- Por endpoint, `follow_redirect: same_site` (predefinição: desligado).
-- No máximo **um** salto.
-- Só HTTPS → HTTPS.
-- O destino tem de estar no mesmo domínio registável (p. ex. `www.jn.pt` → `jn.pt`). Para não acrescentar dependências, a regra compara os dois últimos rótulos do anfitrião, com uma lista explícita de sufixos de dois níveis usados pelas fontes (`gov.pt`, `com.pt`, `org.pt`).
-- O destino passa pelas mesmas verificações do pedido original: resolução para IP público (`_is_public`), robots.txt do destino, limites de tamanho e tempo.
-- O URL original e o final ficam registados. Um redirect recusado continua a aparecer como falha, com o motivo.
+- **Só destinos aprovados, por endpoint.** Em `sources.yaml`, um endpoint pode ter `redirect_hosts: [jn.pt]`, a lista **exacta** de anfitriões para onde se aceita ir. Sem a lista, nenhum redirect é seguido. Não há cálculo de "domínio registável": comparar os dois últimos rótulos ou manter uma lista de sufixos à mão dá decisões erradas. Se algum dia for preciso aceitar destinos de forma genérica, usa-se uma implementação da Public Suffix List, por DEC própria.
+- **No máximo um salto**, e só HTTPS → HTTPS. Um segundo redirect é recusado.
+- **O destino é revalidado como um pedido novo**, antes de ser contactado: anfitrião na lista, resolução DNS para IP público (`_is_public`, que já recusa endereços loopback, privados, link-local, multicast, reservados e não especificados), robots.txt do destino, limites de tamanho, tempo e intervalo por anfitrião.
+- O URL original e o final ficam registados na descoberta. Um redirect recusado aparece como falha, com o destino e o motivo.
+- A aprovação de cada `redirect_hosts` segue o protocolo de validação de fontes (`docs/source_validation/<id>.md`): é uma pessoa que confirma o destino.
 
 ## 8. Persistência — opções a comparar (sem decisão)
 
@@ -213,6 +265,16 @@ Testes de aceitação:
 - Um endpoint vazio e um endpoint em erro aparecem com estados diferentes no resumo.
 - Nenhum candidato muda de estado sem linha em `candidate_transition`.
 - A migração aplica-se sobre uma cópia da base actual sem perder `raw_item` nem `whatsapp_draft`.
+- Um valor fora dos enumerados é recusado pela base (`CHECK`), mesmo escrito por SQL directo.
+- Uma transição com `expected_state` errado não muda nada e não grava `candidate_transition`; duas transições concorrentes sobre o mesmo candidato resultam numa só.
+- `tde prune` sobre uma base com candidatos de todos os estados não viola nenhuma chave estrangeira e não apaga candidatos com rascunho pendente ou aprovado.
+- **Recuperação após interrupção:** um run interrompido a meio (simulado por excepção depois de N candidatos) é retomado pelo run seguinte sem duplicar candidatos, descobertas nem transições.
+- **Redirects (segurança):** com transporte falso, cada caso tem teste — destino fora de `redirect_hosts` recusado; segundo salto recusado; HTTPS → HTTP recusado; destino que resolve para 127.0.0.1, 10.0.0.0/8 ou ::1 recusado; destino com robots.txt a proibir recusado; 307 em endpoint `redirect_is_throttle` repetido uma vez e contado como limitação.
+- **429/503:** `Retry-After` em segundos e em data HTTP respeitado até 60 s; sem cabeçalho, 20 s; uma só nova tentativa.
+- **Sitemaps:** índice de sitemaps (profundidade 1), namespaces `sitemap/0.9` e `news/0.9` com prefixos diferentes, entrada sem `news:publication_date` (fica `published_at_source = none`), data mal formada, XML truncado (erro, não vazio), sitemap válido sem entradas (vazio, não erro), ficheiro acima do limite de tamanho (erro).
+- **URL:** cada linha da tabela de §4.1 tem um teste.
+- **Fila:** com 100 `alta` e 10 `rever` e limite 60, entram pelo menos 10 `rever`.
+- **Mudança de dia:** um candidato em `a_classificar` com 2 tentativas e erro passa a `expirado` guardando estado anterior, tentativas e erro.
 
 Critério de conclusão: o resumo mostra, por método, quantas notícias novas cada um acrescenta e quantas duplica, em pelo menos 3 dias de runs reais.
 
@@ -226,7 +288,8 @@ Antes de escrever código:
 
 Testes de aceitação:
 - A saída da IA que não cumpre o esquema é rejeitada e o candidato fica pendente.
-- Todo o número ou data em `amounts_and_dates` aparece literalmente em `evidence` e no texto extraído.
+- Cada excerto de `evidence` corresponde exactamente a `text[start:end]`; um excerto inexistente rejeita a resposta.
+- Cada `original` de `amounts_and_dates` está literalmente no seu excerto; cada `normalized` resulta do `original` pela conversão determinística (p. ex. "537,13 €" → 537.13; "31 de outubro" → 2026-10-31).
 - Com a IA desligada, nenhum candidato se perde: fica em `a_classificar` ou `pendente_revisao`.
 
 Critério de conclusão: precisão e falsos negativos medidos contra a amostra de referência e registados na DEC da fase. A escolha entre Gemini e Groq faz-se por esse teste, não por suposição.
@@ -245,9 +308,14 @@ Critério de conclusão por fonte: teste funcional a passar, estado de saúde no
 
 ## 10. Questões em aberto
 
-1. Política de redirects (secção 7): aprovar ou manter DEC-033.
-2. Persistência (secção 8): decidir na abertura da fase 2, com o tamanho medido da base.
-3. Quarto run ao fim da noite (secção 6).
-4. Parser HTML para `html_list` (biblioteca nova ou o `lxml` que o trafilatura já traz).
-5. Quem marca a amostra de referência da fase 3, e com que frequência se repete.
-6. O que fazer ao `source_document` (secção 1.6).
+Bloqueiam a abertura da fase 2:
+
+1. `source_document`: opção A ou B de §1.6.
+2. Política de redirects de §7 e revisão do tratamento de 302/307 de DEC-062 (§5).
+
+Decidem-se com dados, durante as fases:
+
+3. Persistência (§8): na primeira semana da fase 2, com o tamanho medido da base e a perda aceitável.
+4. Quarto run ao fim da noite (§6): pelas notícias tardias e expiradas observadas em vários dias.
+5. Parser HTML para `html_list`: comparar alternativas com páginas reais antes de acrescentar a dependência.
+6. Amostra de referência da fase 3: quem marca, como, e com que frequência se repete; definida antes de comparar Gemini e Groq.
