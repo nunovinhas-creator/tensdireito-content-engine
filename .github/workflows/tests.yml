@@ -1,0 +1,37 @@
+name: Tests
+
+# Testes e lint em cada push e pull request (pedido de 2026-10-12, antes do merge do
+# PR #59). Só verifica: não recolhe fontes, não usa segredos nem cria issues.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install project
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check src tests
+
+      - name: Tests
+        shell: bash
+        run: |
+          uv run pytest -q | tee pytest.txt
+          echo "::notice title=Testes::$(tail -n 1 pytest.txt)"
