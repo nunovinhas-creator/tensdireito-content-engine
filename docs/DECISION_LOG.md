@@ -674,3 +674,12 @@ A lista de referência está em [ROADMAP.md](ROADMAP.md#decisões-pendentes). Re
 - **Testes:** `tests/test_fase_2c.py` cobre os casos de aceitação da §9 da especificação (destino fora da lista, segundo salto, HTTPS → HTTP, destino interno 127.0.0.1, 10.0.0.0/8, ::1 e link-local, robots.txt do destino, 307 do Bing repetido e contado, `Retry-After` em segundos e em data HTTP até 60 s, 20 s sem cabeçalho ou inválido, uma só nova tentativa, 429/503 nunca tratados como redirect), mais a passagem do YAML à base, ao collector, ao `run.stats` e ao resumo.
 - **Estado:** Aceite
 - **Data:** 2026-10-12
+
+### DEC-071 — Vigia do agendamento do daily
+- **Problema:** O agendador do GitHub atrasa ou salta execuções `schedule`. Desde o cron `7 8,13,18 * * *` (DEC-061, 2026-10-11 13:51) houve uma só execução agendada, às 21:52 UTC em vez das 18:07; a 2026-10-12 não houve nenhuma (nem às 08:07 nem às 13:07). Cada janela perdida é cobertura de notícias perdida, porque só entram as do próprio dia.
+- **Decisão:** (1) Workflow `vigia.yml`, com cron `37 9-12,14-17,19-22 * * *`: só nas quatro horas a seguir a cada janela, 12 execuções por dia. (2) `tde vigia` lê os runs do `daily.yml` no `main` (`gh run list`) e decide para a janela em curso (a última das 08:07, 13:07 e 18:07 UTC já passada): se há um run bem-sucedido ou em curso criado desde 30 min antes da janela, está coberta; se não há e já passou 1 h do início, dispara o daily (`gh workflow run daily.yml --ref main`, com o `GITHUB_TOKEN` e `actions: write`); antes disso, espera pelo agendador. Um run falhado não cobre a janela. Depois das 23:00 UTC não dispara. (3) O resultado fica numa anotação `VIGIA` ("janela 13:07 sem run → disparado", "janela 08:07 já coberta (schedule, success)"); `--dry-run` (e a entrada `dry_run` do workflow manual) decide sem disparar. (4) O agendador continua a ser a fonte principal; o cron externo fica como segunda linha só se, após alguns dias, ainda houver janelas perdidas de forma recorrente.
+- **Custo:** o repositório é privado (2000 minutos grátis por mês no plano gratuito). A vigia gasta cerca de 12 minutos por dia (cada job conta pelo menos 1 minuto), ≈ 360 por mês; o daily ≈ 10 minutos por run, ≈ 900 por mês com três runs. Por isso a vigia não corre de hora a hora todo o dia.
+- **Limitações:** A própria vigia depende do agendador; tem até 4 oportunidades por janela. Um run disparado pela vigia e um run agendado atrasado podem coincidir: o `concurrency` do daily põe o segundo em fila e as issues não se duplicam.
+- **Estado:** Aceite
+- **Data:** 2026-10-12
+

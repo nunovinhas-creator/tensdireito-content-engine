@@ -1,0 +1,65 @@
+name: Vigia do daily
+
+# DEC-071: o agendador do GitHub atrasa ou salta o daily. Uma hora depois de cada janela
+# (08:07, 13:07, 18:07 UTC), e de hora a hora até à seguinte, a vigia dispara o daily se a
+# janela ainda não tiver um run bem-sucedido ou em curso no main. Só nas horas em que
+# pode actuar (12 execuções por dia, cerca de 1 minuto cada), para poupar minutos.
+on:
+  schedule:
+    - cron: "37 9-12,14-17,19-22 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Só decide e mostra, sem disparar o daily"
+        type: boolean
+        default: false
+
+concurrency:
+  group: vigia
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  vigia:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install project
+        run: uv sync --locked
+
+      - name: Check the daily window
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        shell: bash
+        run: |
+          set +e
+          uv run tde vigia $DRY_RUN > vigia.txt 2> vigia.err
+          status=$?
+          set -e
+          cat vigia.txt vigia.err
+          while IFS= read -r line; do
+            line="${line//'%'/%25}"
+            echo "::notice title=VIGIA::${line#VIGIA: }"
+          done < vigia.txt
+          while IFS= read -r line; do
+            line="${line//'%'/%25}"
+            echo "::error title=VIGIA::$line"
+          done < vigia.err
+          sed 's/^/- /' vigia.txt vigia.err >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

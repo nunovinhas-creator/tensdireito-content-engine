@@ -54,6 +54,7 @@ from tensdireito_content_engine.storage import (
     sync_sources,
 )
 from tensdireito_content_engine.topics import TOPICS_FILENAME, load_topic_map
+from tensdireito_content_engine.vigia import VigiaError, run_vigia
 
 PROG = "tde"
 
@@ -846,6 +847,16 @@ def build_parser() -> argparse.ArgumentParser:
     prune_parser.add_argument(
         "--days", type=int, default=60, metavar="N", help="idade mínima em dias (por defeito: 60)"
     )
+    vigia_parser = subparsers.add_parser(
+        "vigia",
+        help="dispara o daily se a janela em curso não tiver run (DEC-071)",
+        description="Vigia do agendamento: lê os runs do workflow daily no main e, se a "
+        "janela em curso (08:07, 13:07 ou 18:07 UTC) não tiver um run bem-sucedido ou em "
+        "curso uma hora depois do início, dispara-o. Usa o `gh`.",
+    )
+    vigia_parser.add_argument(
+        "--dry-run", action="store_true", help="decide e mostra, mas não dispara"
+    )
     llm_parser = subparsers.add_parser("llm", help="verifica o fornecedor de IA")
     llm_actions = llm_parser.add_subparsers(dest="llm_command", metavar="<acção>", required=True)
     llm_actions.add_parser("check", help="faz um pedido mínimo ao modelo configurado")
@@ -1010,6 +1021,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in lines:
             print(line, file=sys.stdout if ok else sys.stderr)
         return 0 if ok else 1
+
+    if args.command == "vigia":
+        try:
+            _, lines = run_vigia(dry_run=args.dry_run)
+        except VigiaError as exc:
+            print(f"VIGIA: ERRO — {exc}", file=sys.stderr)
+            return 1
+        for line in lines:
+            print(line)
+        return 0
 
     if args.command == "llm" and args.llm_command == "check":
         for line in llm_check(args.config, os.environ):
