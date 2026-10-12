@@ -444,4 +444,4 @@ def test_schema_is_unchanged(db, monkeypatch):
     tables = query(db, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
     collect_cli(monkeypatch, db, serving(fixture("valid.xml")))
     assert query(db, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name") == tables
-    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [1, 2, 3]
+    assert [row[0] for row in query(db, "SELECT version FROM schema_migration")] == [1, 2, 3, 4]

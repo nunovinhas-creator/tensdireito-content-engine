@@ -504,7 +504,7 @@ def test_pending_migrations_fail_without_migrating(tmp_path, monkeypatch, capsys
     err = capsys.readouterr().err
     assert (
         "esquema não conforme: migrações pendentes: 0001_init, 0002_source_document, "
-        "0003_whatsapp_draft; "
+        "0003_whatsapp_draft, 0004_candidate; "
         "execute `tde init`"
     ) in err
     assert query(db, "SELECT name FROM sqlite_master") == []

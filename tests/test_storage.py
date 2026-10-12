@@ -33,6 +33,10 @@ BUSINESS_TABLES = {
     "raw_item",
     "source_document",
     "whatsapp_draft",
+    "candidate",
+    "candidate_group",
+    "candidate_discovery",
+    "candidate_transition",
 }
 ALL_TABLES = {"schema_migration", *BUSINESS_TABLES}
 
@@ -144,7 +148,8 @@ def test_cli_init_creates_database_and_reports(tmp_path, capsys):
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
         f"init: OK — {db}",
-        "migrações aplicadas: 0001_init, 0002_source_document, 0003_whatsapp_draft",
+        "migrações aplicadas: 0001_init, 0002_source_document, 0003_whatsapp_draft, "
+        "0004_candidate",
     ]
     assert captured.err == ""
     assert db.is_file()
@@ -154,7 +159,12 @@ def test_cli_init_creates_database_and_reports(tmp_path, capsys):
 def test_init_registers_migrations_with_checksum(tmp_path):
     db = tmp_path / "tde.sqlite3"
     result = init_database(db, now=fixed_now)
-    assert result.applied == ("0001_init", "0002_source_document", "0003_whatsapp_draft")
+    assert result.applied == (
+        "0001_init",
+        "0002_source_document",
+        "0003_whatsapp_draft",
+        "0004_candidate",
+    )
     applied_at = "2026-10-07T12:00:00.000000+00:00"
     assert migration_rows(db) == [
         (
@@ -170,6 +180,11 @@ def test_init_registers_migrations_with_checksum(tmp_path):
         (
             3,
             hashlib.sha256((MIGRATIONS_DIR / "0003_whatsapp_draft.sql").read_bytes()).hexdigest(),
+            applied_at,
+        ),
+        (
+            4,
+            hashlib.sha256((MIGRATIONS_DIR / "0004_candidate.sql").read_bytes()).hexdigest(),
             applied_at,
         ),
     ]
@@ -213,6 +228,7 @@ def test_init_accepts_existing_empty_file(tmp_path):
         "0001_init",
         "0002_source_document",
         "0003_whatsapp_draft",
+        "0004_candidate",
     )
 
 
@@ -308,6 +324,7 @@ EXPECTED_COLUMNS = {
         "created_at": ("TEXT", True, 0),
         "updated_at": ("TEXT", True, 0),
         "approved_at": ("TEXT", False, 0),
+        "candidate_id": ("INTEGER", False, 0),
     },
 }
 
@@ -333,7 +350,14 @@ def test_no_indexes_beyond_pk_unique_and_text_hash(db):
         explicit = conn.execute(
             "SELECT tbl_name, name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL"
         ).fetchall()
-    assert explicit == [
+    assert sorted(explicit) == [
+        ("candidate", "candidate_group_id"),
+        ("candidate", "candidate_last_seen_at"),
+        ("candidate", "candidate_published_at"),
+        ("candidate", "candidate_state_next_attempt"),
+        ("candidate_discovery", "candidate_discovery_endpoint_seen"),
+        ("candidate_discovery", "candidate_discovery_raw_item"),
+        ("candidate_transition", "candidate_transition_candidate_at"),
         ("source_document", "source_document_text_hash"),
         ("whatsapp_draft", "whatsapp_draft_status"),
     ]
@@ -422,8 +446,9 @@ def test_load_migrations_reads_package_resource():
         "0001_init",
         "0002_source_document",
         "0003_whatsapp_draft",
+        "0004_candidate",
     ]
-    assert [m.version for m in migrations] == [1, 2, 3]
+    assert [m.version for m in migrations] == [1, 2, 3, 4]
 
 
 def test_migration_filenames_follow_convention():
@@ -487,12 +512,12 @@ def test_database_newer_than_code_fails(tmp_path, capsys):
     with sqlite3.connect(db) as conn:
         conn.execute(
             "INSERT INTO schema_migration (version, checksum, applied_at) "
-            "VALUES (4, 'abc', '2026-10-07T12:00:00.000000+00:00')"
+            "VALUES (5, 'abc', '2026-10-07T12:00:00.000000+00:00')"
         )
     assert main(["--db", str(db), "init"]) == 1
     assert capsys.readouterr().err.splitlines() == [
         f"init: ERRO — {db}",
-        "- a base de dados tem a migração 0004, desconhecida desta versão do código "
+        "- a base de dados tem a migração 0005, desconhecida desta versão do código "
         "(base de dados mais recente que o código)",
     ]
 

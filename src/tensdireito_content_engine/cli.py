@@ -262,6 +262,7 @@ def daily_summary_markdown(result: DailyResult) -> str:
         f"| Redigidos por IA | {result.ai_drafts} |",
         "",
         *_funnel_markdown(result),
+        *_candidates_markdown(result),
     ]
     if failed:
         lines += ["### Fontes com falha", "", "| Endpoint | Erro |", "|---|---|"]
@@ -340,6 +341,41 @@ def _funnel_markdown(result: DailyResult) -> list[str]:
             "Motivo",
             lambda a: a.priority_reason,
         )
+    return lines
+
+
+def _candidates_markdown(result: DailyResult) -> list[str]:
+    """Registo de candidatos e cobertura por método de descoberta (fase 2a, DEC-068)."""
+    stats = result.candidate_stats
+    if stats is None:
+        return []
+    lines = [
+        "### Registo de candidatos",
+        "",
+        "| Medida | Valor |",
+        "|---|---:|",
+        f"| Capturas registadas neste run | {stats.observations} |",
+        f"| Candidatos (notícias) | {stats.candidates} |",
+        f"| Candidatos novos | {stats.new_candidates} |",
+        f"| Transições de estado | {stats.transitions} |",
+        f"| Capturas sem chave de URL | {result.candidates_without_key} |",
+        f"| Documentos (`tde normalize`) | {_md_cell(result.normalize_status or '—')} |",
+        "",
+    ]
+    if stats.by_state:
+        lines += ["| Estado | Candidatos |", "|---|---:|"]
+        lines += [f"| {state} | {n} |" for state, n in stats.by_state.items()]
+        lines.append("")
+    if stats.by_method:
+        lines += [
+            "| Método | Candidatos | Só por este método | Descobertas novas |",
+            "|---|---:|---:|---:|",
+        ]
+        lines += [
+            f"| {method} | {m.candidates} | {m.exclusive} | {m.new_discoveries} |"
+            for method, m in stats.by_method.items()
+        ]
+        lines.append("")
     return lines
 
 
@@ -649,6 +685,15 @@ def _audit_lines(result: DailyResult) -> list[str]:
     review = _review_first(result.by_priority(Priority.REVIEW))[:AUDIT_REVIEW_LINES]
     lines += [f"AUDITORIA baixa: {a.title} — {a.source_name}" for a in low]
     lines += [f"AUDITORIA rever: {a.title} — {a.priority_reason}" for a in review]
+    stats = result.candidate_stats
+    if stats is not None:
+        methods = "; ".join(
+            f"{method} {m.candidates} (só {m.exclusive})" for method, m in stats.by_method.items()
+        )
+        lines.append(
+            f"CANDIDATOS: {stats.candidates} notícias, {stats.new_candidates} novas; "
+            f"métodos: {methods or 'nenhum'}"
+        )
     return lines
 
 

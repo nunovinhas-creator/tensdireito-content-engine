@@ -14,25 +14,41 @@ from tensdireito_content_engine.collect import CollectResult, run_collect
 from tensdireito_content_engine.collectors import CollectorRegistry
 from tensdireito_content_engine.llm import LoadedLLM
 from tensdireito_content_engine.normalize import (
+    ExactDuplicate,
     NormalizedItem,
     RawContentError,
     deduplicate_exact,
     extract_rss_item,
     normalize_raw_item,
 )
+from tensdireito_content_engine.normalize_command import run_normalize
 from tensdireito_content_engine.priority import Priority, classify, load_priority_terms
 from tensdireito_content_engine.publish.whatsapp import WhatsAppMessage, format_whatsapp_message
 from tensdireito_content_engine.scoring import load_topic_terms, score_item
 from tensdireito_content_engine.similarity import same_topic
 from tensdireito_content_engine.sources import load_sources
 from tensdireito_content_engine.storage import (
+    StorageError,
     StoredRawItem,
     init_database,
     list_raw_items,
     persist_pending_drafts,
     sync_sources,
 )
+from tensdireito_content_engine.storage.candidates import (
+    ARCHIVED,
+    DISCOVERED,
+    DRAFTED,
+    GROUPED,
+    IN_GROUP,
+    METHODS,
+    OUT_OF_DAY,
+    CandidateStats,
+    Observation,
+    record_observations,
+)
 from tensdireito_content_engine.topics import TOPICS_FILENAME, TopicMap, load_topic_map
+from tensdireito_content_engine.url_key import UrlKeyError, url_key
 
 LISBON = ZoneInfo("Europe/Lisbon")
 DEFAULT_REPORT_DIR = Path("data") / "reports" / "daily"
@@ -78,6 +94,10 @@ class DailyResult:
     report_path: Path
     drafts_created: int
     ai_drafts: int = 0
+    # Fase 2a (DEC-068): registo de candidatos e resultado do `tde normalize` interno.
+    candidate_stats: CandidateStats | None = None
+    candidates_without_key: int = 0
+    normalize_status: str = ""
 
     def priority_counts(self) -> dict[str, int]:
         """Notícias do dia por prioridade, sempre com as três chaves."""
@@ -108,6 +128,12 @@ def run_daily(
     init_database(db_path, now=fixed_now)
     sync_sources(db_path, loaded.sources, loaded.endpoints, now=fixed_now)
     collection = run_collect(db_path, registry, now=fixed_now)
+    # DEC-064: o documento de cada captura fica em `source_document`. Uma falha aqui não
+    # impede o resto do run; fica registada no resumo.
+    try:
+        normalize_status = run_normalize(db_path, now=fixed_now).status
+    except StorageError as exc:
+        normalize_status = f"falhou: {exc}"
     selected_day = day or instant.astimezone(LISBON).date()
     topics = load_topic_terms(Path(config_path).parent / TOPICS_FILENAME)
     topic_map = load_topic_map(Path(config_path).parent / TOPICS_FILENAME)
@@ -115,6 +141,9 @@ def run_daily(
 
     candidates: list[tuple[StoredRawItem, NormalizedItem]] = []
     scores_by_raw_item: dict[int, float] = {}
+    # Fase 2a: tudo o que foi recolhido hoje é registado como candidato, com a origem da
+    # data de publicação; o que não é do dia passa a `fora_do_dia`.
+    seen_today: list[tuple[StoredRawItem, NormalizedItem, str, str]] = []
     stored_items = list_raw_items(db_path)
     # DEC-061: primeira recolha de cada endpoint, para datar itens sem `pubDate`.
     first_seen_by_endpoint: dict[str | None, date] = {}
@@ -133,16 +162,24 @@ def run_daily(
         # DEC-057: só notícias com data de publicação do próprio dia (Lisboa); sem data
         # ou com uma data antiga no URL, o item é descartado.
         published = normalized.published_at
+        seen = stored.item.fetched_at.astimezone(LISBON).date()
         if published is None:
             # Sem data: só conta se o item apareceu hoje pela primeira vez num endpoint que
             # já tinha sido recolhido antes (com a base persistida, DEC-061).
-            seen = stored.item.fetched_at.astimezone(LISBON).date()
             endpoint_start = first_seen_by_endpoint.get(stored.item.source_endpoint_id, seen)
-            if seen != selected_day or endpoint_start >= selected_day:
-                continue
-        elif published.astimezone(LISBON).date() != selected_day:
-            continue
-        if _url_date(stored.item.url) not in (None, selected_day):
+            in_day = seen == selected_day and endpoint_start < selected_day
+            date_source = "first_seen" if in_day else "none"
+            out_reason = "sem data de publicação fiável"
+        else:
+            in_day = published.astimezone(LISBON).date() == selected_day
+            date_source = "feed"
+            out_reason = "publicada noutro dia"
+        if in_day and _url_date(stored.item.url) not in (None, selected_day):
+            in_day = False
+            out_reason = "data no URL de outro dia"
+        if seen == selected_day or in_day:
+            seen_today.append((stored, normalized, date_source, "" if in_day else out_reason))
+        if not in_day:
             continue
         candidates.append((stored, normalized))
 
@@ -187,10 +224,12 @@ def run_daily(
             eligible.append(article)
     # DEC-059: notícias do mesmo tema dão um único rascunho, o de maior score.
     representatives: list[DailyArticle] = []
+    group_of: dict[int, int] = {}
     for article in sorted(eligible, key=lambda a: (-a.editorial_score, _article_order(a))):
         kept = next((k for k in representatives if same_topic(article.title, k.title)), None)
         if kept is not None:
             decisions[article.raw_item_id] = f"mesmo tema que «{_shorten(kept.title, 60)}»"
+            group_of[article.raw_item_id] = kept.raw_item_id
         elif len(representatives) >= MAX_DRAFTS_PER_RUN:
             decisions[article.raw_item_id] = DECISION_LIMIT
         else:
@@ -212,6 +251,13 @@ def run_daily(
         encoding="utf-8",
     )
     drafts_created = persist_pending_drafts(db_path, draft_candidates, instant)
+    observations, without_key = _observations(
+        seen_today,
+        {a.raw_item_id: a for a in articles},
+        group_of,
+        _duplicate_of(deduplicated.duplicates, records_by_item),
+    )
+    candidate_stats = record_observations(db_path, observations, collection.run_id, instant)
     return DailyResult(
         day=selected_day,
         collection=collection,
@@ -221,7 +267,95 @@ def run_daily(
         report_path=report_path,
         drafts_created=drafts_created,
         ai_drafts=ai_drafts,
+        candidate_stats=candidate_stats,
+        candidates_without_key=without_key,
+        normalize_status=normalize_status,
     )
+
+
+def _duplicate_of(
+    duplicates: tuple[ExactDuplicate, ...], records_by_item: dict[int, StoredRawItem]
+) -> dict[int, int]:
+    """Captura duplicada exacta → captura que a representa (ids de `raw_item`)."""
+    return {
+        records_by_item[id(dup.item)].id: records_by_item[id(dup.duplicate_of)].id
+        for dup in duplicates
+    }
+
+
+def discovery_method(stored: StoredRawItem) -> str:
+    """Método de descoberta de uma captura: as pesquisas do Bing contam como `search`."""
+    host = (urlsplit(stored.endpoint_url or "").hostname or "").lower()
+    if host == "bing.com" or host.endswith(".bing.com"):
+        return "search"
+    return stored.endpoint_type if stored.endpoint_type in METHODS else "rss"
+
+
+def candidate_target(
+    article: DailyArticle | None, out_reason: str, group_of: int | None
+) -> tuple[str, str, int | None]:
+    """Estado de destino de uma captura na fase 2a, a partir da decisão da fase 1."""
+    if article is None:
+        return OUT_OF_DAY, out_reason or "fora da janela do dia", None
+    if article.priority == Priority.LOW.value:
+        return ARCHIVED, article.priority_reason, None
+    if article.priority == Priority.REVIEW.value:
+        return DISCOVERED, article.priority_reason, None
+    if article.decision == DECISION_DRAFT:
+        return DRAFTED, "rascunho criado", None
+    if group_of is not None:
+        return IN_GROUP, article.decision, group_of
+    return GROUPED, article.decision, None
+
+
+def _observations(
+    seen_today: list[tuple[StoredRawItem, NormalizedItem, str, str]],
+    articles: dict[int, DailyArticle],
+    group_of: dict[int, int],
+    duplicate_of: dict[int, int],
+) -> tuple[list[Observation], int]:
+    observations: list[Observation] = []
+    without_key = 0
+    for stored, normalized, date_source, out_reason in seen_today:
+        endpoint = stored.item.source_endpoint_id
+        try:
+            key = url_key(stored.item.url)
+        except UrlKeyError:
+            without_key += 1
+            continue
+        if endpoint is None:
+            without_key += 1
+            continue
+        representative = duplicate_of.get(stored.id)
+        article = articles.get(representative if representative is not None else stored.id)
+        target, reason, group = candidate_target(article, out_reason, group_of.get(stored.id))
+        if representative is not None and article is not None:
+            # Duplicado exacto: segue o representante; se este deu rascunho, fica no grupo.
+            reason = f"duplicado exacto de «{_shorten(article.title, 60)}»"
+            if target == DRAFTED:
+                target, group = IN_GROUP, representative
+        observations.append(
+            Observation(
+                raw_item_id=stored.id,
+                endpoint_id=endpoint,
+                method=discovery_method(stored),
+                url_key=key,
+                url=stored.item.url,
+                title=normalized.title,
+                summary=_source_excerpt(stored.item.raw_content),
+                source_id=stored.source_id,
+                source_tier=stored.source_tier or "T3",
+                published_at=normalized.published_at,
+                published_at_source=date_source,
+                seen_at=stored.item.fetched_at,
+                priority=article.priority if article else Priority.LOW.value,
+                priority_reason=(article.priority_reason if article else "fora da janela do dia"),
+                target=target,
+                target_reason=reason,
+                group_of_raw_item_id=group,
+            )
+        )
+    return observations, without_key
 
 
 def _article_order(article: DailyArticle) -> tuple[float, str, str, str, int]:
